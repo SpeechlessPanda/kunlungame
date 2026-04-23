@@ -1,5 +1,6 @@
 import type { DialogueDependencies, DialogueOption } from './dialogueOrchestrator.js'
 import type { StoryPrompt } from './storyPromptBuilder.js'
+import { createRealLlamaSession } from './realLlamaSession.js'
 
 export interface LocalLlamaPromptCallOptions {
     maxTokens?: number
@@ -29,33 +30,7 @@ export interface LocalDialogueDependenciesOverrides {
     createSession?: (modelPath: string) => Promise<LocalLlamaSession>
 }
 
-const defaultCreateSession = async (modelPath: string): Promise<LocalLlamaSession> => {
-    const { getLlama, LlamaChatSession } = await import('node-llama-cpp')
-    const llama = await getLlama({ gpu: false })
-    const model = await llama.loadModel({ modelPath })
-    const context = await model.createContext({ contextSize: { max: 2048 } })
-    const session = new LlamaChatSession({ contextSequence: context.getSequence() })
-
-    return {
-        prompt: async (prompt, options) => {
-            return await session.prompt(prompt, {
-                // 120 是 node-llama-cpp 老默认，Galgame 一段自然对白往往要 250~400 字，
-                // 用 512 tokens 给模型一个足够完成「引入 + 举例 + 抛回问题」三段式的预算。
-                maxTokens: options.maxTokens ?? 512,
-                onTextChunk: options.onTextChunk,
-                stopOnAbortSignal: true
-            })
-        },
-        dispose: async () => {
-            await session.dispose?.()
-            await context.dispose?.()
-            await model.dispose?.()
-            await llama.dispose?.()
-        }
-    }
-}
-
-const formatStoryPrompt = (prompt: StoryPrompt): string => {
+export const formatStoryPrompt = (prompt: StoryPrompt): string => {
     return [
         'System:',
         prompt.system,
@@ -69,7 +44,7 @@ export async function* streamLocalLlamaText(
     input: StreamLocalLlamaTextInput,
     overrides: LocalDialogueDependenciesOverrides = {}
 ): AsyncGenerator<string> {
-    const createSession = overrides.createSession ?? defaultCreateSession
+    const createSession = overrides.createSession ?? createRealLlamaSession
     const maxRetries = input.maxRetries ?? 0
 
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {

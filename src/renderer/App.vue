@@ -213,6 +213,13 @@ interface KunlunDebug {
 
 const useMockStreamFlag = ref(true);
 
+// 环境探测：在真实 Electron 桌面壳里自动切到真模型；浏览器预览仍走 mock。
+const detectBridgeAvailable = (): boolean => {
+  const bridge = (window as unknown as { kunlunDesktop?: DesktopBridge })
+    .kunlunDesktop;
+  return bridge != null && typeof bridge.runMainlineTurn === "function";
+};
+
 const applyDependenciesFactory = (): void => {
   if (useMockStreamFlag.value) {
     // 复用默认工厂：它会把 turnIndex / attitude / isCompleted 透传给 mock，
@@ -287,6 +294,8 @@ const exposeDebug = (): void => {
 };
 
 onMounted(() => {
+  // 桌面壳里默认接入真实本地模型；浏览器/开发预览下仍走 mock 流。
+  useMockStreamFlag.value = !detectBridgeAvailable();
   applyDependenciesFactory();
   exposeDebug();
   void restoreFromBridge();

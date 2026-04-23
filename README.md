@@ -43,15 +43,17 @@ pnpm build
 pnpm dev
 ```
 
-`pnpm dev` 会打开桌面壳，默认以 mock 流跑通主线前两回合：chunk → options → 态度钳制 → 摘要更新 → 节点推进。关闭 mock 流开关后，每轮对话会经 `desktop:run-mainline-turn` IPC 打到主进程里的 `localDialogueDependencies`，由本地 GGUF 完成文本与选项生成。
+`pnpm dev` 会打开桌面壳。在真实 Electron 桌面里，渲染层会**自动检测 `window.kunlunDesktop` 存在并默认切换到真实本地模型**：每轮对话经 `desktop:run-mainline-turn` IPC 打到主进程里的 `localDialogueDependencies`，由本地 GGUF 完成文本与选项生成；浏览器预览（`vite dev` 或 Playwright）下会自动回落到 mock 流，用于 UI 验证。需要手动切换时可在 DevTools 里执行 `__kunlunDebug.useMockStream(true|false)`。
 
 ## 验证矩阵
 
 1. `pnpm typecheck` — `tsc --noEmit` + `vue-tsc --noEmit`
-2. `pnpm test --run` — Vitest 30 test files / 150 tests
-3. `pnpm test:e2e` — Playwright 渲染层黑盒
-4. `pnpm coverage` — 覆盖率报告（核心模块 ≥ 90%，总线 ≥ 80%）
-5. `docs/audits/2026-release-audit-template.md` — 正式发布前填写审计记录
+2. `pnpm test -- --run` — Vitest 32 test files / 171 tests
+3. `pnpm test:e2e` — Playwright 渲染层黑盒（14 scenarios）
+4. `pnpm coverage` — 覆盖率报告（整体 Lines ≥ 88%，核心模块 ≥ 90%）
+5. `pnpm dialogue:smoke` — 本地 GGUF 端到端冒烟；设 `$env:KUNLUN_SMOKE_MODE='compatibility'` 切到 3B 兜底 profile，便于 A/B 对比
+6. `pnpm audit --prod --registry=https://registry.npmjs.org/` — 默认 npmmirror 不提供 audit endpoint，必须显式指向官方 registry
+7. `docs/audits/2026-release-audit-template.md` — 正式发布前填写审计记录（最近一次：`docs/audits/2026-04-24-release-audit.md`）
 
 ## 仍需交付的素材
 

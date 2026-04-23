@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createLocalDialogueDependencies, streamLocalLlamaText } from '../src/modeling/localDialogueDependencies.js'
+import { createLocalDialogueDependencies, formatStoryPrompt, streamLocalLlamaText } from '../src/modeling/localDialogueDependencies.js'
 
 describe('streamLocalLlamaText', () => {
     it('yields streamed chunks from the local llama session in order', async () => {
@@ -166,5 +166,124 @@ describe('createLocalDialogueDependencies', () => {
                 label: '我有疑问'
             }
         ])
+    })
+})
+
+describe('formatStoryPrompt', () => {
+    it('joins system and user sections with the "System:"/"User:" headers the local llama expects', () => {
+        const text = formatStoryPrompt({
+            system: '你是昆仑谣的文化陪伴者。',
+            user: '讲讲昆仑作为文明坐标的意义。'
+        })
+
+        expect(text).toBe(
+            [
+                'System:',
+                '你是昆仑谣的文化陪伴者。',
+                '',
+                'User:',
+                '讲讲昆仑作为文明坐标的意义。'
+            ].join('\n')
+        )
+    })
+
+    it('does not crash on empty system / user strings and keeps the header layout stable', () => {
+        const text = formatStoryPrompt({ system: '', user: '' })
+        expect(text).toBe(['System:', '', '', 'User:', ''].join('\n'))
+    })
+})
+
+describe('streamLocalLlamaText · 边界分支', () => {
+    it('does NOT retry when the first attempt already emitted chunks, and surfaces the late error', async () => {
+        let attemptCount = 0
+
+        const iterate = async () => {
+            for await (const _chunk of streamLocalLlamaText(
+                {
+                    prompt: {
+                        system: 'sys',
+                        user: 'user'
+                    },
+                    modelPath: 'D:/models/qwen.gguf',
+                    maxRetries: 2
+                },
+                {
+                    createSession: async () => {
+                        attemptCount += 1
+                        return {
+                            prompt: async (_prompt, options) => {
+                                options.onTextChunk?.('半句。')
+                                throw new Error('late network drop')
+                            },
+                            dispose: async () => undefined
+                        }
+                    }
+                }
+            )) {
+                // 消费流
+            }
+        }
+
+        await expect(iterate()).rejects.toThrow('late network drop')
+        // 已经输出过 chunk 的尝试不应该再被重试。
+        expect(attemptCount).toBe(1)
+    })
+
+    it('ignores zero-length chunks and only yields non-empty text', async () => {
+        const chunks: string[] = []
+        for await (const chunk of streamLocalLlamaText(
+            {
+                prompt: {
+                    system: 'sys',
+                    user: 'user'
+                },
+                modelPath: 'D:/models/qwen.gguf'
+            },
+            {
+                createSession: async () => ({
+                    prompt: async (_prompt, options) => {
+                        options.onTextChunk?.('')
+                        options.onTextChunk?.('真实内容。')
+                        options.onTextChunk?.('')
+                        return '真实内容。'
+                    },
+                    dispose: async () => undefined
+                })
+            }
+        )) {
+            chunks.push(chunk)
+        }
+
+        expect(chunks).toEqual(['真实内容。'])
+    })
+
+    it('always disposes the session even when the consumer breaks out of the stream early', async () => {
+        let disposeCount = 0
+        const iterator = streamLocalLlamaText(
+            {
+                prompt: {
+                    system: 'sys',
+                    user: 'user'
+                },
+                modelPath: 'D:/models/qwen.gguf'
+            },
+            {
+                createSession: async () => ({
+                    prompt: async (_prompt, options) => {
+                        options.onTextChunk?.('第一段。')
+                        options.onTextChunk?.('第二段。')
+                        return '第一段。第二段。'
+                    },
+                    dispose: async () => {
+                        disposeCount += 1
+                    }
+                })
+            }
+        )
+
+        const { value } = await iterator.next()
+        expect(value).toBe('第一段。')
+        await iterator.return?.(undefined)
+        expect(disposeCount).toBe(1)
     })
 })
