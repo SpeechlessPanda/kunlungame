@@ -7,6 +7,12 @@ export interface RetrieveKnowledgeEntriesInput {
   theme?: string
   keywords: string[]
   limit: number
+  /**
+   * 可选轮换偏移量：传入同一节点的不同轮次（比如 turnsInCurrentNode），
+   * 让 ranked 条目以 round-robin 的方式轮换，避免 AI 在同一节点連续几轮看到一模一样的 3 条知识。
+   * 默认 0（向后兼容：与原有行为完全一致）。
+   */
+  turnSalt?: number
 }
 
 export interface RetrieveKnowledgeEntriesResult {
@@ -72,8 +78,13 @@ export const retrieveKnowledgeEntries = (
     .map((candidate) => candidate.entry)
 
   if (rankedEntries.length > 0) {
+    const salt = Math.max(0, Math.floor(input.turnSalt ?? 0))
+    const offset = rankedEntries.length === 0 ? 0 : salt % rankedEntries.length
+    const rotated = offset === 0
+      ? rankedEntries
+      : [...rankedEntries.slice(offset), ...rankedEntries.slice(0, offset)]
     return {
-      entries: rankedEntries.slice(0, input.limit),
+      entries: rotated.slice(0, input.limit),
       fallbackUsed: false
     }
   }

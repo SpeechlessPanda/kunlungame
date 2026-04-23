@@ -154,7 +154,8 @@ export const runMainlineTurn = async (
         allowedTopics: currentNode.allowedKnowledgeTopics,
         theme: currentNode.theme,
         keywords: currentNode.retrievalKeywords,
-        limit: input.retrievalLimit ?? 3
+        limit: input.retrievalLimit ?? 3,
+        turnSalt: input.runtimeState.turnsInCurrentNode
     })
 
     let dialogueDependencies: DialogueDependencies

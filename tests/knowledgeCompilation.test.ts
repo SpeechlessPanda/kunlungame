@@ -254,4 +254,32 @@ describe('retrieveKnowledgeEntries', () => {
 
     expect(result.entries).toHaveLength(1)
   })
+
+  it('rotates the ranked entry window when turnSalt changes (avoid identical context across turns)', () => {
+    const baseEntries = [
+      { id: 'a', topic: '昆仑神话', source: 's', summary: 'A', extension: 'EA', storyNodeIds: ['kunlun-prologue'], keywords: ['昆仑'] },
+      { id: 'b', topic: '昆仑神话', source: 's', summary: 'B', extension: 'EB', storyNodeIds: ['kunlun-prologue'], keywords: ['昆仑'] },
+      { id: 'c', topic: '昆仑神话', source: 's', summary: 'C', extension: 'EC', storyNodeIds: ['kunlun-prologue'], keywords: ['昆仑'] },
+      { id: 'd', topic: '昆仑神话', source: 's', summary: 'D', extension: 'ED', storyNodeIds: ['kunlun-prologue'], keywords: ['昆仑'] }
+    ]
+    const baseInput = {
+      entries: baseEntries,
+      currentNodeId: 'kunlun-prologue',
+      theme: '神话',
+      keywords: ['昆仑'],
+      limit: 2
+    } as const
+
+    const turn0 = retrieveKnowledgeEntries({ ...baseInput, turnSalt: 0 })
+    const turn1 = retrieveKnowledgeEntries({ ...baseInput, turnSalt: 1 })
+    const turn2 = retrieveKnowledgeEntries({ ...baseInput, turnSalt: 2 })
+
+    expect(turn0.entries.map((e) => e.id)).toEqual(['a', 'b'])
+    expect(turn1.entries.map((e) => e.id)).toEqual(['b', 'c'])
+    expect(turn2.entries.map((e) => e.id)).toEqual(['c', 'd'])
+
+    // 仅有少量条目时仍应正确 wrap-around，不重复也不丢失稳定性
+    const turnWrap = retrieveKnowledgeEntries({ ...baseInput, turnSalt: 4 })
+    expect(turnWrap.entries.map((e) => e.id)).toEqual(['a', 'b'])
+  })
 })
