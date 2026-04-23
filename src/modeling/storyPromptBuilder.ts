@@ -44,7 +44,7 @@ const describeToneForAttitude = (choiceMode: PlayerAttitudeChoice): string => {
 /** 节点进度决定她对玩家的熟悉程度：越靠前越试探，越靠后越亲近。*/
 const describeFamiliarity = (turnIndex: number): string => {
   if (turnIndex === 0) {
-    return '这是你们的第一次对话，你对玩家还有一点点拘谨，会先自我介绍一句再进入正题。'
+    return '这是你们的第一次对话，你对玩家有一点点拘谨；可以用最多一句话提一下自己的名字与身份，然后立刻进入本节点的正题，不要长篇自我介绍，也不要在后续轮次重复介绍自己。'
   }
   if (turnIndex <= 2) {
     return '你们已经聊过一两轮，你开始放松下来，会用更随意的语气说话。'
@@ -98,7 +98,12 @@ export const buildStoryPrompt = (input: StoryPromptBuilderInput): StoryPrompt =>
     '',
     '## 长度',
     '- 总长度 180–260 字，分成 3–5 个自然段或节奏段，每段之间用换行分开。',
-    '- 不要输出选项，不要输出旁白标记、Markdown 标题或 system 提示。'
+    '- 不要输出选项，不要输出旁白标记、Markdown 标题或 system 提示。',
+    '',
+    '## 风格延续（重要）',
+    '- 第一句话和最后一句话必须保持同一种"昆仑小妹妹"语气；不要前面撒娇、后面突然变成百科条目或新闻播报。',
+    '- 文化史实段落要写得严谨，但语气仍然是她在说话，不是从史书直接朗读。可以加一句她自己的小感想（"我每次想到这里都觉得好神奇"）来收束。',
+    '- 输出的最后一段必须以她自然说出的追问收尾，且这句追问也必须保留小妹妹语气。'
   ]
 
   if (input.strictCoverage === true) {
