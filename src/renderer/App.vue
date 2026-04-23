@@ -1,6 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ATTITUDE_MAX, ATTITUDE_MIN } from "../runtime/runtimeState.js";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import {
+  ATTITUDE_MAX,
+  ATTITUDE_MIN,
+  SAVE_VERSION,
+  type PlayerAttitudeChoice,
+  type RuntimeState,
+} from "../runtime/runtimeState.js";
 import {
   minimalStoryOutline,
   type StoryNode,
@@ -14,6 +20,14 @@ import {
   createTurnController,
   type ChoiceModel,
 } from "./composables/useTurnController.js";
+import {
+  createDialogueSession,
+  type DialogueDependenciesFactory,
+} from "./composables/useDialogueSession.js";
+import {
+  buildMockDialogueDependencies,
+  createDefaultDialogueDependenciesFactory,
+} from "./adapters/rendererDialogueDependencies.js";
 import { defaultAssetManifest } from "./assets/manifest.js";
 import { resolveAssetPath } from "../shared/contracts/assetManifest.js";
 
@@ -80,99 +94,53 @@ const refreshBgm = (next: BgmControllerState): void => {
 
 const settingsOpen = ref(false);
 
-const sampleNarratives: Record<string, string[]> = {
-  "kunlun-prologue": [
-    "云海之间，",
-    "一道昆仑的轮廓渐渐自寒气里浮现。",
-    "你听见山口传来风声，仿佛有人在等你开口。",
-  ],
-  "kunlun-rites": [
-    "转过玉阶，",
-    "铜色的编钟正好奏完一组清音。",
-    "礼官示意你落座，今天要讲的是雅乐如何拴住人心。",
-  ],
-  "kunlun-dialogue": [
-    "夜色里，",
-    "霓虹与雪山在同一扇玻璃上互相叠印。",
-    "她看着你，问：这些旧辞还能装进今天的生活吗？",
-  ],
-};
+const recentTurns = ref<string[]>([]);
 
-const sampleChoices: Record<string, [string, string]> = {
-  "kunlun-prologue": [
-    "我愿意聆听昆仑的第一句话。",
-    "这听起来过于神话，我需要证据。",
-  ],
-  "kunlun-rites": ["雅乐确实让我心绪平稳。", "这些声响离今天太远了。"],
-  "kunlun-dialogue": [
-    "这份交叠正是文化延续的样子。",
-    "霓虹归霓虹，旧辞应当留在旧辞里。",
-  ],
-};
-
-const timers = reactive<{
-  timeouts: ReturnType<typeof setTimeout>[];
-  intervals: ReturnType<typeof setInterval>[];
-}>({
-  timeouts: [],
-  intervals: [],
+const buildRuntimeState = (): RuntimeState => ({
+  saveVersion: SAVE_VERSION,
+  currentNodeId: currentNode.value?.id ?? demoNodes[0]!.id,
+  turnIndex: turnIndex.value,
+  attitudeScore: attitudeScore.value,
+  historySummary:
+    recentTurns.value.length === 0
+      ? "尚未展开任何对话。"
+      : `已经历 ${recentTurns.value.length} 轮对话。`,
+  readNodeIds: demoNodes
+    .slice(0, Math.min(nodeIndex.value, demoNodes.length))
+    .map((n) => n.id),
+  settings: { bgmEnabled: bgmState.value.enabled },
 });
-const clearTimers = (): void => {
-  timers.timeouts.forEach((h) => clearTimeout(h));
-  timers.intervals.forEach((h) => clearInterval(h));
-  timers.timeouts.length = 0;
-  timers.intervals.length = 0;
-};
 
-const scheduleReveal = (): void => {
-  const handle = setInterval(() => {
-    turn.revealNext(2);
-    if (
-      !turn.view.value.isRevealing &&
-      turn.view.value.snapshot.state === "streaming"
-    ) {
-      clearInterval(handle);
-    }
-  }, 60);
-  timers.intervals.push(handle);
-};
+const attitudeChoiceMode = ref<PlayerAttitudeChoice>("align");
+
+const dialogueSession = createDialogueSession({
+  dependenciesFactory: createDefaultDialogueDependenciesFactory(),
+});
 
 const runTurn = (): void => {
-  if (!currentNode.value) {
+  const node = currentNode.value;
+  if (!node) {
     return;
   }
-  clearTimers();
-  turn.dispatch({ type: "request-start" });
-  const chunks = sampleNarratives[currentNode.value.id] ?? ["…"];
-  let delay = 320;
-  chunks.forEach((chunk) => {
-    const handle = setTimeout(() => {
-      turn.appendText(chunk);
-    }, delay);
-    timers.timeouts.push(handle);
-    delay += 480;
-  });
-  const endHandle = setTimeout(() => {
-    turn.endStream();
-    scheduleReveal();
-  }, delay);
-  timers.timeouts.push(endHandle);
-  const choicesHandle = setTimeout(() => {
-    turn.skipReveal();
-    const pair = sampleChoices[currentNode.value!.id] ?? ["同意", "反驳"];
-    const choices: ChoiceModel[] = [
-      { id: "align", label: pair[0] },
-      { id: "challenge", label: pair[1] },
-    ];
-    turn.setChoices(choices);
-  }, delay + 360);
-  timers.timeouts.push(choicesHandle);
+  void dialogueSession.runTurn(
+    {
+      node,
+      runtimeState: buildRuntimeState(),
+      retrievedEntries: [],
+      attitudeChoiceMode: attitudeChoiceMode.value,
+      recentTurns: recentTurns.value.slice(-3),
+    },
+    turn,
+  );
 };
 
 const beginMainline = (): void => {
   nodeIndex.value = 0;
   turnIndex.value = 0;
   attitudeScore.value = 0;
+  recentTurns.value = [];
+  attitudeChoiceMode.value = "align";
+  dialogueSession.cancel();
   turn.reset();
   runTurn();
 };
@@ -183,7 +151,11 @@ const onChoose = (choice: ChoiceModel): void => {
     ATTITUDE_MAX,
     Math.max(ATTITUDE_MIN, attitudeScore.value + delta),
   );
+  attitudeChoiceMode.value = choice.id;
   turnIndex.value += 1;
+  recentTurns.value = [...recentTurns.value, turn.view.value.fullText].slice(
+    -5,
+  );
   turn.dispatch({ type: "choice-made" });
   if (nodeIndex.value < demoNodes.length - 1) {
     nodeIndex.value += 1;
@@ -225,12 +197,37 @@ interface KunlunDebug {
     nodeId: string | null;
     attitude: number;
   };
+  useMockStream(enabled: boolean): void;
+  getLastOptions(): { semantic: PlayerAttitudeChoice; label: string }[];
 }
+
+const useMockStreamFlag = ref(true);
+
+const applyDependenciesFactory = (): void => {
+  if (useMockStreamFlag.value) {
+    dialogueSession.setDependenciesFactory(({ node }) =>
+      buildMockDialogueDependencies(node),
+    );
+    return;
+  }
+  // 真实本地模型依赖接入由后续 session 补充。当前 fallback：
+  // 用一个立即报错的工厂，让 UI 能呈现 error 态，而不是静默成功。
+  const unavailableFactory: DialogueDependenciesFactory = () => ({
+    streamText: async function* () {
+      throw new Error("真实本地模型依赖尚未在渲染进程接入。");
+    },
+    generateOptions: async () => {
+      throw new Error("真实本地模型依赖尚未在渲染进程接入。");
+    },
+  });
+  dialogueSession.setDependenciesFactory(unavailableFactory);
+};
+
 const exposeDebug = (): void => {
   const debug: KunlunDebug = {
     start: beginMainline,
     injectError(message: string) {
-      clearTimers();
+      dialogueSession.cancel();
       turn.dispatch({ type: "error", message });
     },
     snapshot() {
@@ -241,15 +238,26 @@ const exposeDebug = (): void => {
         attitude: attitudeScore.value,
       };
     },
+    useMockStream(enabled: boolean) {
+      useMockStreamFlag.value = enabled;
+      applyDependenciesFactory();
+    },
+    getLastOptions() {
+      return dialogueSession.lastOptions.value.map((option) => ({
+        semantic: option.semantic,
+        label: option.label,
+      }));
+    },
   };
   (window as unknown as { __kunlunDebug?: KunlunDebug }).__kunlunDebug = debug;
 };
 
 onMounted(() => {
+  applyDependenciesFactory();
   exposeDebug();
 });
 onBeforeUnmount(() => {
-  clearTimers();
+  dialogueSession.cancel();
 });
 
 const demoCharacter = computed(() => ({
