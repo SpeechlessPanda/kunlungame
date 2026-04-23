@@ -8,12 +8,20 @@ import {
 const makeNode = (overrides: Partial<StoryNode> = {}): StoryNode => ({
   id: 'kunlun-prologue',
   title: '昆仑开篇',
+  era: 'myth-origin',
   theme: '神话源流',
+  coreQuestion: '占位问题',
   summary: '占位',
+  mustIncludeFacts: ['昆仑作为神话源头'],
   retrievalKeywords: ['昆仑'],
+  recommendedFigures: ['西王母'],
+  allowedKnowledgeTopics: ['kunlun'],
+  forbiddenFutureTopics: [],
   backgroundMode: 'fictional',
   backgroundHint: '云海与雪山',
   toneHint: '庄严',
+  characterCueIds: [],
+  minTurns: 1,
   nextNodeId: null,
   ...overrides
 })
