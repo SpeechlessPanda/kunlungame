@@ -1,43 +1,52 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { ChoiceModel, TurnViewModel } from '../composables/useTurnController.js'
+import { computed } from "vue";
+import type {
+  ChoiceModel,
+  TurnViewModel,
+} from "../composables/useTurnController.js";
 
 interface Props {
-  view: TurnViewModel
+  view: TurnViewModel;
 }
 
 interface Emits {
-  (event: 'choose', choice: ChoiceModel): void
+  (event: "choose", choice: ChoiceModel): void;
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
 const isReady = computed(
-  () => props.view.snapshot.state === 'awaiting-choice' && props.view.choices.length === 2
-)
+  () =>
+    props.view.snapshot.state === "awaiting-choice" &&
+    props.view.choices.length === 2,
+);
 
-const alignChoice = computed(() =>
-  props.view.choices.find((choice) => choice.id === 'align') ?? null
-)
+const alignChoice = computed(
+  () => props.view.choices.find((choice) => choice.id === "align") ?? null,
+);
 
-const challengeChoice = computed(() =>
-  props.view.choices.find((choice) => choice.id === 'challenge') ?? null
-)
+const challengeChoice = computed(
+  () => props.view.choices.find((choice) => choice.id === "challenge") ?? null,
+);
 
 const statusMessage = computed(() => {
   if (isReady.value) {
-    return '请选择本轮回应'
+    return "请选择本轮回应";
   }
-  if (props.view.snapshot.state === 'error') {
-    return '模型出错，暂无选项'
+  if (props.view.snapshot.state === "error") {
+    return "模型出错，暂无选项";
   }
-  return '选项将在讲述结束后出现'
-})
+  return "选项将在讲述结束后出现";
+});
 </script>
 
 <template>
-  <section class="choice-panel" :data-ready="isReady ? 'true' : 'false'" aria-label="对话选项区">
+  <section
+    class="choice-panel"
+    :data-ready="isReady ? 'true' : 'false'"
+    aria-label="对话选项区"
+  >
     <p
       v-if="!isReady"
       class="choice-panel__placeholder"
@@ -45,16 +54,22 @@ const statusMessage = computed(() => {
     >
       {{ statusMessage }}
     </p>
-    <div v-else class="choice-panel__buttons" role="group" aria-label="本轮两个回应">
+    <div
+      v-else
+      class="choice-panel__buttons"
+      role="group"
+      aria-label="本轮两个回应"
+    >
       <button
         v-if="alignChoice"
         type="button"
         class="choice-panel__button choice-panel__button--align"
         data-testid="choice-align"
         :aria-label="`顺从选项：${alignChoice.label}`"
+        aria-keyshortcuts="1"
         @click="emit('choose', alignChoice)"
       >
-        <span class="choice-panel__tag">顺从</span>
+        <span class="choice-panel__tag">顺从 · 1</span>
         <span class="choice-panel__label">{{ alignChoice.label }}</span>
       </button>
       <button
@@ -63,9 +78,10 @@ const statusMessage = computed(() => {
         class="choice-panel__button choice-panel__button--challenge"
         data-testid="choice-challenge"
         :aria-label="`反驳选项：${challengeChoice.label}`"
+        aria-keyshortcuts="2"
         @click="emit('choose', challengeChoice)"
       >
-        <span class="choice-panel__tag">反驳</span>
+        <span class="choice-panel__tag">反驳 · 2</span>
         <span class="choice-panel__label">{{ challengeChoice.label }}</span>
       </button>
     </div>
@@ -113,11 +129,23 @@ const statusMessage = computed(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  transition: transform var(--motion-fast) var(--ease-standard),
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
     box-shadow var(--motion-fast) var(--ease-standard),
     background var(--motion-fast) var(--ease-standard);
   touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choice-panel__button {
+    transition: none;
+  }
+  .choice-panel__button:hover,
+  .choice-panel__button:focus-visible,
+  .choice-panel__button:active {
+    transform: none;
+  }
 }
 
 .choice-panel__button:hover,
@@ -178,6 +206,18 @@ const statusMessage = computed(() => {
 @media (max-width: 720px) {
   .choice-panel__buttons {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .choice-panel {
+    min-height: auto;
+  }
+  .choice-panel__button {
+    /* 保证移动端点击命中 ≥56px，同时视觉上仍保留留白 */
+    min-height: var(--tap-target-choice);
+    padding: var(--space-3) var(--space-4);
+    gap: var(--space-1);
   }
 }
 </style>

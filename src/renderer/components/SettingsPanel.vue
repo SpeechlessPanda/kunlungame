@@ -1,28 +1,32 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { BgmControllerState } from '../../presentation/bgmController.js'
+import { computed, ref, toRef } from "vue";
+import type { BgmControllerState } from "../../presentation/bgmController.js";
+import { useFocusTrap } from "../composables/useFocusTrap.js";
 
 interface Props {
-  open: boolean
-  bgm: BgmControllerState
+  open: boolean;
+  bgm: BgmControllerState;
 }
 
 interface Emits {
-  (event: 'close'): void
-  (event: 'toggle-bgm'): void
-  (event: 'set-volume', value: number): void
+  (event: "close"): void;
+  (event: "toggle-bgm"): void;
+  (event: "set-volume", value: number): void;
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
-const volumePercent = computed(() => Math.round(props.bgm.volume * 100))
+const volumePercent = computed(() => Math.round(props.bgm.volume * 100));
 
 const onVolumeInput = (e: Event): void => {
-  const target = e.target as HTMLInputElement
-  const next = Number(target.value) / 100
-  emit('set-volume', Number.isFinite(next) ? next : 0)
-}
+  const target = e.target as HTMLInputElement;
+  const next = Number(target.value) / 100;
+  emit("set-volume", Number.isFinite(next) ? next : 0);
+};
+
+const panelRef = ref<HTMLElement | null>(null);
+useFocusTrap(toRef(props, "open"), panelRef);
 </script>
 
 <template>
@@ -32,9 +36,10 @@ const onVolumeInput = (e: Event): void => {
     role="dialog"
     aria-modal="true"
     aria-labelledby="settings-title"
+    data-testid="settings-overlay"
     @click.self="emit('close')"
   >
-    <div class="settings-panel">
+    <div class="settings-panel" ref="panelRef" data-testid="settings-panel">
       <header class="settings-panel__header">
         <h2 id="settings-title" class="settings-panel__title">设置</h2>
         <button
@@ -43,7 +48,9 @@ const onVolumeInput = (e: Event): void => {
           data-testid="settings-close"
           aria-label="关闭设置"
           @click="emit('close')"
-        >×</button>
+        >
+          ×
+        </button>
       </header>
 
       <section class="settings-panel__section">
@@ -51,7 +58,7 @@ const onVolumeInput = (e: Event): void => {
           <div>
             <p class="settings-panel__label">BGM 开关</p>
             <p class="settings-panel__hint">
-              {{ bgm.sourceAvailable ? '可用' : '音频资源缺失，已自动静音' }}
+              {{ bgm.sourceAvailable ? "可用" : "音频资源缺失，已自动静音" }}
             </p>
           </div>
           <button
@@ -183,7 +190,7 @@ const onVolumeInput = (e: Event): void => {
   opacity: 0.5;
 }
 
-.settings-panel__switch[aria-checked='true'] {
+.settings-panel__switch[aria-checked="true"] {
   background: rgba(63, 154, 106, 0.45);
 }
 
@@ -198,7 +205,7 @@ const onVolumeInput = (e: Event): void => {
   transition: transform var(--motion-fast) var(--ease-standard);
 }
 
-.settings-panel__switch-thumb[data-on='true'] {
+.settings-panel__switch-thumb[data-on="true"] {
   transform: translateX(22px);
 }
 

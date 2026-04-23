@@ -42,7 +42,7 @@ test.describe('Kunlun Ballad UI shell', () => {
       { timeout: 5000 }
     )
     await page.evaluate(() => {
-      ;(window as unknown as { __kunlunDebug: { injectError(m: string): void } }).__kunlunDebug.injectError(
+      ; (window as unknown as { __kunlunDebug: { injectError(m: string): void } }).__kunlunDebug.injectError(
         '模型暂时不可用，请稍后重试。'
       )
     })
@@ -59,5 +59,110 @@ test.describe('Kunlun Ballad UI shell', () => {
     await expect(toggle).toBeVisible()
     await expect(toggle).toBeDisabled()
     await page.getByTestId('settings-close').click()
+  })
+
+  test('keyboard shortcut 1 picks the align option when choices are ready', async ({ page }) => {
+    await page.goto('/src/renderer/index.html')
+    await page.getByTestId('start-button').click()
+    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 10000 })
+
+    await page.keyboard.press('1')
+    await expect(page.getByTestId('status-node-title')).toContainText('礼乐之径', { timeout: 5000 })
+  })
+
+  test('Escape closes the settings panel and restores focus to the entry button', async ({ page }) => {
+    await page.goto('/src/renderer/index.html')
+    const entry = page.getByTestId('settings-open')
+    await entry.focus()
+    await entry.press('Enter')
+    await expect(page.getByTestId('settings-overlay')).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('settings-overlay')).toHaveCount(0)
+    // 焦点还给设置入口按钮
+    await expect(entry).toBeFocused()
+  })
+
+  test('mobile viewport keeps dialog and tap-friendly choices (≥56px)', async ({ page }) => {
+    await page.setViewportSize({ width: 400, height: 800 })
+    await page.goto('/src/renderer/index.html')
+    await expect(page.getByTestId('game-shell')).toBeVisible()
+    await expect(page.getByTestId('dialog-empty')).toBeVisible()
+
+    await page.getByTestId('start-button').click()
+    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 10000 })
+
+    const alignBox = await page.getByTestId('choice-align').boundingBox()
+    const challengeBox = await page.getByTestId('choice-challenge').boundingBox()
+    expect(alignBox?.height ?? 0).toBeGreaterThanOrEqual(56)
+    expect(challengeBox?.height ?? 0).toBeGreaterThanOrEqual(56)
+  })
+
+  test('visual regression: mobile status bar stacks and choice buttons go single column', async ({ page }) => {
+    await page.setViewportSize({ width: 400, height: 800 })
+    await page.goto('/src/renderer/index.html')
+
+    const statusBar = page.locator('.status-bar')
+    const statusFlex = await statusBar.evaluate((el) => getComputedStyle(el).flexDirection)
+    expect(statusFlex).toBe('column')
+
+    await page.getByTestId('start-button').click()
+    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 10000 })
+    const gridTemplate = await page
+      .locator('.choice-panel__buttons')
+      .evaluate((el) => getComputedStyle(el).gridTemplateColumns)
+    // 单列时 grid-template-columns 只剩一个轨道（例如 "360px"）
+    expect(gridTemplate.trim().split(/\s+/).length).toBe(1)
+  })
+
+  test('visual regression: desktop layout keeps status bar in row and choices two-column', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/src/renderer/index.html')
+
+    const statusBar = page.locator('.status-bar')
+    const statusFlex = await statusBar.evaluate((el) => getComputedStyle(el).flexDirection)
+    expect(statusFlex).toBe('row')
+
+    await page.getByTestId('start-button').click()
+    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 10000 })
+    const tracks = await page
+      .locator('.choice-panel__buttons')
+      .evaluate((el) => getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length)
+    expect(tracks).toBe(2)
+  })
+
+  test('reduced-motion: blinking cursor animation is disabled', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/src/renderer/index.html')
+    await page.getByTestId('start-button').click()
+
+    // 等流式开始但还没揭示完
+    await expect(page.getByTestId('dialog-text')).toBeVisible({ timeout: 5000 })
+    const cursor = page.locator('.dialog-panel__cursor').first()
+    if ((await cursor.count()) > 0) {
+      const animation = await cursor.evaluate((el) => getComputedStyle(el).animationName)
+      expect(animation).toBe('none')
+    }
+  })
+
+  test('performance: shell first paint and first dialogue chunk land under budgets', async ({ page }) => {
+    const t0 = Date.now()
+    await page.goto('/src/renderer/index.html')
+    await page.getByTestId('game-shell').waitFor({ state: 'visible', timeout: 5000 })
+    const shellMs = Date.now() - t0
+
+    // 对 Vite dev 环境设一个宽松但有效的预算：5000ms 内壳可见。
+    expect(shellMs).toBeLessThan(5000)
+
+    const t1 = Date.now()
+    await page.getByTestId('start-button').click()
+    await page.getByTestId('dialog-text').waitFor({ state: 'visible', timeout: 5000 })
+    const firstChunkMs = Date.now() - t1
+    // 首段讲述 chunk（320ms 延迟 + 揭示）通常 < 2000ms。
+    expect(firstChunkMs).toBeLessThan(4000)
+
+    // 记录到 stdout，便于 CI 看到演进。
+    // eslint-disable-next-line no-console
+    console.log(`[perf] shell-visible=${shellMs}ms first-chunk=${firstChunkMs}ms`)
   })
 })
