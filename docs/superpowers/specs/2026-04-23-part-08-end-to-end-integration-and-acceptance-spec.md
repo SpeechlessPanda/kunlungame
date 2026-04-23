@@ -1,5 +1,21 @@
 # Part 08 Spec: 端到端集成与验收层
 
+## Execution Status
+
+Status: blocked
+
+Completed prerequisites in this session:
+
+1. Part 02 的 structured mainline contracts 已完成，并已生成 canonical `storyOutline.json`。
+2. Part 03 的 cultural knowledge 编译与节点边界检索已完成，并已生成 43 条 `knowledgeEntries.json`。
+3. Part 04 的真实主线状态推进、存档恢复与文化记忆摘要重建已完成。
+4. Part 05 的 prompt builder、dialogue orchestrator facade 与事件契约已完成非 UI 聚焦验证。
+5. 已完成一次 fresh non-UI 全量验证：`pnpm typecheck`、`pnpm test`、`pnpm build`、`pnpm knowledge:compile` 全部通过。
+
+Current blocker:
+
+1. Part 06 UI shell 与 Part 07 renderer-side stage components 尚未实现，因此无法执行真正的端到端 Windows 桌面闭环验收。
+
 ## 1. 目标
 
 把前 7 个部分串成一个可验证的首版闭环，并将验收标准、覆盖率门槛和发布前检查条件落到实际可执行流程。
@@ -22,6 +38,7 @@
 
 1. 强依赖 Part 01 至 Part 07 全部完成。
 2. 依赖项目级 instructions 中的测试和审计规则。
+3. 在当前执行状态下，Part 02 至 Part 05 的 non-UI 前置已满足，但 Part 06 与 renderer-side 的 Part 07 仍未满足。
 
 ## 5. 契约与边界
 
@@ -70,14 +87,21 @@
 6. 黑盒、白盒、覆盖率要求都满足。
 7. 文档和实施计划与当前实现保持同步。
 
-## 10. 交付物
+## 10. Deferred After Part 05
+
+1. Part 06 UI shell。
+2. Part 07 renderer-side visual stage and asset presentation。
+3. 主线 + 本地模型的一轮真实协作冒烟，以及不少于 5 分钟的桌面端闭环试玩。
+4. 覆盖率门槛复核与正式发布前审计记录。
+
+## 11. 交付物
 
 1. 端到端测试。
 2. 最终验收清单。
 3. 覆盖率报告。
 4. 发布前审计记录模板或文档。
 
-## 11. 风险与回滚边界
+## 12. 风险与回滚边界
 
 1. 若没有专门的集成层 spec，团队很容易在前面各部分都“看起来完成”但实际上不能形成闭环。
 2. 若覆盖率和验收标准不在这里写死，最终会把“能跑”误当成“可交付”。

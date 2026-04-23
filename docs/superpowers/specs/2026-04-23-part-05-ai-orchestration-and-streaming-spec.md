@@ -14,11 +14,13 @@ Completed in this session:
 6. 已新增 `storyPromptBuilder`，将当前节点问题、必经事实、历史摘要、检索知识和反剧透边界组装进中文 prompt。
 7. 已新增 `dialogueOrchestrator` facade，固定输出 `chunk`、`options`、`complete`、`error` 四类事件。
 8. 已完成 Part 05 聚焦单测，验证中文 prompt、反剧透边界、二选一语义映射和事件顺序。
+9. 已完成一次 fresh non-UI 全量验证：`pnpm typecheck`、`pnpm test`、`pnpm build`、`pnpm knowledge:compile` 全部通过。
 
 Currently blocked or deferred:
 
 1. 真实模型流式接入、失败重试策略和依赖注入适配尚未完全接到当前 facade。
 2. 涉及真实角色素材和前端 UI 呈现的部分继续保留接口，不在本轮写死。
+3. 与真实本地模型联动的一轮对话协作冒烟尚未固化为自动化测试，暂留到 Part 08 的集成验收门。
 
 ## 1. 目标
 

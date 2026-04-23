@@ -1,5 +1,20 @@
 # Part 07 Spec: 视觉表现层与资源位系统
 
+## Execution Status
+
+Status: in progress
+
+Completed in this session:
+
+1. 已补齐非 UI 的角色 cue 规则，明确 `characterCueIds` 先映射稳定 cue，再映射 portrait 或 runtime-3d 槽位。
+2. 已把 `guide.kunlun` 和 `player.memory-self` 写入共享资产规则文档，避免后续把角色 cue 直接写成平台路径或文件名。
+3. 已完成一次 fresh non-UI 全量验证，确认 Part 02 至 Part 05 与当前 cue 规则没有合同漂移。
+
+Currently blocked or deferred:
+
+1. Part 06 UI 容器尚未实现，因此本部分的 renderer-side stage、背景切换组件和 BGM 占位组件仍未开始。
+2. 最终 2D 角色立绘、3D 运行时模型和真实背景素材路径继续保持未绑定状态。
+
 ## 1. 目标
 
 在不依赖最终素材文件本体的前提下，先建立背景模式切换、资源位占位、BGM 占位和视觉表现接入规则。
@@ -78,7 +93,13 @@
 3. BGM 占位组件。
 4. 视觉层测试与占位演示。
 
-## 11. 风险与回滚边界
+## 11. Deferred After Part 05
+
+1. Part 06 UI shell。
+2. Part 07 renderer-side stage components。
+3. Part 08 end-to-end acceptance and release audit。
+
+## 12. 风险与回滚边界
 
 1. 若先写死真实素材路径，后续用户交付素材时会大面积返工。
 2. 若视觉模式不服从主线节点定义，内容与画面会持续失配。
