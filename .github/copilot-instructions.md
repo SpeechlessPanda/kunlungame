@@ -34,6 +34,7 @@ These instructions apply to all future Copilot sessions in this repository.
 2. Prefer clear boundaries between renderer, desktop shell, story state, retrieval, AI orchestration, and presentation code.
 3. Favor minimal, maintainable solutions over clever shortcuts.
 4. New code must match the best practices of the relevant language and framework used in this repository.
+5. Use `pnpm` as the default package manager unless the user explicitly requests otherwise.
 
 ## 5. Testing Policy
 
@@ -71,6 +72,9 @@ The audit record should clearly list what was checked, what passed, what failed,
 
 1. Do not end the conversation immediately after finishing a task.
 2. At the end of each session, use the appropriate question tool to ask whether anything should be improved next or what the next step should be.
+3. If user confirmation, clarification, or further scoping detail is needed at any point, do not interrupt the flow with a plain-text question, and do not make the decision silently on the user's behalf. Use the question tool so the user can choose directly.
+4. If a task is likely to run for a long time or consume substantial context, explicitly judge whether it should be delegated to a subagent. Base that decision on whether the work is largely independent and whether its intermediate context is useful to the main agent.
+5. When the long-running or context-heavy task is a good fit for delegation, hand it to a subagent instead of keeping the full workload in the main agent context. If additional user detail is needed before that delegation decision or before dispatch, use the question tool rather than interrupting the conversation in plain text.
 
 ## 9. Project-Specific Content Rule
 

@@ -85,17 +85,17 @@ Recommended background sets for later asset preparation:
 
 - [ ] **Step 1: Create the Electron + Vue + TypeScript scaffold**
 
-Run: `npm create electron-vite@latest . -- --template vue-ts`
+Run: `pnpm create electron-vite . --template vue-ts`
 Expected: project scaffold created with Electron, renderer, and TypeScript files.
 
 - [ ] **Step 2: Install runtime dependencies**
 
-Run: `npm install pinia zod gray-matter markdown-it openai`
+Run: `pnpm add pinia zod gray-matter markdown-it openai`
 Expected: dependencies installed without audit blockers that prevent local development.
 
 - [ ] **Step 3: Install test dependencies**
 
-Run: `npm install -D vitest @vitest/coverage-v8 @vue/test-utils jsdom @playwright/test`
+Run: `pnpm add -D vitest @vitest/coverage-v8 @vue/test-utils jsdom @playwright/test`
 Expected: test toolchain added to `package.json`.
 
 - [ ] **Step 4: Replace the default Electron main process with a minimal app shell**
@@ -140,7 +140,7 @@ app.mount('#app')
 
 - [ ] **Step 6: Run the app to verify the shell opens**
 
-Run: `npm run dev`
+Run: `pnpm dev`
 Expected: Electron window opens and renders the Vue app.
 
 - [ ] **Step 7: Commit**
@@ -613,7 +613,7 @@ export interface AiSettings {
 
 - [ ] **Step 5: Run a manual connectivity check**
 
-Run: `npm run dev`
+Run: `pnpm dev`
 Expected: app can issue a local request and stream partial text into the UI shell.
 
 - [ ] **Step 6: Commit**
@@ -767,7 +767,7 @@ Expected: PASS
 Run: `npx playwright test`
 Expected: PASS
 
-Run: `npm run dev`
+Run: `pnpm dev`
 Expected: desktop app can stream dialogue, generate two contextual options, preserve progress, and show retry UI on failure.
 
 - [ ] **Step 6: Commit**
@@ -883,10 +883,10 @@ git commit -m "feat: add first playable kunlun content package"
 
 ## Verification Checklist
 
-- [ ] `npm install`
+- [ ] `pnpm install`
 - [ ] `npx vitest run`
 - [ ] `npx playwright test`
-- [ ] `npm run dev`
+- [ ] `pnpm dev`
 - [ ] Manual check: streaming output appears progressively rather than all at once.
 - [ ] Manual check: both buttons are contextual, not static labels.
 - [ ] Manual check: choosing different tones changes style but does not fork the storyline.
