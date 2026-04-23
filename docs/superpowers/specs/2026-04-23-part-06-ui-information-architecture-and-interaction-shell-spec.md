@@ -108,3 +108,13 @@
 6. 测试覆盖：
    - 白盒：`tests/useKeyboardControls.test.ts`、`tests/useFocusTrap.test.ts` 使用 Node 环境验证纯函数决策（不新增 DOM 依赖）。
    - 黑盒 / E2E：`tests/e2e/rendererShell.spec.ts` 新增三个场景——键盘 `1` 选 align、`Esc` 关设置并还焦点、400×800 视口对话与选项仍可见且命中区 ≥56px。
+
+## 14. 实施进度（feat/ui-polish · 第二轮 a11y）
+
+1. DOM 单测：引入 `happy-dom` devDep，通过 `// @vitest-environment happy-dom` 单文件切换，为两个 composable 增加端到端 DOM 测试：
+   - `tests/composables/useKeyboardControls.dom.test.ts`：window `keydown` 触发 handler、输入控件内仅 Escape 放行、未识别键不 preventDefault、unmount 后监听解绑。
+   - `tests/composables/useFocusTrap.dom.test.ts`：`collectFocusable` 过滤 disabled / aria-hidden / tabindex=-1；Tab 正向 & Shift+Tab 反向循环与首尾环绕；激活时聚焦首元素、关闭时还原到打开前焦点；未激活时不拦截 Tab。
+2. a11y 深度审计：
+   - `prefers-contrast: more`：进一步抬高辅助文本不透明度至 0.92 / 0.78，边框到 0.22 / 0.45，焦点环改为 `#ffd86b` + 3px outline + 3px offset，覆盖 WCAG 1.4.6 AAA 级可选偏好。
+   - `forced-colors: active`（Windows 高对比度）：关键可交互元素 `forced-color-adjust: none` + `border-color: CanvasText`，焦点环改用 `CanvasText`，避免系统覆盖主题色导致边界丢失。
+   - 对 `background-stage__hint` 在最亮 palette (`--palette-heritage-from #2d221a`) 上的辅助文本实测 ≥9.5:1（现值 0.78 foreground-muted），冗余但安全。

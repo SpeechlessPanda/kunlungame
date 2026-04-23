@@ -139,3 +139,38 @@ button {
     --motion-slow: 0ms;
   }
 }
+
+/*
+ * 高对比度偏好（WCAG 1.4.6 AAA 级可选支持）：进一步抬高辅助文本
+ * 与边框的可见度，让低视力用户可以通过系统设置拿到更强对比。
+ */
+@media (prefers-contrast: more) {
+  :root {
+    --color-foreground-muted: rgba(245, 247, 251, 0.92);
+    --color-foreground-dim: rgba(245, 247, 251, 0.78);
+    --color-border: rgba(255, 255, 255, 0.22);
+    --color-border-strong: rgba(255, 255, 255, 0.45);
+    --color-focus-ring: #ffd86b;
+  }
+  :focus-visible {
+    outline-width: 3px;
+    outline-offset: 3px;
+  }
+}
+
+/*
+ * Windows 高对比度 / forced-colors：让系统色接管关键视觉，
+ * 仅保留形状与焦点指示，避免主题色被忽略导致无法识别按钮边界。
+ */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
+  button,
+  [role='switch'],
+  [role='dialog'] {
+    forced-color-adjust: none;
+    border-color: CanvasText;
+  }
+}

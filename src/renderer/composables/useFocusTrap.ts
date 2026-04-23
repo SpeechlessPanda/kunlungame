@@ -114,11 +114,11 @@ export function useFocusTrap(
                 }
             }
         },
-        { immediate: false }
-    )
+    { immediate: true }
+  )
 
-    onBeforeUnmount(() => {
-        if (typeof document === 'undefined') return
-        document.removeEventListener('keydown', onKeyDown, true)
-    })
+  onBeforeUnmount(() => {
+    if (typeof document === 'undefined') return
+    document.removeEventListener('keydown', onKeyDown, true)
+  })
 }
