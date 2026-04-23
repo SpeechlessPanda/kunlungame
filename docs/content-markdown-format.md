@@ -20,16 +20,24 @@
 
 1. `id`
 2. `title`
-3. `theme`
-4. `retrievalKeywords`
-5. `backgroundMode`
-6. `nextNodeId`
+3. `era`
+4. `theme`
+5. `coreQuestion`
+6. `retrievalKeywords`
+7. `mustIncludeFacts`
+8. `recommendedFigures`
+9. `allowedKnowledgeTopics`
+10. `backgroundMode`
+11. `nextNodeId`
 
 建议字段：
 
-1. `sourceRefs`
-2. `draftStatus`
-3. `assetNotes`
+1. `forbiddenFutureTopics`
+2. `characterCueIds`
+3. `minTurns`
+4. `sourceRefs`
+5. `draftStatus`
+6. `assetNotes`
 
 ## 正文小节
 
@@ -45,12 +53,26 @@
 ---
 id: kunlun-prologue
 title: 昆仑开篇
+era: myth-origin
 theme: 神话源流
+coreQuestion: 我们为什么要从昆仑开始重新理解中国文化？
 retrievalKeywords:
   - 昆仑
   - 西王母
   - 山海经
+mustIncludeFacts:
+  - 昆仑被视为世界中心
+  - 西王母形象体现昆仑文化的长期演化
+recommendedFigures:
+  - 西王母
+allowedKnowledgeTopics:
+  - myth-origin
+forbiddenFutureTopics:
+  - civilization-origin
+characterCueIds:
+  - guide.kunlun
 backgroundMode: fictional
+minTurns: 1
 nextNodeId: null
 sourceRefs:
   - 待补充
@@ -88,3 +110,5 @@ assetNotes:
 2. `nextNodeId` 即使为终点也必须出现，终点统一写 `null`。
 3. `retrievalKeywords` 至少保留一个值，禁止留空数组。
 4. `Summary`、`Background Hint`、`Tone Hint` 这三个正文小节必须存在。
+5. `allowedKnowledgeTopics` 只能写当前节点可引用的主题层，不能提前放入后续章节主题。
+6. `characterCueIds` 只写稳定 cue，不直接绑定真实 2D 或 3D 文件路径。

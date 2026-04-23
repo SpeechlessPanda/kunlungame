@@ -3,10 +3,12 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import {
+  compileKnowledgeSources,
   compileKnowledgeDirectory,
   parseKnowledgeMarkdown,
   retrieveKnowledgeEntries
 } from '../src/modeling/knowledgeCompilation.js'
+import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
 
 const sampleMarkdown = `---
 id: kunlun-myth-overview
@@ -26,6 +28,33 @@ keywords:
 ## Extension
 
 可延伸到西王母与周穆王的叙事。
+`
+
+const culturalKnowledgeMarkdown = `# 昆仑谣：文化知识库
+
+## 一、昆仑神话与上古世界观
+
+### 1.1 昆仑山的神圣地位
+
+- 昆仑山被视为世界中心与天柱
+- 西王母形象见证昆仑文化演化
+
+### 1.2 核心神话故事
+
+- 盘古开天、女娲补天与大禹治水构成神话源流
+
+## 九、当代文化自觉与回归
+
+### 9.1 文化自觉
+
+- 费孝通提出文化自觉
+- 数字文化让传统回到当代生活
+
+## 十、叙事素材与对话设计
+
+### 10.5 游戏对话示例
+
+- 这一节只作为 prompt 示例，不能进入事实检索
 `
 
 describe('parseKnowledgeMarkdown', () => {
@@ -75,6 +104,36 @@ describe('compileKnowledgeDirectory', () => {
   })
 })
 
+describe('compileKnowledgeSources', () => {
+  it('compiles the cultural knowledge markdown into story outline and knowledge entry outputs', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlungame-cultural-knowledge-'))
+    const knowledgeSourceFile = join(tempDir, 'cultural-knowledge.md')
+    const outputDir = join(tempDir, 'generated')
+
+    await writeFile(knowledgeSourceFile, culturalKnowledgeMarkdown, 'utf8')
+
+    const result = await compileKnowledgeSources({
+      knowledgeSourceFile,
+      storyOutline: mainlineStoryOutline,
+      outputDir
+    })
+
+    const writtenStoryOutline = JSON.parse(
+      await readFile(join(outputDir, 'storyOutline.json'), 'utf8')
+    ) as { entryNodeId: string }
+    const writtenEntries = JSON.parse(
+      await readFile(join(outputDir, 'knowledgeEntries.json'), 'utf8')
+    ) as Array<{ topic: string; storyNodeIds: string[] }>
+
+    expect(result.storyOutline.entryNodeId).toBe('kunlun-threshold')
+    expect(writtenStoryOutline.entryNodeId).toBe('kunlun-threshold')
+    expect(result.entries.some((entry) => entry.topic === 'myth-origin')).toBe(true)
+    expect(result.entries.every((entry) => entry.storyNodeIds.length > 0)).toBe(true)
+    expect(writtenEntries.some((entry) => entry.topic === 'myth-origin')).toBe(true)
+    expect(writtenEntries.every((entry) => entry.topic !== 'dialogue-samples')).toBe(true)
+  })
+})
+
 describe('retrieveKnowledgeEntries', () => {
   it('prioritizes explicit story node matches over keyword-only matches', () => {
     const result = retrieveKnowledgeEntries({
@@ -104,11 +163,11 @@ describe('retrieveKnowledgeEntries', () => {
       limit: 2
     })
 
-    expect(result.entries.map((entry) => entry.id)).toEqual(['direct-node-match', 'keyword-only'])
+    expect(result.entries.map((entry) => entry.id)).toEqual(['direct-node-match'])
     expect(result.fallbackUsed).toBe(false)
   })
 
-  it('returns a fallback result instead of throwing when no entries match', () => {
+  it('returns an empty fallback result instead of crossing into another node', () => {
     const result = retrieveKnowledgeEntries({
       entries: [
         {
@@ -122,13 +181,47 @@ describe('retrieveKnowledgeEntries', () => {
         }
       ],
       currentNodeId: 'later-node',
+      allowedTopics: ['commercial-culture'],
       theme: '商业文化',
       keywords: ['交子'],
       limit: 1
     })
 
     expect(result.fallbackUsed).toBe(true)
-    expect(result.entries[0]?.id).toBe('general-entry')
+    expect(result.entries).toEqual([])
+  })
+
+  it('does not return future-node knowledge when only current-node entries remain eligible', () => {
+    const result = retrieveKnowledgeEntries({
+      entries: [
+        {
+          id: 'current-node-entry',
+          topic: 'myth-origin',
+          source: '占位来源',
+          summary: '当前节点允许的知识条目。',
+          extension: '延伸内容',
+          storyNodeIds: ['kunlun-threshold'],
+          keywords: ['昆仑']
+        },
+        {
+          id: 'future-node-entry',
+          topic: 'contemporary-return',
+          source: '占位来源',
+          summary: '未来节点条目。',
+          extension: '延伸内容',
+          storyNodeIds: ['contemporary-return'],
+          keywords: ['文化自觉']
+        }
+      ],
+      currentNodeId: 'kunlun-threshold',
+      allowedTopics: ['myth-origin'],
+      keywords: ['不存在的关键词'],
+      limit: 3
+    })
+
+    expect(result.fallbackUsed).toBe(false)
+    expect(result.entries.map((entry) => entry.id)).toEqual(['current-node-entry'])
+    expect(result.entries.every((entry) => entry.storyNodeIds.includes('kunlun-threshold'))).toBe(true)
   })
 
   it('respects the requested result limit after ranking', () => {

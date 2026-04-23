@@ -1,16 +1,20 @@
 import { join } from 'node:path'
-import { compileKnowledgeDirectory } from '../src/modeling/knowledgeCompilation.js'
+import { compileKnowledgeSources } from '../src/modeling/knowledgeCompilation.js'
+import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
 
 const main = async (): Promise<void> => {
   const projectRoot = process.cwd()
-  const inputDir = join(projectRoot, 'md', 'knowledge')
-  const outputFile = join(projectRoot, 'src', 'content', 'generated', 'knowledgeEntries.json')
-  const result = await compileKnowledgeDirectory({
-    inputDir,
-    outputFile
+  const knowledgeSourceFile = join(projectRoot, 'docs', 'knowledge-base', 'cultural-knowledge.md')
+  const outputDir = join(projectRoot, 'src', 'content', 'generated')
+  const result = await compileKnowledgeSources({
+    knowledgeSourceFile,
+    storyOutline: mainlineStoryOutline,
+    outputDir
   })
 
-  console.log(`Compiled ${result.entries.length} knowledge entries to ${outputFile}.`)
+  console.log(
+    `Compiled ${result.entries.length} knowledge entries and story outline to ${outputDir}.`
+  )
 }
 
 void main().catch((error: unknown) => {

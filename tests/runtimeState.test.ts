@@ -3,10 +3,12 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import { minimalStoryOutline } from '../src/shared/contracts/contentContracts.js'
+import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
 import {
   applyPlayerChoice,
   createDefaultRuntimeState,
   deserializeRuntimeState,
+  resolveRuntimeStateAgainstStoryOutline,
   serializeRuntimeState,
   type PlayerAttitudeChoice
 } from '../src/runtime/runtimeState.js'
@@ -21,6 +23,13 @@ describe('createDefaultRuntimeState', () => {
     expect(result.attitudeScore).toBe(0)
     expect(result.settings.bgmEnabled).toBe(true)
     expect(result.readNodeIds).toEqual([])
+  })
+
+  it('starts from the structured mainline entry node and uses the repaired-memory summary wording', () => {
+    const result = createDefaultRuntimeState(mainlineStoryOutline)
+
+    expect(result.currentNodeId).toBe('kunlun-threshold')
+    expect(result.historySummary).toBe('尚未修复任何文化记忆片段。')
   })
 })
 
@@ -68,6 +77,40 @@ describe('applyPlayerChoice', () => {
       })
     ).toThrow("Current runtime node 'missing-node' is not present in the story outline.")
   })
+
+  it('advances through the real mainline without changing the fixed node order', () => {
+    const initialState = createDefaultRuntimeState(mainlineStoryOutline)
+
+    const result = applyPlayerChoice({
+      state: initialState,
+      storyOutline: mainlineStoryOutline,
+      choice: 'challenge'
+    })
+
+    expect(result.currentNodeId).toBe('creation-myths')
+    expect(result.turnIndex).toBe(1)
+    expect(result.attitudeScore).toBe(-1)
+    expect(result.readNodeIds).toEqual(['kunlun-threshold'])
+    expect(result.historySummary).toContain('昆仑初问')
+    expect(result.historySummary).toContain('已修复')
+  })
+})
+
+describe('resolveRuntimeStateAgainstStoryOutline', () => {
+  it('rebuilds the repaired-memory summary from saved read nodes', () => {
+    const result = resolveRuntimeStateAgainstStoryOutline(
+      {
+        ...createDefaultRuntimeState(mainlineStoryOutline),
+        currentNodeId: 'creation-myths',
+        readNodeIds: ['kunlun-threshold', 'creation-myths'],
+        historySummary: ''
+      },
+      mainlineStoryOutline
+    )
+
+    expect(result.historySummary).toContain('昆仑初问')
+    expect(result.historySummary).toContain('神话开天')
+  })
 })
 
 describe('runtime state serialization', () => {
@@ -99,6 +142,20 @@ describe('saveRepository', () => {
     expect(result.state.currentNodeId).toBe('kunlun-prologue')
   })
 
+  it('creates the real mainline default save from kunlun-threshold', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlungame-save-'))
+    const saveFilePath = join(tempDir, 'save.json')
+
+    const result = await loadRuntimeState({
+      storyOutline: mainlineStoryOutline,
+      saveFilePath
+    })
+
+    expect(result.recoveryAction).toBe('created-default')
+    expect(result.state.currentNodeId).toBe('kunlun-threshold')
+    expect(result.state.historySummary).toBe('尚未修复任何文化记忆片段。')
+  })
+
   it('persists and reloads a save file', async () => {
     const tempDir = await mkdtemp(join(tmpdir(), 'kunlungame-save-'))
     const saveFilePath = join(tempDir, 'save.json')
@@ -106,7 +163,8 @@ describe('saveRepository', () => {
       ...createDefaultRuntimeState(minimalStoryOutline),
       attitudeScore: 2,
       turnIndex: 4,
-      historySummary: '已进行四轮。'
+      historySummary: '占位摘要，会在重载时按已读节点重建。',
+      readNodeIds: ['kunlun-prologue']
     }
 
     await saveRuntimeState({
@@ -120,7 +178,10 @@ describe('saveRepository', () => {
     })
 
     expect(reloaded.recoveryAction).toBe('loaded-existing')
-    expect(reloaded.state).toEqual(state)
+    expect(reloaded.state).toEqual({
+      ...state,
+      historySummary: '已修复的文化记忆片段：昆仑开篇。'
+    })
   })
 
   it('falls back to a new default save when the file is corrupted', async () => {

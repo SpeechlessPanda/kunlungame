@@ -1,6 +1,11 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, extname, join } from 'node:path'
-import { knowledgeEntrySchema, type KnowledgeEntry } from '../shared/contracts/contentContracts.js'
+import {
+  knowledgeEntrySchema,
+  parseStoryOutline,
+  type KnowledgeEntry,
+  type StoryOutline
+} from '../shared/contracts/contentContracts.js'
 
 export interface CompileKnowledgeDirectoryInput {
   inputDir: string
@@ -11,9 +16,21 @@ export interface CompileKnowledgeDirectoryResult {
   entries: KnowledgeEntry[]
 }
 
+export interface CompileKnowledgeSourcesInput {
+  knowledgeSourceFile: string
+  storyOutline: StoryOutline
+  outputDir: string
+}
+
+export interface CompileKnowledgeSourcesResult {
+  storyOutline: StoryOutline
+  entries: KnowledgeEntry[]
+}
+
 export interface RetrieveKnowledgeEntriesInput {
   entries: KnowledgeEntry[]
   currentNodeId: string
+  allowedTopics?: string[]
   theme?: string
   keywords: string[]
   limit: number
@@ -25,6 +42,66 @@ export interface RetrieveKnowledgeEntriesResult {
 }
 
 const normalizeMarkdown = (markdown: string): string => markdown.replace(/\r\n/g, '\n')
+
+const CULTURAL_SECTION_CONFIG: Record<
+  string,
+  {
+    topic: string
+    storyNodeIds: string[]
+    includeInEntries: boolean
+  }
+> = {
+  一: {
+    topic: 'myth-origin',
+    storyNodeIds: ['kunlun-threshold', 'creation-myths'],
+    includeInEntries: true
+  },
+  二: {
+    topic: 'civilization-origin',
+    storyNodeIds: ['civilization-roots'],
+    includeInEntries: true
+  },
+  三: {
+    topic: 'order-and-thought',
+    storyNodeIds: ['order-and-thought'],
+    includeInEntries: true
+  },
+  四: {
+    topic: 'order-and-thought',
+    storyNodeIds: ['order-and-thought'],
+    includeInEntries: true
+  },
+  五: {
+    topic: 'order-and-thought',
+    storyNodeIds: ['order-and-thought'],
+    includeInEntries: true
+  },
+  六: {
+    topic: 'empire-and-openness',
+    storyNodeIds: ['empire-and-openness'],
+    includeInEntries: true
+  },
+  七: {
+    topic: 'fusion-and-refinement',
+    storyNodeIds: ['fusion-and-refinement'],
+    includeInEntries: true
+  },
+  八: {
+    topic: 'rupture-and-guardianship',
+    storyNodeIds: ['rupture-and-guardianship'],
+    includeInEntries: true
+  },
+  九: {
+    topic: 'contemporary-return',
+    storyNodeIds: ['contemporary-return'],
+    includeInEntries: true
+  },
+  十: {
+    topic: 'dialogue-samples',
+    storyNodeIds: [],
+    includeInEntries: false
+  }
+}
 
 const parseScalarValue = (value: string): string | null => {
   const trimmedValue = value.trim()
@@ -117,6 +194,120 @@ const parseMarkdownSections = (body: string, sourcePath: string): Record<string,
   return sectionMap
 }
 
+const cleanHeadingLabel = (heading: string): string => {
+  return heading.replace(/^\d+(?:\.\d+)?\s*/, '').trim()
+}
+
+const collectKeywords = (sectionTitle: string, subsectionTitle: string): string[] => {
+  const keywords = [cleanHeadingLabel(sectionTitle), cleanHeadingLabel(subsectionTitle)]
+  return Array.from(new Set(keywords.filter((keyword) => keyword !== '')))
+}
+
+const buildEntrySummary = (content: string): { summary: string; extension: string } => {
+  const normalizedContent = content
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '')
+
+  if (normalizedContent.length === 0) {
+    return {
+      summary: '待补充知识摘要。',
+      extension: '待补充知识延伸。'
+    }
+  }
+
+  const summary = normalizedContent[0]?.replace(/^[-*]\s*/, '') ?? '待补充知识摘要。'
+  const extensionLines = normalizedContent.slice(1)
+
+  return {
+    summary,
+    extension:
+      extensionLines.length > 0
+        ? extensionLines.join('\n')
+        : `${summary}（编译自原始文化知识库章节）`
+  }
+}
+
+const parseCulturalKnowledgeMarkdown = (
+  markdown: string,
+  sourcePath: string
+): KnowledgeEntry[] => {
+  const lines = normalizeMarkdown(markdown).split('\n')
+  const entries: KnowledgeEntry[] = []
+  let currentTopLevelTitle: string | null = null
+  let currentSubsectionTitle: string | null = null
+  let currentSubsectionLines: string[] = []
+
+  const pushCurrentSubsection = (): void => {
+    if (!currentTopLevelTitle || !currentSubsectionTitle) {
+      return
+    }
+
+    const topLevelMatch = currentTopLevelTitle.match(/^([一二三四五六七八九十]+)、(.+)$/)
+    if (!topLevelMatch) {
+      currentSubsectionTitle = null
+      currentSubsectionLines = []
+      return
+    }
+
+    const [, sectionIndex] = topLevelMatch
+    const sectionConfig = CULTURAL_SECTION_CONFIG[sectionIndex]
+    if (!sectionConfig || !sectionConfig.includeInEntries) {
+      currentSubsectionTitle = null
+      currentSubsectionLines = []
+      return
+    }
+
+    const subsectionContent = currentSubsectionLines.join('\n').trim()
+    const { summary, extension } = buildEntrySummary(subsectionContent)
+    const entryId = `${sectionConfig.topic}-${String(entries.length + 1).padStart(2, '0')}`
+
+    entries.push(
+      knowledgeEntrySchema.parse({
+        id: entryId,
+        topic: sectionConfig.topic,
+        source: `${sourcePath}#${cleanHeadingLabel(currentSubsectionTitle)}`,
+        summary,
+        extension,
+        storyNodeIds: sectionConfig.storyNodeIds,
+        keywords: collectKeywords(currentTopLevelTitle, currentSubsectionTitle)
+      })
+    )
+
+    currentSubsectionTitle = null
+    currentSubsectionLines = []
+  }
+
+  for (const line of lines) {
+    if (line.startsWith('## ')) {
+      pushCurrentSubsection()
+      currentTopLevelTitle = line.slice(3).trim()
+      currentSubsectionTitle = null
+      currentSubsectionLines = []
+      continue
+    }
+
+    if (line.startsWith('### ')) {
+      pushCurrentSubsection()
+      currentSubsectionTitle = line.slice(4).trim()
+      currentSubsectionLines = []
+      continue
+    }
+
+    if (currentSubsectionTitle) {
+      currentSubsectionLines.push(line)
+    }
+  }
+
+  pushCurrentSubsection()
+
+  if (entries.length === 0) {
+    throw new Error(`[${sourcePath}] Cultural knowledge compilation produced no structured entries.`)
+  }
+
+  return entries
+}
+
 export const parseKnowledgeMarkdown = (markdown: string, sourcePath: string): KnowledgeEntry => {
   const { attributes, body } = parseFrontMatter(markdown, sourcePath)
   const sections = parseMarkdownSections(body, sourcePath)
@@ -185,6 +376,29 @@ export const compileKnowledgeDirectory = async (
   }
 }
 
+export const compileKnowledgeSources = async (
+  input: CompileKnowledgeSourcesInput
+): Promise<CompileKnowledgeSourcesResult> => {
+  const markdown = await readFile(input.knowledgeSourceFile, 'utf8')
+  const storyOutline = parseStoryOutline(input.storyOutline)
+  const entries = parseCulturalKnowledgeMarkdown(markdown, input.knowledgeSourceFile)
+
+  await mkdir(input.outputDir, {
+    recursive: true
+  })
+  await writeFile(join(input.outputDir, 'storyOutline.json'), `${JSON.stringify(storyOutline, null, 2)}\n`, 'utf8')
+  await writeFile(
+    join(input.outputDir, 'knowledgeEntries.json'),
+    `${JSON.stringify(entries, null, 2)}\n`,
+    'utf8'
+  )
+
+  return {
+    storyOutline,
+    entries
+  }
+}
+
 const countKeywordMatches = (entryKeywords: string[], queryKeywords: string[]): number => {
   const queryKeywordSet = new Set(queryKeywords.filter((keyword) => keyword.trim() !== ''))
   let matches = 0
@@ -201,7 +415,15 @@ const countKeywordMatches = (entryKeywords: string[], queryKeywords: string[]): 
 export const retrieveKnowledgeEntries = (
   input: RetrieveKnowledgeEntriesInput
 ): RetrieveKnowledgeEntriesResult => {
-  const rankedEntries = input.entries
+  const allowedTopics = input.allowedTopics?.filter((topic) => topic.trim() !== '') ?? []
+  const eligibleEntries = input.entries.filter((entry) => {
+    const directNodeMatch = entry.storyNodeIds.includes(input.currentNodeId)
+    const topicAllowed = allowedTopics.length === 0 || allowedTopics.includes(entry.topic)
+
+    return directNodeMatch && topicAllowed
+  })
+
+  const rankedEntries = eligibleEntries
     .map((entry) => {
       const directNodeMatch = entry.storyNodeIds.includes(input.currentNodeId) ? 1 : 0
       const keywordMatches = countKeywordMatches(entry.keywords, input.keywords)
@@ -242,7 +464,7 @@ export const retrieveKnowledgeEntries = (
   }
 
   return {
-    entries: input.entries.slice(0, input.limit),
+    entries: eligibleEntries.slice(0, input.limit),
     fallbackUsed: true
   }
 }
