@@ -21,6 +21,7 @@ These instructions apply to all future Copilot sessions in this repository.
 4. If a release-facing behavior changes, update release notes or delivery notes before release.
 5. When implementing against project specs, update the relevant spec file as progress is made. Mark what has been completed, what is intentionally deferred, and what is currently blocked.
 6. If some work cannot be completed yet because required assets, story content, UI implementation, or external constraints are missing, record that explicitly in the relevant spec instead of leaving the gap implicit.
+7. After spec files or plan documents have served their purpose, merge them into the surviving canonical document or delete them promptly if they are no longer useful. Do not leave obsolete or one-off spec/plan files lingering without an owner.
 
 ## 3. Reusable Knowledge And Project Skills
 
