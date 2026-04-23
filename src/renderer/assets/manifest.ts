@@ -18,6 +18,56 @@ import characterSilhouetteUrl from './placeholders/character-silhouette.svg?url'
 export const defaultAssetManifest: AssetManifest = parseAssetManifest({
     version: 1,
     entries: {
+        // —— canonical 8 节点（Part 02 · mainlineOutline） —— //
+        'background.kunlun-threshold.scene': {
+            slotId: 'background.kunlun-threshold.scene',
+            slotType: 'background',
+            assetPath: backgroundFictionalUrl,
+            placeholderPolicy: 'static-placeholder'
+        },
+        'background.creation-myths.scene': {
+            slotId: 'background.creation-myths.scene',
+            slotType: 'background',
+            assetPath: backgroundFictionalUrl,
+            placeholderPolicy: 'static-placeholder'
+        },
+        'background.civilization-roots.scene': {
+            slotId: 'background.civilization-roots.scene',
+            slotType: 'background',
+            assetPath: backgroundFictionalUrl,
+            placeholderPolicy: 'static-placeholder'
+        },
+        'background.order-and-thought.scene': {
+            slotId: 'background.order-and-thought.scene',
+            slotType: 'background',
+            assetPath: backgroundCompositeUrl,
+            placeholderPolicy: 'static-placeholder'
+        },
+        'background.empire-and-openness.scene': {
+            slotId: 'background.empire-and-openness.scene',
+            slotType: 'background',
+            assetPath: backgroundPhotographicUrl,
+            placeholderPolicy: 'static-placeholder'
+        },
+        'background.fusion-and-refinement.scene': {
+            slotId: 'background.fusion-and-refinement.scene',
+            slotType: 'background',
+            assetPath: backgroundCompositeUrl,
+            placeholderPolicy: 'static-placeholder'
+        },
+        'background.rupture-and-guardianship.scene': {
+            slotId: 'background.rupture-and-guardianship.scene',
+            slotType: 'background',
+            assetPath: backgroundPhotographicUrl,
+            placeholderPolicy: 'static-placeholder'
+        },
+        'background.contemporary-return.scene': {
+            slotId: 'background.contemporary-return.scene',
+            slotType: 'background',
+            assetPath: backgroundCompositeUrl,
+            placeholderPolicy: 'static-placeholder'
+        },
+        // —— 旧 demo 节点（保留 fallback） —— //
         'background.kunlun-prologue.scene': {
             slotId: 'background.kunlun-prologue.scene',
             slotType: 'background',
@@ -38,6 +88,12 @@ export const defaultAssetManifest: AssetManifest = parseAssetManifest({
         },
         'character.narrator.portrait': {
             slotId: 'character.narrator.portrait',
+            slotType: 'character',
+            assetPath: characterSilhouetteUrl,
+            placeholderPolicy: 'static-placeholder'
+        },
+        'character.guide.kunlun.portrait': {
+            slotId: 'character.guide.kunlun.portrait',
             slotType: 'character',
             assetPath: characterSilhouetteUrl,
             placeholderPolicy: 'static-placeholder'

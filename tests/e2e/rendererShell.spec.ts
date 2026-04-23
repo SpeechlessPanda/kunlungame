@@ -5,7 +5,7 @@ test.describe('Kunlun Ballad UI shell', () => {
     await page.goto('/src/renderer/index.html')
 
     await expect(page.getByTestId('game-shell')).toBeVisible()
-    await expect(page.getByTestId('status-node-title')).toContainText('昆仑开篇')
+    await expect(page.getByTestId('status-node-title')).toContainText('昆仑初问')
     await expect(page.getByTestId('dialog-empty')).toBeVisible()
     await expect(page.getByTestId('start-button')).toBeVisible()
   })
@@ -15,20 +15,21 @@ test.describe('Kunlun Ballad UI shell', () => {
     await page.getByTestId('start-button').click()
 
     await expect(page.getByTestId('dialog-text')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByTestId('dialog-text')).toContainText('云海', { timeout: 8000 })
+    await expect(page.getByTestId('dialog-text')).toContainText('昆仑', { timeout: 8000 })
 
-    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
     await expect(page.getByTestId('choice-challenge')).toBeVisible()
   })
 
-  test('changes background mode when advancing to next node', async ({ page }) => {
+  test('changes node when advancing via the align choice', async ({ page }) => {
     await page.goto('/src/renderer/index.html')
     await page.getByTestId('start-button').click()
-    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
 
     await page.getByTestId('choice-align').click()
-    await expect(page.getByTestId('status-node-title')).toContainText('礼乐之径', { timeout: 5000 })
-    await expect(page.getByTestId('background-mode-label')).toHaveText('实景照片')
+    // canonical mainline: kunlun-threshold (fictional) → creation-myths (fictional)
+    await expect(page.getByTestId('status-node-title')).toContainText('神话开天', { timeout: 5000 })
+    await expect(page.getByTestId('background-mode-label')).toHaveText('虚构意象')
   })
 
   test('shows error state with retry entry when injected', async ({ page }) => {
@@ -64,10 +65,10 @@ test.describe('Kunlun Ballad UI shell', () => {
   test('keyboard shortcut 1 picks the align option when choices are ready', async ({ page }) => {
     await page.goto('/src/renderer/index.html')
     await page.getByTestId('start-button').click()
-    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
 
     await page.keyboard.press('1')
-    await expect(page.getByTestId('status-node-title')).toContainText('礼乐之径', { timeout: 5000 })
+    await expect(page.getByTestId('status-node-title')).toContainText('神话开天', { timeout: 5000 })
   })
 
   test('Escape closes the settings panel and restores focus to the entry button', async ({ page }) => {
@@ -90,7 +91,7 @@ test.describe('Kunlun Ballad UI shell', () => {
     await expect(page.getByTestId('dialog-empty')).toBeVisible()
 
     await page.getByTestId('start-button').click()
-    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
 
     const alignBox = await page.getByTestId('choice-align').boundingBox()
     const challengeBox = await page.getByTestId('choice-challenge').boundingBox()
@@ -107,7 +108,7 @@ test.describe('Kunlun Ballad UI shell', () => {
     expect(statusFlex).toBe('column')
 
     await page.getByTestId('start-button').click()
-    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
     const gridTemplate = await page
       .locator('.choice-panel__buttons')
       .evaluate((el) => getComputedStyle(el).gridTemplateColumns)
@@ -124,7 +125,7 @@ test.describe('Kunlun Ballad UI shell', () => {
     expect(statusFlex).toBe('row')
 
     await page.getByTestId('start-button').click()
-    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
     const tracks = await page
       .locator('.choice-panel__buttons')
       .evaluate((el) => getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length)

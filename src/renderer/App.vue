@@ -3,14 +3,12 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import {
   ATTITUDE_MAX,
   ATTITUDE_MIN,
-  SAVE_VERSION,
+  applyPlayerChoice,
+  createDefaultRuntimeState,
   type PlayerAttitudeChoice,
   type RuntimeState,
-} from "../runtime/runtimeState.js";
-import {
-  minimalStoryOutline,
-  type StoryNode,
-} from "../shared/contracts/contentContracts.js";
+} from "../runtime/runtimeState.js";import { mainlineStoryOutline } from "../content/source/mainlineOutline.js";
+import type { StoryNode } from "../shared/contracts/contentContracts.js";
 import {
   createBgmController,
   type BgmControllerState,
@@ -31,56 +29,20 @@ import {
 import { defaultAssetManifest } from "./assets/manifest.js";
 import { resolveAssetPath } from "../shared/contracts/assetManifest.js";
 
-// --- 演示用节点（未接入真实主线前的回退内容） -------------------------------
-const demoNodes: StoryNode[] = [
-  minimalStoryOutline.nodes[0]!,
-  {
-    id: "kunlun-rites",
-    title: "礼乐之径",
-    era: "ritual-music",
-    theme: "礼乐文明",
-    coreQuestion: "礼乐如何把神话秩序落地成生活秩序？",
-    summary: "从神话边界过渡到礼乐文明的历史现场。",
-    mustIncludeFacts: ["周代礼乐制度以钟鼓为核心"],
-    retrievalKeywords: ["礼乐", "周礼", "编钟"],
-    recommendedFigures: ["周公"],
-    allowedKnowledgeTopics: ["ritual-music"],
-    forbiddenFutureTopics: [],
-    backgroundMode: "photographic",
-    backgroundHint: "青铜编钟与朱漆礼器陈列在博物馆灯光下。",
-    toneHint: "沉稳、克制、略带敬畏。",
-    characterCueIds: [],
-    minTurns: 1,
-    nextNodeId: null,
-  },
-  {
-    id: "kunlun-dialogue",
-    title: "今古对谈",
-    era: "modern-dialogue",
-    theme: "现代转化",
-    coreQuestion: "古典文化如何在今天的日常里继续生效？",
-    summary: "神话与今天的日常生活在同一个画面里并置。",
-    mustIncludeFacts: ["传统文化的现代转化是持续命题"],
-    retrievalKeywords: ["现代", "传统", "转化"],
-    recommendedFigures: ["叙述者"],
-    allowedKnowledgeTopics: ["modern-transformation"],
-    forbiddenFutureTopics: [],
-    backgroundMode: "composite",
-    backgroundHint: "夜色中的城市天际线与昆仑雪山叠印。",
-    toneHint: "好奇、清醒、对话式。",
-    characterCueIds: [],
-    minTurns: 1,
-    nextNodeId: null,
-  },
-];
-
-const nodeIndex = ref(0);
-const currentNode = computed<StoryNode | null>(
-  () => demoNodes[nodeIndex.value] ?? null,
+// --- Canonical 8 节点主线（Part 02 · mainlineStoryOutline） --------------
+const storyOutline = mainlineStoryOutline;
+const nodesById = new Map<string, StoryNode>(
+  storyOutline.nodes.map((n) => [n.id, n]),
 );
+const findNode = (id: string): StoryNode | null => nodesById.get(id) ?? null;
 
-const turnIndex = ref(0);
-const attitudeScore = ref(0);
+// --- 运行时状态（态度值 / 已读节点 / 摘要由 outline 驱动重建） ----------
+const runtimeState = ref<RuntimeState>(createDefaultRuntimeState(storyOutline));
+const currentNode = computed<StoryNode | null>(() =>
+  findNode(runtimeState.value.currentNodeId),
+);
+const turnIndex = computed(() => runtimeState.value.turnIndex);
+const attitudeScore = computed(() => runtimeState.value.attitudeScore);
 
 const turn = createTurnController();
 
@@ -96,21 +58,6 @@ const settingsOpen = ref(false);
 
 const recentTurns = ref<string[]>([]);
 
-const buildRuntimeState = (): RuntimeState => ({
-  saveVersion: SAVE_VERSION,
-  currentNodeId: currentNode.value?.id ?? demoNodes[0]!.id,
-  turnIndex: turnIndex.value,
-  attitudeScore: attitudeScore.value,
-  historySummary:
-    recentTurns.value.length === 0
-      ? "尚未展开任何对话。"
-      : `已经历 ${recentTurns.value.length} 轮对话。`,
-  readNodeIds: demoNodes
-    .slice(0, Math.min(nodeIndex.value, demoNodes.length))
-    .map((n) => n.id),
-  settings: { bgmEnabled: bgmState.value.enabled },
-});
-
 const attitudeChoiceMode = ref<PlayerAttitudeChoice>("align");
 
 const dialogueSession = createDialogueSession({
@@ -125,7 +72,7 @@ const runTurn = (): void => {
   void dialogueSession.runTurn(
     {
       node,
-      runtimeState: buildRuntimeState(),
+      runtimeState: runtimeState.value,
       retrievedEntries: [],
       attitudeChoiceMode: attitudeChoiceMode.value,
       recentTurns: recentTurns.value.slice(-3),
@@ -135,9 +82,7 @@ const runTurn = (): void => {
 };
 
 const beginMainline = (): void => {
-  nodeIndex.value = 0;
-  turnIndex.value = 0;
-  attitudeScore.value = 0;
+  runtimeState.value = createDefaultRuntimeState(storyOutline);
   recentTurns.value = [];
   attitudeChoiceMode.value = "align";
   dialogueSession.cancel();
@@ -146,21 +91,20 @@ const beginMainline = (): void => {
 };
 
 const onChoose = (choice: ChoiceModel): void => {
-  const delta = choice.id === "align" ? 1 : -1;
-  attitudeScore.value = Math.min(
-    ATTITUDE_MAX,
-    Math.max(ATTITUDE_MIN, attitudeScore.value + delta),
-  );
   attitudeChoiceMode.value = choice.id;
-  turnIndex.value += 1;
   recentTurns.value = [...recentTurns.value, turn.view.value.fullText].slice(
     -5,
   );
+  // Part 04 · applyPlayerChoice 负责态度值钳制、已读节点、摘要重建、主线推进。
+  runtimeState.value = applyPlayerChoice({
+    state: runtimeState.value,
+    storyOutline,
+    choice: choice.id,
+  });
   turn.dispatch({ type: "choice-made" });
-  if (nodeIndex.value < demoNodes.length - 1) {
-    nodeIndex.value += 1;
+  if (currentNode.value) {
+    runTurn();
   }
-  runTurn();
 };
 
 const onRetry = (): void => {
