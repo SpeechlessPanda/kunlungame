@@ -286,4 +286,42 @@ describe('streamLocalLlamaText · 边界分支', () => {
         await iterator.return?.(undefined)
         expect(disposeCount).toBe(1)
     })
+
+    it('routes system prompt to createSession (ChatML system role) and only user text to session.prompt', async () => {
+        // 回归 2026-04 缺陷：早期实现把 system+user 拼成一段塞进 user 消息，
+        // 导致 Qwen2.5 跳过 ChatML system 模板，人格只生效一两句就漂走。
+        let capturedSystem: string | undefined
+        let capturedUserPrompt: string | undefined
+
+        for await (const _chunk of streamLocalLlamaText(
+            {
+                prompt: {
+                    system: '你是昆仑，活泼小妹妹的文化陪伴者。',
+                    user: '请用 30 字开场介绍昆仑。'
+                },
+                modelPath: 'D:/models/qwen.gguf'
+            },
+            {
+                createSession: async (_modelPath, systemPrompt) => {
+                    capturedSystem = systemPrompt
+                    return {
+                        prompt: async (userPrompt, options) => {
+                            capturedUserPrompt = userPrompt
+                            options.onTextChunk?.('好哒。')
+                            return '好哒。'
+                        },
+                        dispose: async () => undefined
+                    }
+                }
+            }
+        )) {
+            // consume
+        }
+
+        expect(capturedSystem).toBe('你是昆仑，活泼小妹妹的文化陪伴者。')
+        expect(capturedUserPrompt).toBe('请用 30 字开场介绍昆仑。')
+        // 关键反向断言：用户文本里不应该再看到 "System:" / 系统人格泄露。
+        expect(capturedUserPrompt).not.toContain('System:')
+        expect(capturedUserPrompt).not.toContain('小妹妹的文化陪伴者')
+    })
 })

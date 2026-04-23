@@ -9,12 +9,21 @@ import type { LocalLlamaSession } from './localDialogueDependencies.js'
  * 运行时由 `createLocalDialogueDependencies({ createSession: createRealLlamaSession })`
  * 注入；`dialogueSmokeTest` / `mainlineTurnRunner` 已经在使用本函数。
  */
-export const createRealLlamaSession = async (modelPath: string): Promise<LocalLlamaSession> => {
+export const createRealLlamaSession = async (
+    modelPath: string,
+    systemPrompt?: string
+): Promise<LocalLlamaSession> => {
     const { getLlama, LlamaChatSession } = await import('node-llama-cpp')
     const llama = await getLlama({ gpu: false })
     const model = await llama.loadModel({ modelPath })
-    const context = await model.createContext({ contextSize: { max: 2048 } })
-    const session = new LlamaChatSession({ contextSequence: context.getSequence() })
+    // 8192 token 对当前 prompt（人格 + 检索条目 + 近 5 轮）是个舒服的底线，
+    // 2048 会被Qwen2.5按 token 序列错位裁掉系统 prompt。
+    const context = await model.createContext({ contextSize: { max: 8192 } })
+    const session = new LlamaChatSession({
+        contextSequence: context.getSequence(),
+        // 关键修正：走 ChatML <|im_start|>system... 模板，避免人格被当成普通用户文本骑丢。
+        ...(systemPrompt != null && systemPrompt.length > 0 ? { systemPrompt } : {})
+    })
 
     return {
         prompt: async (prompt, options) => {

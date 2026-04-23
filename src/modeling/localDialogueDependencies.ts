@@ -27,9 +27,14 @@ export interface StreamLocalLlamaTextInput {
 }
 
 export interface LocalDialogueDependenciesOverrides {
-    createSession?: (modelPath: string) => Promise<LocalLlamaSession>
+    createSession?: (modelPath: string, systemPrompt?: string) => Promise<LocalLlamaSession>
 }
 
+/**
+ * 调试用：以人可读的 "System:/User:" 两段拼成一个完整请求快照。
+ * 注意：运行时不再使用这种拼接向 LLM 提诮——system 会通过
+ * `LlamaChatSession.systemPrompt` 走原生 ChatML 模板，user 部分才是 session.prompt() 的实参。
+ */
 export const formatStoryPrompt = (prompt: StoryPrompt): string => {
     return [
         'System:',
@@ -48,7 +53,7 @@ export async function* streamLocalLlamaText(
     const maxRetries = input.maxRetries ?? 0
 
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-        const session = await createSession(input.modelPath)
+        const session = await createSession(input.modelPath, input.prompt.system)
         const queuedChunks: string[] = []
         let didEmitAnyChunk = false
         let isSettled = false
@@ -72,7 +77,8 @@ export async function* streamLocalLlamaText(
         }
 
         const promptPromise = session
-            .prompt(formatStoryPrompt(input.prompt), {
+            // 只传用户侧 prompt；systemPrompt 已经在 createSession 时被绑到 ChatML 的 system 角色。
+            .prompt(input.prompt.user, {
                 maxTokens: input.maxTokens,
                 onTextChunk: (text) => {
                     if (text.length === 0) {
