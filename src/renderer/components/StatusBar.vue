@@ -8,6 +8,7 @@ interface Props {
   attitudeScore: number;
   attitudeMin: number;
   attitudeMax: number;
+  isFallbackModel?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -46,6 +47,14 @@ const attitudeLabel = computed(() => {
         {{ node?.title ?? "昆仑谣" }}
       </h1>
       <p class="status-bar__tone" v-if="node">{{ node.toneHint }}</p>
+      <span
+        v-if="isFallbackModel"
+        class="status-bar__fallback-chip"
+        data-testid="status-fallback-chip"
+        title="当前运行在 qwen2.5-3b-instruct 兼容模式，单轮输出会稍慢、叙事密度略低。"
+      >
+        轻量模型 · 叙事密度已压缩
+      </span>
     </div>
 
     <div class="status-bar__meta">
@@ -130,6 +139,18 @@ const attitudeLabel = computed(() => {
   margin: var(--space-1) 0 0;
   font-size: var(--font-size-sm);
   color: var(--color-foreground-muted);
+}
+
+.status-bar__fallback-chip {
+  display: inline-block;
+  margin-top: var(--space-2);
+  padding: 2px 10px;
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(255, 234, 215, 0.72);
+  color: #6a4a2c;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(217, 119, 6, 0.35);
 }
 
 .status-bar__meta {

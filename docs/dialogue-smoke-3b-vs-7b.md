@@ -17,7 +17,17 @@
   - UI 层加一行弱提示（"当前使用轻量模型，叙事密度可能降低"）；
   - prompt builder 在 compatibility 模式下把 `mustIncludeFacts` 从"建议"变成"按顺序逐条覆盖"，以弥补 3B 的上下文遵循能力。
 
-## 下一步建议
+## 2026-04 第二轮：strictCoverage 开启后的 3B 复测
 
-- 把 "compatibility 模式写死覆盖 mustIncludeFacts" 的改动做成 A/B 开关，下一次 smoke 时再对比一次；
-- 脚本输出加 `elapsedMs` 字段，方便横向性能对比（当前只能看到 chunkCount，缺墙钟时间）。
+脚本同上，`KUNLUN_SMOKE_MODE=compatibility`，`storyPromptBuilder` 已按 `strictCoverage=true` 注入「必须逐条覆盖 mustIncludeFacts」的系统约束；`DialogueSmokeTestResult` 新增 `elapsedMs / firstChunkMs / strictCoverage` 字段。
+
+- `selectedProfileId=qwen2.5-3b-instruct-q4km`，`strictCoverage=true`，`completed=true`。
+- `chunkCount`: 64 → **236**（×3.7）。
+- 正文长度: ~120 字 → **~360 字**。
+- 覆盖度：显式点到《山海经》、昆仑三层（樊桐/玄圃/阆风）、天人之轴、西王母豹尾虎齿→王母娘娘演变、周穆王与西王母瑶池相会、"比及三年将复而野"引文——`kunlun-threshold.mustIncludeFacts` 的 5 条中 4 条被覆盖（仅"天柱/不周山折断"未明确出现）。
+- 代价：`elapsedMs ≈ 514 s`，`firstChunkMs ≈ 213 s`；对 3B 本地 CPU 推理而言属于可接受上限，但相比 7B 预计会明显偏慢，建议 UI 在 fallback 时告知玩家。
+- 选项文案（`optionLabels`）：`嗯，你继续说——` / `这一层我没那么买账，给我个更硬的理由。`，自然度 OK。
+
+结论：
+- strictCoverage 开关显著抬高 3B 的叙事密度，基本达到"可发布"质量；
+- 后续优化点：（a）把「天柱/不周山」这类关键神话条目放在 mustIncludeFacts 序列前列，让 3B 更早写到；（b）在 UI 层加 fallback 提示；（c）若墙钟时间压力大，可再尝试 `maxTokens=384` 折中。

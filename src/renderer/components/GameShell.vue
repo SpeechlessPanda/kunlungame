@@ -39,6 +39,7 @@ interface Props {
   bgmSrc?: string | null;
   settingsOpen: boolean;
   speakerLabel?: string;
+  isFallbackModel?: boolean;
 }
 
 interface Emits {
@@ -124,6 +125,7 @@ useKeyboardControls(
         :attitude-score="attitudeScore"
         :attitude-min="attitudeMin"
         :attitude-max="attitudeMax"
+        :is-fallback-model="isFallbackModel ?? false"
       />
       <button
         type="button"

@@ -10,6 +10,7 @@ import {
   type RuntimeState,
 } from "../runtime/runtimeState.js";
 import { mainlineStoryOutline } from "../content/source/mainlineOutline.js";
+import { getFallbackModelProfile } from "../modeling/modelProfiles.js";
 import type { StoryNode } from "../shared/contracts/contentContracts.js";
 import type { DesktopBridge } from "../shared/types/desktop.js";
 import {
@@ -59,6 +60,12 @@ const refreshBgm = (next: BgmControllerState): void => {
 };
 
 const settingsOpen = ref(false);
+
+// 轻量模型 fallback 标识：由 getStartupSnapshot / runMainlineTurn 回填。
+const selectedProfileId = ref<string | null>(null);
+const isFallbackModel = computed(
+  () => selectedProfileId.value === getFallbackModelProfile().id,
+);
 
 const recentTurns = ref<string[]>([]);
 
@@ -283,6 +290,17 @@ onMounted(() => {
   applyDependenciesFactory();
   exposeDebug();
   void restoreFromBridge();
+  const bridge = getBridge();
+  if (bridge) {
+    void bridge
+      .getStartupSnapshot()
+      .then((snapshot) => {
+        selectedProfileId.value = snapshot.modelSetup.selectedProfileId;
+      })
+      .catch((error) => {
+        console.warn("[app] getStartupSnapshot failed", error);
+      });
+  }
 });
 onBeforeUnmount(() => {
   dialogueSession.cancel();
@@ -327,6 +345,7 @@ const showStartButton = computed(
     :bgm="bgmState"
     :bgm-src="bgmSrc"
     :settings-open="settingsOpen"
+    :is-fallback-model="isFallbackModel"
     speaker-label="昆仑"
     @retry="onRetry"
     @skip="onSkip"
