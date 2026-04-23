@@ -77,3 +77,20 @@
 
 1. 若先写死真实素材路径，后续用户交付素材时会大面积返工。
 2. 若视觉模式不服从主线节点定义，内容与画面会持续失配。
+
+## 12. 实施进度（feat/ui-shell）
+
+已完成：
+
+1. 资源位解析：`resolveBackgroundPresentation` / `resolveCharacterPresentation` 以 `backgroundMode` + `backgroundHint` 为输入，无素材时回退到三类 palette（myth / heritage / bridge）渐变占位 + 模式标签。
+2. 背景舞台：`BackgroundStage` 根据 `hasRealAsset` 自动切换真实图片与占位渐变，保留可访问性标签。
+3. 角色位：`CharacterSlot` 支持立绘与剪影占位，保持 3:4 锚定，不拦截指针事件。
+4. BGM：`createBgmController` + `BgmPlayer` 与 `SettingsPanel` 联动；音频源不存在时开关自动禁用，主界面不受阻断。
+5. 设计令牌：`src/renderer/styles/tokens.css` 统一色板、字体、间距、动画与 `prefers-reduced-motion` 降级。
+6. 测试：`assetSlotResolver`、`bgmController` 白盒测试；E2E 覆盖“节点切换导致背景模式标签变化”“无源时 BGM 开关保持禁用”。
+
+有意延后：
+
+1. 真实背景与立绘素材的接入（等待资源交付）。
+2. 正式 BGM 轨道与音量曲线（等待音频资源）。
+3. 转场动画细节（待视觉定稿后补）。

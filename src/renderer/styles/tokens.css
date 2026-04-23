@@ -1,0 +1,114 @@
+/*
+ * Kunlun Ballad 设计令牌 (tokens)
+ * ----------------------------------
+ * 单一来源：所有组件都应通过 CSS 变量消费颜色、间距与字体，
+ * 不允许在组件里写死色值。暗色主题为首版默认，后续如需浅色主题
+ * 在 `[data-theme="light"]` 下覆盖同名变量即可。
+ */
+
+:root {
+  /* Color scales */
+  --color-bg: #0f172a;
+  --color-bg-elevated: #111b2f;
+  --color-surface: rgba(18, 27, 47, 0.82);
+  --color-surface-muted: rgba(18, 27, 47, 0.6);
+  --color-foreground: #f5f7fb;
+  --color-foreground-muted: rgba(245, 247, 251, 0.72);
+  --color-foreground-dim: rgba(245, 247, 251, 0.48);
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.18);
+  --color-accent: #d97706;          /* 中和玉色金的 CTA 强调 */
+  --color-accent-contrast: #1a0f03;
+  --color-align: #3f9a6a;           /* 顺从选项 */
+  --color-align-border: rgba(63, 154, 106, 0.55);
+  --color-challenge: #c55a48;       /* 反驳选项 */
+  --color-challenge-border: rgba(197, 90, 72, 0.55);
+  --color-danger: #e5484d;
+  --color-success: #3aae7c;
+  --color-focus-ring: #f5c784;
+
+  /* Palette tokens consumed by BackgroundStage for each mode */
+  --palette-myth-from: #1b2650;
+  --palette-myth-to: #080a1a;
+  --palette-heritage-from: #2d221a;
+  --palette-heritage-to: #0c0806;
+  --palette-bridge-from: #1c2232;
+  --palette-bridge-to: #261a22;
+
+  /* Typography */
+  --font-serif: "Noto Serif SC", "Noto Serif CJK SC", "Source Han Serif SC",
+    "Songti SC", "STSong", serif;
+  --font-sans: "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC",
+    "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 32px;
+
+  --line-height-body: 1.7;
+  --line-height-tight: 1.3;
+
+  /* Spacing rhythm (4 / 8) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Radius & shadow */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --shadow-surface: 0 24px 48px -24px rgba(0, 0, 0, 0.55);
+  --shadow-pop: 0 12px 24px -12px rgba(0, 0, 0, 0.6);
+
+  /* Motion */
+  --motion-fast: 150ms;
+  --motion-base: 240ms;
+  --motion-slow: 360ms;
+  --ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* Z-index scale */
+  --z-background: 0;
+  --z-stage: 10;
+  --z-panel: 20;
+  --z-overlay: 40;
+  --z-toast: 60;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-body);
+  min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+  }
+}

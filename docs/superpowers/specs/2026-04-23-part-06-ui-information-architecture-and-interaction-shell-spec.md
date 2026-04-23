@@ -75,3 +75,19 @@
 
 1. 若本部分直接掺入视觉定稿，会导致后续素材替换困难。
 2. 若组件边界不清晰，Part 07 和 Part 08 会不断返工。
+
+## 12. 实施进度（feat/ui-shell）
+
+已完成：
+
+1. 信息架构：`GameShell` 组合 `StatusBar`、`DialogPanel`、`ChoicePanel`、`SettingsPanel`，背景/角色资源位分层明确。
+2. 交互壳：空态 / 加载态 / 流式态 / 等待选择态 / 错误态的 UI 路径齐全；错误态提供“重试”入口。
+3. 文本流：`DialogueStreamBuffer` + `createTurnController` 组合完成文本缓存、逐字显示、可跳过与重置。
+4. 状态机：`reduceUiTurn` 封装合法事件迁移，组件只消费快照，不生成业务事实。
+5. 测试：`uiStateMachine`、`dialogueStreamBuffer` 白盒测试；`tests/e2e/rendererShell.spec.ts` 覆盖空态、流式文本、选项渲染、错误重试。
+
+有意延后：
+
+1. 与真实 AI 流适配器的对接（等待 Part 05 完成）。
+2. 选择落盘与态度联动（等待 Part 04 Save 层联通）。
+3. 键盘导航与焦点环细节（等待真实键位方案）。
