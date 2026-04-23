@@ -19,6 +19,8 @@ export interface DialogueOrchestratorInput {
   runtimeState: RuntimeState
   attitudeChoiceMode: PlayerAttitudeChoice
   recentTurns: string[]
+  /** 透传到 storyPromptBuilder；在 3B 等弱上下文模型上启用严格覆盖。 */
+  strictCoverage?: boolean
 }
 
 export interface DialogueDependencies {

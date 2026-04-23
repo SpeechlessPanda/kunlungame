@@ -8,6 +8,12 @@ export interface StoryPromptBuilderInput {
   runtimeState: RuntimeState
   attitudeChoiceMode: PlayerAttitudeChoice
   recentTurns: string[]
+  /**
+   * 当运行在上下文能力较弱的模型（如 3B fallback）上时，打开严格覆盖模式：
+   * 在 system prompt 里把 mustIncludeFacts 从"自然融入"升级为"必须逐条覆盖"，
+   * 以弥补小模型对长上下文指令的遵循度不足。
+   */
+  strictCoverage?: boolean
 }
 
 export interface StoryPrompt {
@@ -94,6 +100,16 @@ export const buildStoryPrompt = (input: StoryPromptBuilderInput): StoryPrompt =>
     '- 总长度 180–260 字，分成 3–5 个自然段或节奏段，每段之间用换行分开。',
     '- 不要输出选项，不要输出旁白标记、Markdown 标题或 system 提示。'
   ]
+
+  if (input.strictCoverage === true) {
+    systemRules.push(
+      '',
+      '## 严格覆盖模式（当前模型上下文能力较弱）',
+      '- 必须按给出的顺序，逐条把「必须包含的事实」全部讲到；不要跳过、不要合并、不要只讲一半。',
+      '- 如果长度接近上限仍未覆盖完，优先覆盖剩余事实，可以缩短其他描写。',
+      '- 宁可略显清单感，也不要漏掉任何一条史实或关键概念。'
+    )
+  }
 
   const transitionLine = isNodeFirstTurn && input.currentNode.transitionHint != null
     ? `节点转场：${input.currentNode.transitionHint}（这是进入本节点的第一轮，请用这个画面自然地打开话头，不要重复上一节点的结尾。）`

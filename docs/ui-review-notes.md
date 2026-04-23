@@ -40,7 +40,10 @@
 ## 结论与下一步建议
 
 - 淡色调重构与对话框自适应高度在当前 5 张截图里视觉表现已达预期，没有发现需要立刻回滚的问题。
+- 本轮还对 e2e 套件做了"节点多轮"修正：`rendererShell.spec.ts` 里推进节点的两处断言（`choice-align` 点击 / 快捷键 `1`）已改为循环点击 `kunlun-threshold.minTurns` 次后再断言节点切换，确认 UI 在连续多轮输入下仍然稳定。
+- 勤务注记：`test-results/ui-review/*.png` 本轮并未被 Playwright 重写（文件 mtime 仍停在 2026/4/23）。下次有意要刷新截图时，需要手动删掉这个目录再跑 `pnpm playwright test tests/e2e/uiReviewScreenshots.spec.ts`，或者在 spec 里给 `page.screenshot({ path, ... })` 明确传入覆盖逻辑。
 - 建议接下来的 UI 迭代：
   1. 空态加上"按任意键开始"柔提示；
   2. 补一张窄屏（1366×768）与一张结局（`contemporary-return`）截图；
-  3. 截图右下角加调试角标（节点 id + turnsInCurrentNode），让后续 review 能在不跑游戏的情况下定位"这是哪个节点的第几轮"。
+  3. 截图右下角加调试角标（节点 id + turnsInCurrentNode），让后续 review 能在不跑游戏的情况下定位"这是哪个节点的第几轮"；
+  4. 当 UI 检测到当前运行的是 3B fallback 时，在 `BackgroundStage` 或状态栏加一条半透明提示：「轻量模型 · 叙事密度已压缩」，配合新加入的 `strictCoverage` prompt 模式一起告知玩家。

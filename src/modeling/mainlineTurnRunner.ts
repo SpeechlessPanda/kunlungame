@@ -14,6 +14,7 @@ import {
 } from './dialogueOrchestrator.js'
 import type { RuntimeState } from '../runtime/runtimeState.js'
 import { buildGalgameOptionLabels } from './optionLabels.js'
+import { getFallbackModelProfile } from './modelProfiles.js'
 
 /**
  * Part 08 · 真实本地模型主线回合执行器。
@@ -182,7 +183,8 @@ export const runMainlineTurn = async (
             retrievedEntries: retrieval.entries,
             runtimeState: input.runtimeState,
             attitudeChoiceMode: input.attitudeChoiceMode,
-            recentTurns: input.recentTurns
+            recentTurns: input.recentTurns,
+            strictCoverage: selectedModel.profileId === getFallbackModelProfile().id
         })) {
             if (event.type === 'chunk') {
                 chunks.push(event.text)

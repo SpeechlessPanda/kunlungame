@@ -5,6 +5,7 @@ import { mainlineStoryOutline } from '../content/source/mainlineOutline.js'
 import { createLocalDialogueDependencies } from './localDialogueDependencies.js'
 import { retrieveKnowledgeEntries } from './knowledgeCompilation.js'
 import { buildRuntimeBootstrapPlan, type RuntimeBootstrapInput } from './runtimeBootstrap.js'
+import { getFallbackModelProfile } from './modelProfiles.js'
 import { knowledgeEntrySchema } from '../shared/contracts/contentContracts.js'
 import { createDefaultRuntimeState } from '../runtime/runtimeState.js'
 import { orchestrateDialogue, type DialogueDependencies, type DialogueOption } from './dialogueOrchestrator.js'
@@ -18,6 +19,12 @@ export interface DialogueSmokeTestResult {
     combinedText: string
     options: DialogueOption[]
     completed: boolean
+    /** 墙钟耗时（毫秒），从构造 DialogueDependencies 到 complete 事件。*/
+    elapsedMs: number
+    /** 首个 chunk 的墙钟到达时间（毫秒，相对 elapsedMs 的起点）；用于衡量感知延迟。 */
+    firstChunkMs: number | null
+    /** 是否启用了严格覆盖模式（3B fallback 打开）。 */
+    strictCoverage: boolean
 }
 
 export interface DialogueSmokeTestDependencies {
@@ -79,6 +86,7 @@ export const runDialogueSmokeTest = async (
     })
 
     const selectedModel = resolveSelectedModelPath(input)
+    const strictCoverage = selectedModel.profileId === getFallbackModelProfile().id
     const dialogueDependencies = resolvedDependencies.createDialogueDependencies({
         modelPath: selectedModel.modelPath
     })
@@ -86,15 +94,21 @@ export const runDialogueSmokeTest = async (
     const chunks: string[] = []
     let options: DialogueOption[] = []
     let completed = false
+    const startMs = Date.now()
+    let firstChunkMs: number | null = null
 
     for await (const event of orchestrateDialogue(dialogueDependencies, {
         currentNode,
         retrievedEntries: retrievalResult.entries,
         runtimeState,
         attitudeChoiceMode: 'align',
-        recentTurns: []
+        recentTurns: [],
+        strictCoverage
     })) {
         if (event.type === 'chunk') {
+            if (firstChunkMs === null) {
+                firstChunkMs = Date.now() - startMs
+            }
             chunks.push(event.text)
             continue
         }
@@ -112,6 +126,8 @@ export const runDialogueSmokeTest = async (
         throw new Error(event.message)
     }
 
+    const elapsedMs = Date.now() - startMs
+
     return {
         selectedProfileId: selectedModel.profileId,
         currentNodeId: currentNode.id,
@@ -119,6 +135,9 @@ export const runDialogueSmokeTest = async (
         chunkCount: chunks.length,
         combinedText: chunks.join(''),
         options,
-        completed
+        completed,
+        elapsedMs,
+        firstChunkMs,
+        strictCoverage
     }
 }
