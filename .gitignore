@@ -11,3 +11,5 @@ Thumbs.db
 runtime-cache/
 session-*.md
 .worktrees/
+.tmp-commit-msg.txt
+.commit-msg.txt

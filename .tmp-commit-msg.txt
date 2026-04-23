@@ -1,8 +1,0 @@
-feat(content): migrate renderer to canonical 8-node mainline with richer mock narration
-
-- src/renderer/App.vue: drop the 3-node demoNodes, bind to mainlineStoryOutline (Part 02) and drive transitions through createDefaultRuntimeState / applyPlayerChoice so attitude clamping, readNodeIds and historySummary rebuild are now handled by runtimeState utilities instead of ad-hoc refs.
-- src/renderer/adapters/rendererDialogueDependencies.ts: rewrite mockChunksByNode and mockChoiceLabelsByNode for all 8 canonical nodes (kunlun-threshold through contemporary-return), giving every round a 6-13 chunk second-person narration that weaves in each node's mustIncludeFacts, and pairing align/challenge labels that actually argue with that node's coreQuestion; legacy 3-node demo keys are kept as fallback.
-- src/renderer/assets/manifest.ts: register background slots for the 8 canonical nodes (mapped to fictional/composite/photographic placeholders per outline) plus the guide.kunlun portrait; pre-existing 3-node entries stay for fallback.
-- tests/e2e/rendererShell.spec.ts: update assertions to the new first node (昆仑初问), second node (神话开天), keyword anchor (昆仑) and virtual-image label (虚构意象); bump choice-ready timeout to 15s since each round now streams noticeably more text.
-
-Verification: pnpm typecheck pass, pnpm test 28 files / 143 tests pass, pnpm test:e2e 12/12 pass.
