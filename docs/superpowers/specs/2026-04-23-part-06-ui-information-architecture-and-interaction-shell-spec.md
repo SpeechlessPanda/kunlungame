@@ -91,3 +91,20 @@
 1. 与真实 AI 流适配器的对接（等待 Part 05 完成）。
 2. 选择落盘与态度联动（等待 Part 04 Save 层联通）。
 3. 键盘导航与焦点环细节（等待真实键位方案）。
+
+## 13. 实施进度（feat/ui-polish）
+
+本次 polish 专注 a11y、键盘与移动端：
+
+1. 键盘快捷键：`1` / `2` 在 `awaiting-choice` 时分别选择顺从 / 反驳；`Space` 或 `Enter` 在打字机揭示中跳过；`Esc` 关闭设置面板。逻辑抽象为 `useKeyboardControls`，在 `GameShell` 装载，Tab 焦点环由浏览器默认顺序维护，`:focus-visible` 给出玉色金焦点环。
+2. 焦点陷阱：`useFocusTrap` 在 `SettingsPanel` 激活期间拦截 Tab / Shift+Tab 循环焦点，打开时自动聚焦首个可聚焦元素，关闭时把焦点还给设置入口按钮。
+3. 移动端布局：`<640px` 下状态栏由两列改为单列堆叠；选项按钮保持 ≥56px 点击命中；对话区与状态栏使用 `env(safe-area-inset-*)` 适配移动端安全区。
+4. WCAG AA 对比度：
+   - `--color-foreground-muted` 不透明度 `0.72 → 0.78`。
+   - `--color-foreground-dim` 不透明度 `0.48 → 0.62`（12px 小字避免贴近 4.5:1 阈值）。
+   - `--color-border-strong` 不透明度 `0.18 → 0.22`。
+   - `--color-align` `#3f9a6a → #4fb07c`、`--color-challenge` `#c55a48 → #de6a53`：原 challenge tag 12px 文本对深底约 4.38:1，低于 AA，修复后 ≥5.2:1。
+5. Reduced motion：打字机光标、骨架闪烁已有 `prefers-reduced-motion` 分支；新增选项按钮 hover `translateY` 在 `prefers-reduced-motion: reduce` 下关闭 `transition` 与 `transform`。`--motion-*` token 在 reduced 模式下统一归零，`BackgroundStage`、`CharacterSlot`、`StatusBar` 的位移 / 透明度过渡自然随之关闭。
+6. 测试覆盖：
+   - 白盒：`tests/useKeyboardControls.test.ts`、`tests/useFocusTrap.test.ts` 使用 Node 环境验证纯函数决策（不新增 DOM 依赖）。
+   - 黑盒 / E2E：`tests/e2e/rendererShell.spec.ts` 新增三个场景——键盘 `1` 选 align、`Esc` 关设置并还焦点、400×800 视口对话与选项仍可见且命中区 ≥56px。

@@ -1,49 +1,49 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { StoryNode } from '../../shared/contracts/contentContracts.js'
+import { computed } from "vue";
+import type { StoryNode } from "../../shared/contracts/contentContracts.js";
 
 interface Props {
-  node: StoryNode | null
-  turnIndex: number
-  attitudeScore: number
-  attitudeMin: number
-  attitudeMax: number
+  node: StoryNode | null;
+  turnIndex: number;
+  attitudeScore: number;
+  attitudeMin: number;
+  attitudeMax: number;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
-const attitudeRange = computed(() => props.attitudeMax - props.attitudeMin)
+const attitudeRange = computed(() => props.attitudeMax - props.attitudeMin);
 
 const attitudePercent = computed(() => {
   if (attitudeRange.value === 0) {
-    return 50
+    return 50;
   }
   const clamped = Math.min(
     props.attitudeMax,
-    Math.max(props.attitudeMin, props.attitudeScore)
-  )
-  return ((clamped - props.attitudeMin) / attitudeRange.value) * 100
-})
+    Math.max(props.attitudeMin, props.attitudeScore),
+  );
+  return ((clamped - props.attitudeMin) / attitudeRange.value) * 100;
+});
 
 const attitudeLabel = computed(() => {
   if (props.attitudeScore > 1) {
-    return '亲近'
+    return "亲近";
   }
   if (props.attitudeScore < -1) {
-    return '傲娇'
+    return "傲娇";
   }
-  return '平和'
-})
+  return "平和";
+});
 </script>
 
 <template>
   <aside class="status-bar" aria-label="当前进度与风格倾向">
     <div class="status-bar__node">
       <span class="status-bar__chapter" data-testid="status-node-theme">
-        {{ node?.theme ?? '尚未进入主线' }}
+        {{ node?.theme ?? "尚未进入主线" }}
       </span>
       <h1 class="status-bar__title" data-testid="status-node-title">
-        {{ node?.title ?? '昆仑谣' }}
+        {{ node?.title ?? "昆仑谣" }}
       </h1>
       <p class="status-bar__tone" v-if="node">{{ node.toneHint }}</p>
     </div>
@@ -79,11 +79,34 @@ const attitudeLabel = computed(() => {
   align-items: flex-start;
   gap: var(--space-5);
   padding: var(--space-4) var(--space-6);
+  padding-top: calc(var(--space-4) + var(--safe-top));
+  padding-left: max(var(--space-6), var(--safe-left));
+  padding-right: max(var(--space-6), var(--safe-right));
   background: linear-gradient(
     180deg,
     rgba(9, 14, 28, 0.85) 0%,
     rgba(9, 14, 28, 0) 100%
   );
+}
+
+@media (max-width: 640px) {
+  .status-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    padding-top: calc(var(--space-3) + var(--safe-top));
+    padding-left: max(var(--space-4), var(--safe-left));
+    padding-right: max(var(--space-4), var(--safe-right));
+  }
+  .status-bar__meta {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  .status-bar__attitude {
+    min-width: 0;
+    flex: 1 1 140px;
+  }
 }
 
 .status-bar__chapter {
