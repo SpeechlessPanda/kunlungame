@@ -2,18 +2,21 @@
 
 ## Execution Status
 
-Status: in progress
+Status: completed (pending real-asset delivery)
 
-Completed in this session:
+Completed to date:
 
-1. 已补齐非 UI 的角色 cue 规则，明确 `characterCueIds` 先映射稳定 cue，再映射 portrait 或 runtime-3d 槽位。
-2. 已把 `guide.kunlun` 和 `player.memory-self` 写入共享资产规则文档，避免后续把角色 cue 直接写成平台路径或文件名。
-3. 已完成一次 fresh non-UI 全量验证，确认 Part 02 至 Part 05 与当前 cue 规则没有合同漂移。
+1. 非 UI 的角色 cue 规则已稳定：`characterCueIds` 先映射稳定 cue，再映射 portrait 或 runtime-3d 槽位，`guide.kunlun` / `player.memory-self` 已写入共享资产规则文档。
+2. 渲染侧 stage 组件齐全：`BackgroundStage`、`CharacterSlot`、`BgmPlayer` 已落地，消费 `resolveBackgroundPresentation` / `resolveCharacterPresentation` 的占位 / 真实双分支。
+3. 资源位合同 `AssetManifest` + 默认占位清单 `defaultAssetManifest` 已接入 App.vue，四张 ≤4 KB 占位 SVG 覆盖三种背景模式和 narrator 角色。
+4. 背景切换逻辑按 `backgroundMode` 切换模式标签 overlay，E2E 已覆盖节点推进时模式变化。
+5. 全量验证通过：`pnpm typecheck`、`pnpm test`（143/143）、`pnpm test:e2e`（12/12）。
 
 Currently blocked or deferred:
 
-1. Part 06 UI 容器尚未实现，因此本部分的 renderer-side stage、背景切换组件和 BGM 占位组件仍未开始。
-2. 最终 2D 角色立绘、3D 运行时模型和真实背景素材路径继续保持未绑定状态。
+1. 最终 2D 角色立绘、3D 运行时模型和真实背景图片仍未绑定；管线已铺好，等用户交付素材后以 `mergeManifests` 覆盖占位即可。
+2. 真实 BGM 轨道与音量曲线需要音频资源，占位组件默认禁用开关，主界面不阻塞。
+3. 3D 运行时角色 (`character.<id>.runtime-3d`) 的注册等待 `docs/superpowers/specs/2026-04-23-character-3d-asset-integration-design.md` 完成可播放阶段后再加入默认清单。
 
 ## 1. 目标
 

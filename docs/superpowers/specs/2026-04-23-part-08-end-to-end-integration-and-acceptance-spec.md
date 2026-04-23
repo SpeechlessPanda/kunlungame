@@ -2,19 +2,21 @@
 
 ## Execution Status
 
-Status: blocked
+Status: in progress (real-model smoke deferred)
 
-Completed prerequisites in this session:
+Completed to date:
 
-1. Part 02 的 structured mainline contracts 已完成，并已生成 canonical `storyOutline.json`。
-2. Part 03 的 cultural knowledge 编译与节点边界检索已完成，并已生成 43 条 `knowledgeEntries.json`。
-3. Part 04 的真实主线状态推进、存档恢复与文化记忆摘要重建已完成。
-4. Part 05 的 prompt builder、dialogue orchestrator facade 与事件契约已完成非 UI 聚焦验证。
-5. 已完成一次 fresh non-UI 全量验证：`pnpm typecheck`、`pnpm test`、`pnpm build`、`pnpm knowledge:compile` 全部通过。
+1. Part 01–07 全部完成 UI + 非 UI 实施并通过聚焦验证；Part 07 视觉层只剩最终素材未绑定（占位管线已就位）。
+2. 非 UI 全管线集成测试已落地：`tests/integrationMainlineLoop.test.ts` 串联 canonical mainline、知识检索、对话编排、运行时状态、存档仓储，验证 chunk→options→complete 事件顺序、`readNodeIds` 驱动摘要重建、态度值钳制、节点推进、存档恢复。
+3. 黑盒 / E2E：`tests/e2e/rendererShell.spec.ts` 覆盖空态 / 流式 / 选项 / 错误重试 / 背景模式切换 / 键盘快捷键 / 焦点陷阱 / 移动端 tap target / reduced-motion / 性能预算，共 12 场景全部通过。
+4. 最近一次 fresh 全量验证：`pnpm typecheck` = 0，`pnpm test` = 28 files / 143 tests pass，`pnpm test:e2e` = 12/12 pass，`pnpm knowledge:compile` 可稳定再生产结构化产物。
+5. 发布前审计模板：`docs/audits/2026-release-audit-template.md` 已建立，覆盖依赖 / 测试 / 构建 / 冒烟 / 性能 / 文档 / 内容七项检查。
 
-Current blocker:
+Currently blocked or deferred:
 
-1. Part 06 UI shell 与 Part 07 renderer-side stage components 尚未实现，因此无法执行真正的端到端 Windows 桌面闭环验收。
+1. 真实本地模型（GGUF）文件与真实背景图片仍未就位，因此尚未完成不少于 5 分钟的桌面端真实协作闭环试玩。
+2. 渲染进程的 IPC 通道尚未把 `localDialogueDependencies` 接上 Electron preload bridge；目前 `useMockStream(false)` 会直接进入 error 态，等待后续 session 补齐。
+3. 正式发布前审计记录尚未填充具体结果。
 
 ## 1. 目标
 
