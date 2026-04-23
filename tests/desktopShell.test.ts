@@ -1,4 +1,6 @@
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, normalize } from 'node:path'
+import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import { createDesktopBridge } from '../electron/preload/index.js'
 import {
@@ -7,8 +9,13 @@ import {
   buildDesktopStartupSnapshot,
   createMainWindowOptions,
   logDesktopShellBootstrapFailure,
-  resolveRendererEntryPath
+  resolveRendererEntryPath,
+  resolveRuntimeSaveFilePath,
+  loadDesktopRuntimeState,
+  saveDesktopRuntimeState
 } from '../electron/main/index.js'
+import { createDefaultRuntimeState } from '../src/runtime/runtimeState.js'
+import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
 
 describe('createMainWindowOptions', () => {
   it('creates a secure preload-only BrowserWindow configuration', () => {
@@ -88,7 +95,9 @@ describe('createDesktopBridge', () => {
       }
     })
 
-    expect(Object.keys(bridge).sort()).toEqual(['getStartupSnapshot', 'ping', 'runDialogueSmoke'])
+    expect(Object.keys(bridge).sort()).toEqual(
+      ['getStartupSnapshot', 'loadRuntimeState', 'ping', 'runDialogueSmoke', 'runMainlineTurn', 'saveRuntimeState']
+    )
     await expect(bridge.ping()).resolves.toBe('pong')
     await expect(bridge.getStartupSnapshot()).resolves.toMatchObject({
       appName: 'Kunlungame',
@@ -226,5 +235,77 @@ describe('runDesktopDialogueSmoke', () => {
     expect(result.selectedProfileId).toBe('qwen2.5-3b-instruct-q4km')
     expect(result.currentNodeId).toBe('kunlun-threshold')
     expect(result.completed).toBe(true)
+  })
+})
+
+describe('resolveRuntimeSaveFilePath', () => {
+  it('places the persistent runtime state inside the electron userData dir', () => {
+    const result = resolveRuntimeSaveFilePath('C:/Users/test/AppData/Roaming/Kunlungame')
+    expect(normalize(result)).toBe(
+      normalize(join('C:/Users/test/AppData/Roaming/Kunlungame', 'runtime-state.json'))
+    )
+  })
+})
+
+describe('desktop runtime state save/load roundtrip', () => {
+  it('initializes default state the first time and reloads what was saved afterwards', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlungame-runtime-'))
+    try {
+      const first = await loadDesktopRuntimeState(tempDir)
+      expect(first.recoveryAction).toBe('created-default')
+      expect(first.state.currentNodeId).toBe(mainlineStoryOutline.entryNodeId)
+
+      const nextState = createDefaultRuntimeState(mainlineStoryOutline)
+      const advanced = {
+        ...nextState,
+        currentNodeId: 'creation-myths',
+        turnIndex: 2,
+        attitudeScore: 2,
+        readNodeIds: ['kunlun-threshold']
+      }
+      await saveDesktopRuntimeState(tempDir, advanced)
+
+      const reloaded = await loadDesktopRuntimeState(tempDir)
+      expect(reloaded.recoveryAction).toBe('loaded-existing')
+      expect(reloaded.state.currentNodeId).toBe('creation-myths')
+      expect(reloaded.state.turnIndex).toBe(2)
+      expect(reloaded.state.attitudeScore).toBe(2)
+      expect(reloaded.state.readNodeIds).toEqual(['kunlun-threshold'])
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  it('resets runtime state when the on-disk payload is corrupted', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlungame-runtime-'))
+    try {
+      await writeFile(resolveRuntimeSaveFilePath(tempDir), '{not json', 'utf-8')
+      const snapshot = await loadDesktopRuntimeState(tempDir)
+      expect(snapshot.recoveryAction).toBe('reset-corrupted')
+      expect(snapshot.state.currentNodeId).toBe(mainlineStoryOutline.entryNodeId)
+      const written = await readFile(resolveRuntimeSaveFilePath(tempDir), 'utf-8')
+      expect(() => JSON.parse(written)).not.toThrow()
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects invalid runtime state shapes when saving', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlungame-runtime-'))
+    try {
+      await expect(
+        saveDesktopRuntimeState(tempDir, {
+          saveVersion: 99 as unknown as 1,
+          currentNodeId: 'x',
+          turnIndex: -1,
+          attitudeScore: 9999,
+          historySummary: '',
+          readNodeIds: [],
+          settings: { bgmEnabled: true }
+        })
+      ).rejects.toBeTruthy()
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
   })
 })

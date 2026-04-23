@@ -65,11 +65,11 @@ const statusMessage = computed(() => {
         type="button"
         class="choice-panel__button choice-panel__button--align"
         data-testid="choice-align"
-        :aria-label="`顺从选项：${alignChoice.label}`"
+        :aria-label="`第一个回应：${alignChoice.label}`"
         aria-keyshortcuts="1"
         @click="emit('choose', alignChoice)"
       >
-        <span class="choice-panel__tag">顺从 · 1</span>
+        <span class="choice-panel__tag" aria-hidden="true">1</span>
         <span class="choice-panel__label">{{ alignChoice.label }}</span>
       </button>
       <button
@@ -77,11 +77,11 @@ const statusMessage = computed(() => {
         type="button"
         class="choice-panel__button choice-panel__button--challenge"
         data-testid="choice-challenge"
-        :aria-label="`反驳选项：${challengeChoice.label}`"
+        :aria-label="`第二个回应：${challengeChoice.label}`"
         aria-keyshortcuts="2"
         @click="emit('choose', challengeChoice)"
       >
-        <span class="choice-panel__tag">反驳 · 2</span>
+        <span class="choice-panel__tag" aria-hidden="true">2</span>
         <span class="choice-panel__label">{{ challengeChoice.label }}</span>
       </button>
     </div>
@@ -118,19 +118,20 @@ const statusMessage = computed(() => {
 .choice-panel__button {
   min-height: 96px;
   padding: var(--space-4) var(--space-5);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface-muted);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-border-strong);
+  background: var(--color-surface);
   color: var(--color-foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-size: var(--font-size-md);
   text-align: left;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  box-shadow: var(--shadow-soft);
   transition:
-    transform var(--motion-fast) var(--ease-standard),
+    transform var(--motion-base) var(--ease-bouncy),
     border-color var(--motion-fast) var(--ease-standard),
     box-shadow var(--motion-fast) var(--ease-standard),
     background var(--motion-fast) var(--ease-standard);
@@ -150,42 +151,47 @@ const statusMessage = computed(() => {
 
 .choice-panel__button:hover,
 .choice-panel__button:focus-visible {
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.01);
   box-shadow: var(--shadow-pop);
 }
 
 .choice-panel__button:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.99);
 }
 
 .choice-panel__button--align {
   border-color: var(--color-align-border);
+  background: var(--color-align-bg);
 }
 
 .choice-panel__button--align:hover,
 .choice-panel__button--align:focus-visible {
-  background: rgba(63, 154, 106, 0.18);
+  background: #d8f3e5;
   border-color: var(--color-align);
 }
 
 .choice-panel__button--challenge {
   border-color: var(--color-challenge-border);
+  background: var(--color-challenge-bg);
 }
 
 .choice-panel__button--challenge:hover,
 .choice-panel__button--challenge:focus-visible {
-  background: rgba(197, 90, 72, 0.18);
+  background: #fbdccf;
   border-color: var(--color-challenge);
 }
 
 .choice-panel__tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   align-self: flex-start;
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
   font-size: var(--font-size-xs);
-  letter-spacing: 0.18em;
-  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.72);
   color: var(--color-foreground-muted);
 }
 
@@ -198,9 +204,10 @@ const statusMessage = computed(() => {
 }
 
 .choice-panel__label {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: var(--font-size-lg);
   line-height: var(--line-height-tight);
+  color: var(--color-foreground);
 }
 
 @media (max-width: 720px) {

@@ -19,7 +19,8 @@ const runtimeState: RuntimeState = {
     attitudeScore: 0,
     historySummary: '尚未展开任何对话。',
     readNodeIds: [],
-    settings: { bgmEnabled: true }
+    settings: { bgmEnabled: true },
+    isCompleted: false
 }
 
 const buildSession = (dependencies: DialogueDependencies) => {

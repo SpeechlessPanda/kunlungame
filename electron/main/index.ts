@@ -1,8 +1,19 @@
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import type { DesktopDialogueSmokeResult, DesktopStartupSnapshot } from '../../src/shared/types/desktop.js'
+import type {
+  DesktopDialogueSmokeResult,
+  DesktopMainlineTurnRequest,
+  DesktopMainlineTurnResult,
+  DesktopRuntimeStateSnapshot,
+  DesktopSerializedRuntimeState,
+  DesktopStartupSnapshot
+} from '../../src/shared/types/desktop.js'
 import { buildModelSetupPlan, type BuildModelSetupPlanInput } from '../../src/modeling/modelSetupPlanner.js'
 import { runDialogueSmokeTest } from '../../src/modeling/dialogueSmokeTest.js'
+import { runMainlineTurn } from '../../src/modeling/mainlineTurnRunner.js'
+import { runtimeStateSchema } from '../../src/runtime/runtimeState.js'
+import { loadRuntimeState, saveRuntimeState } from '../../src/runtime/saveRepository.js'
+import { mainlineStoryOutline } from '../../src/content/source/mainlineOutline.js'
 
 export interface MainWindowOptions {
   width: number
@@ -95,8 +106,77 @@ export const runDesktopDialogueSmoke = async (
   return await resolvedDependencies.runDialogueSmoke(input)
 }
 
+export const runDesktopMainlineTurn = async (
+  startupInput: DesktopStartupInput,
+  request: DesktopMainlineTurnRequest
+): Promise<DesktopMainlineTurnResult> => {
+  const result = await runMainlineTurn({
+    ...startupInput,
+    nodeId: request.nodeId,
+    attitudeChoiceMode: request.attitudeChoiceMode,
+    runtimeState: runtimeStateSchema.parse(request.runtimeState),
+    recentTurns: request.recentTurns
+  })
+  if (result.ok) {
+    return {
+      ok: true,
+      selectedProfileId: result.selectedProfileId,
+      modelPath: result.modelPath,
+      currentNodeId: result.currentNodeId,
+      fallbackUsed: result.fallbackUsed,
+      chunks: result.chunks,
+      combinedText: result.combinedText,
+      options: result.options,
+      completed: result.completed
+    }
+  }
+  return {
+    ok: false,
+    reason: result.reason,
+    message: result.message,
+    ...(result.modelPath != null ? { modelPath: result.modelPath } : {})
+  }
+}
+
 export const logDesktopShellBootstrapFailure = (error: unknown): void => {
   console.error('[desktop-shell] bootstrap failed', error)
+}
+
+export const resolveRuntimeSaveFilePath = (appDataDir: string): string => {
+  return join(appDataDir, 'runtime-state.json')
+}
+
+export const loadDesktopRuntimeState = async (
+  appDataDir: string
+): Promise<DesktopRuntimeStateSnapshot> => {
+  const result = await loadRuntimeState({
+    storyOutline: mainlineStoryOutline,
+    saveFilePath: resolveRuntimeSaveFilePath(appDataDir)
+  })
+
+  return {
+    state: {
+      saveVersion: result.state.saveVersion,
+      currentNodeId: result.state.currentNodeId,
+      turnIndex: result.state.turnIndex,
+      attitudeScore: result.state.attitudeScore,
+      historySummary: result.state.historySummary,
+      readNodeIds: [...result.state.readNodeIds],
+      settings: { bgmEnabled: result.state.settings.bgmEnabled }
+    },
+    recoveryAction: result.recoveryAction
+  }
+}
+
+export const saveDesktopRuntimeState = async (
+  appDataDir: string,
+  state: DesktopSerializedRuntimeState
+): Promise<void> => {
+  const validated = runtimeStateSchema.parse(state)
+  await saveRuntimeState({
+    saveFilePath: resolveRuntimeSaveFilePath(appDataDir),
+    state: validated
+  })
 }
 
 const bootstrapDesktopShell = async (): Promise<void> => {
@@ -121,6 +201,22 @@ const bootstrapDesktopShell = async (): Promise<void> => {
       projectRoot: process.cwd(),
       appDataDir: app.getPath('userData')
     }))
+  })
+  ipcMain.handle('desktop:run-mainline-turn', async (_event, request: DesktopMainlineTurnRequest) => {
+    return await runDesktopMainlineTurn(
+      buildDesktopStartupInput({
+        isPackaged: app.isPackaged,
+        projectRoot: process.cwd(),
+        appDataDir: app.getPath('userData')
+      }),
+      request
+    )
+  })
+  ipcMain.handle('desktop:load-runtime-state', async () => {
+    return await loadDesktopRuntimeState(app.getPath('userData'))
+  })
+  ipcMain.handle('desktop:save-runtime-state', async (_event, state: DesktopSerializedRuntimeState) => {
+    await saveDesktopRuntimeState(app.getPath('userData'), state)
   })
 
   await app.whenReady()

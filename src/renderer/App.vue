@@ -5,10 +5,12 @@ import {
   ATTITUDE_MIN,
   applyPlayerChoice,
   createDefaultRuntimeState,
+  runtimeStateSchema,
   type PlayerAttitudeChoice,
   type RuntimeState,
 } from "../runtime/runtimeState.js";import { mainlineStoryOutline } from "../content/source/mainlineOutline.js";
 import type { StoryNode } from "../shared/contracts/contentContracts.js";
+import type { DesktopBridge } from "../shared/types/desktop.js";
 import {
   createBgmController,
   type BgmControllerState,
@@ -23,8 +25,9 @@ import {
   type DialogueDependenciesFactory,
 } from "./composables/useDialogueSession.js";
 import {
-  buildMockDialogueDependencies,
+  createBridgeDialogueDependenciesFactory,
   createDefaultDialogueDependenciesFactory,
+  buildMockDialogueDependencies,
 } from "./adapters/rendererDialogueDependencies.js";
 import { defaultAssetManifest } from "./assets/manifest.js";
 import { resolveAssetPath } from "../shared/contracts/assetManifest.js";
@@ -64,6 +67,49 @@ const dialogueSession = createDialogueSession({
   dependenciesFactory: createDefaultDialogueDependenciesFactory(),
 });
 
+const getBridge = (): DesktopBridge | null => {
+  return (
+    (window as unknown as { kunlunDesktop?: DesktopBridge }).kunlunDesktop ??
+    null
+  );
+};
+
+const persistState = async (): Promise<void> => {
+  const bridge = getBridge();
+  if (!bridge) {
+    return;
+  }
+  try {
+    await bridge.saveRuntimeState({
+      saveVersion: runtimeState.value.saveVersion,
+      currentNodeId: runtimeState.value.currentNodeId,
+      turnIndex: runtimeState.value.turnIndex,
+      attitudeScore: runtimeState.value.attitudeScore,
+      historySummary: runtimeState.value.historySummary,
+      readNodeIds: [...runtimeState.value.readNodeIds],
+      settings: { bgmEnabled: runtimeState.value.settings.bgmEnabled },
+    });
+  } catch (error) {
+    console.error("[app] saveRuntimeState failed", error);
+  }
+};
+
+const restoreFromBridge = async (): Promise<void> => {
+  const bridge = getBridge();
+  if (!bridge) {
+    return;
+  }
+  try {
+    const snapshot = await bridge.loadRuntimeState();
+    runtimeState.value = runtimeStateSchema.parse(snapshot.state);
+    refreshBgm(
+      runtimeState.value.settings.bgmEnabled ? bgm.enable() : bgm.disable(),
+    );
+  } catch (error) {
+    console.error("[app] loadRuntimeState failed", error);
+  }
+};
+
 const runTurn = (): void => {
   const node = currentNode.value;
   if (!node) {
@@ -87,11 +133,17 @@ const beginMainline = (): void => {
   attitudeChoiceMode.value = "align";
   dialogueSession.cancel();
   turn.reset();
+  void persistState();
   runTurn();
 };
 
 const onChoose = (choice: ChoiceModel): void => {
   attitudeChoiceMode.value = choice.id;
+  // 升华轮：两个选项都作为"再走一次旅程"的入口，不再继续推进节点。
+  if (runtimeState.value.isCompleted) {
+    beginMainline();
+    return;
+  }
   recentTurns.value = [...recentTurns.value, turn.view.value.fullText].slice(
     -5,
   );
@@ -102,6 +154,7 @@ const onChoose = (choice: ChoiceModel): void => {
     choice: choice.id,
   });
   turn.dispatch({ type: "choice-made" });
+  void persistState();
   if (currentNode.value) {
     runTurn();
   }
@@ -124,6 +177,11 @@ const onCloseSettings = (): void => {
 };
 const onToggleBgm = (): void => {
   refreshBgm(bgm.toggle());
+  runtimeState.value = {
+    ...runtimeState.value,
+    settings: { bgmEnabled: bgmState.value.enabled },
+  };
+  void persistState();
 };
 const onSetVolume = (value: number): void => {
   refreshBgm(bgm.setVolume(value));
@@ -149,22 +207,46 @@ const useMockStreamFlag = ref(true);
 
 const applyDependenciesFactory = (): void => {
   if (useMockStreamFlag.value) {
-    dialogueSession.setDependenciesFactory(({ node }) =>
-      buildMockDialogueDependencies(node),
+    // 复用默认工厂：它会把 turnIndex / attitude / isCompleted 透传给 mock，
+    // 让每一次开场都因为玩家的历史选择而略有不同，而不是"开始游戏输出都一样"。
+    dialogueSession.setDependenciesFactory(
+      createDefaultDialogueDependenciesFactory(),
     );
     return;
   }
-  // 真实本地模型依赖接入由后续 session 补充。当前 fallback：
-  // 用一个立即报错的工厂，让 UI 能呈现 error 态，而不是静默成功。
-  const unavailableFactory: DialogueDependenciesFactory = () => ({
-    streamText: async function* () {
-      throw new Error("真实本地模型依赖尚未在渲染进程接入。");
-    },
-    generateOptions: async () => {
-      throw new Error("真实本地模型依赖尚未在渲染进程接入。");
-    },
+  // 真实本地模型：通过桌面 bridge IPC 把每一轮对话派发到主进程，
+  // 让 node-llama-cpp 加载 GGUF 并跑完一轮后回传 chunks + options。
+  const bridge = (window as unknown as { kunlunDesktop?: DesktopBridge })
+    .kunlunDesktop;
+  if (bridge == null || typeof bridge.runMainlineTurn !== "function") {
+    const unavailableFactory: DialogueDependenciesFactory = () => ({
+      streamText: async function* () {
+        throw new Error(
+          "桌面 bridge 尚未注入或 runMainlineTurn 不可用（可能在非 Electron 环境运行）。",
+        );
+      },
+      generateOptions: async () => {
+        throw new Error(
+          "桌面 bridge 尚未注入或 runMainlineTurn 不可用（可能在非 Electron 环境运行）。",
+        );
+      },
+    });
+    dialogueSession.setDependenciesFactory(unavailableFactory);
+    return;
+  }
+  const bridgeFactory = createBridgeDialogueDependenciesFactory(bridge);
+  dialogueSession.setDependenciesFactory((context) => {
+    if (context.runtimeState.isCompleted) {
+      // 升华轮不需要真正唤起本地模型，直接用本地 mock 的结尾分支即可。
+      return buildMockDialogueDependencies(context.node, {
+        attitudeChoiceMode: context.attitudeChoiceMode,
+        turnIndex: context.runtimeState.turnIndex,
+        attitudeScore: context.runtimeState.attitudeScore,
+        isEnding: true,
+      });
+    }
+    return bridgeFactory(context);
   });
-  dialogueSession.setDependenciesFactory(unavailableFactory);
 };
 
 const exposeDebug = (): void => {
@@ -199,6 +281,7 @@ const exposeDebug = (): void => {
 onMounted(() => {
   applyDependenciesFactory();
   exposeDebug();
+  void restoreFromBridge();
 });
 onBeforeUnmount(() => {
   dialogueSession.cancel();

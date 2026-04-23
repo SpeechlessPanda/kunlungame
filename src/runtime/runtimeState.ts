@@ -17,6 +17,9 @@ export const runtimeStateSchema = z.object({
   attitudeScore: z.number().int().min(ATTITUDE_MIN).max(ATTITUDE_MAX),
   historySummary: z.string(),
   readNodeIds: z.array(z.string().min(1)),
+  // isCompleted=true 表示玩家已经走过最终节点的一轮对话，
+  // 此时 UI 应展示升华式结尾而不是再生成新的选项，也不能继续推进节点。
+  isCompleted: z.boolean().default(false),
   settings: runtimeSettingsSchema
 })
 
@@ -82,6 +85,7 @@ export const createDefaultRuntimeState = (storyOutline: StoryOutline): RuntimeSt
     attitudeScore: 0,
     historySummary: summarizeRepairedMemories(storyOutline, readNodeIds),
     readNodeIds,
+    isCompleted: false,
     settings: {
       bgmEnabled: true
     }
@@ -96,13 +100,18 @@ export const applyPlayerChoice = (input: ApplyPlayerChoiceInput): RuntimeState =
     ? input.state.readNodeIds
     : [...input.state.readNodeIds, currentNode.id]
 
+  // 当当前节点没有下一节点（终节点）时，把运行时状态标记为已完成；
+  // 渲染层据此展示升华式结尾而不是继续派发新一轮对话。
+  const isCompleted = input.state.isCompleted || currentNode.nextNodeId === null
+
   return runtimeStateSchema.parse({
     ...input.state,
     currentNodeId: nextNodeId,
     turnIndex: input.state.turnIndex + 1,
     attitudeScore: clampAttitude(input.state.attitudeScore + attitudeDelta),
     historySummary: summarizeRepairedMemories(input.storyOutline, readNodeIds),
-    readNodeIds
+    readNodeIds,
+    isCompleted
   })
 }
 

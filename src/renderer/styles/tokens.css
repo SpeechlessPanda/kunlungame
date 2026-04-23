@@ -1,74 +1,79 @@
 /*
  * Kunlun Ballad 设计令牌 (tokens)
  * ----------------------------------
- * 单一来源：所有组件都应通过 CSS 变量消费颜色、间距与字体，
- * 不允许在组件里写死色值。暗色主题为首版默认，后续如需浅色主题
- * 在 `[data-theme="light"]` 下覆盖同名变量即可。
+ * galgame 可爱风：柔和奶油底 + 樱粉 + 薄荷 + 珊瑚，圆润、明亮、轻盈。
+ * 所有组件必须通过 CSS 变量消费颜色，不允许在组件里写死色值。
  */
 
 :root {
-  /* Color scales */
-  --color-bg: #0f172a;
-  --color-bg-elevated: #111b2f;
-  --color-surface: rgba(18, 27, 47, 0.82);
-  --color-surface-muted: rgba(18, 27, 47, 0.6);
-  --color-foreground: #f5f7fb;
-  --color-foreground-muted: rgba(
-    245,
-    247,
-    251,
-    0.78
-  ); /* 提亮 0.72→0.78，辅助文本在深底上 ≥5.6:1 */
-  --color-foreground-dim: rgba(
-    245,
-    247,
-    251,
-    0.62
-  ); /* 提亮 0.48→0.62，12px 小字 ≥4.6:1 */
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(
-    255,
-    255,
-    255,
-    0.22
-  ); /* 0.18→0.22，弱边框更清晰 */
-  --color-accent: #d97706; /* 中和玉色金的 CTA 强调 */
-  --color-accent-contrast: #1a0f03;
-  --color-align: #4fb07c; /* 顺从选项（#3f9a6a→#4fb07c，文本对深底 ≥6.5:1） */
-  --color-align-border: rgba(79, 176, 124, 0.6);
-  --color-challenge: #de6a53; /* 反驳选项（#c55a48→#de6a53，文本对深底 ≥5.2:1） */
-  --color-challenge-border: rgba(222, 106, 83, 0.6);
-  --color-danger: #e5484d;
-  --color-success: #3aae7c;
-  --color-focus-ring: #f5c784;
+  /* —— 背景 / 表面 —— */
+  --color-bg: #fdf5f1; /* 奶油偏粉的温暖底 */
+  --color-bg-elevated: #ffffff;
+  --color-surface: rgba(255, 250, 247, 0.92); /* 对话框用的乳白磨砂 */
+  --color-surface-muted: rgba(255, 246, 240, 0.82);
+  --color-surface-soft: #fff2ee; /* 卡片底色柔化 */
 
-  /* Palette tokens consumed by BackgroundStage for each mode */
-  --palette-myth-from: #1b2650;
-  --palette-myth-to: #080a1a;
-  --palette-heritage-from: #2d221a;
-  --palette-heritage-to: #0c0806;
-  --palette-bridge-from: #1c2232;
-  --palette-bridge-to: #261a22;
+  /* —— 文字 —— */
+  --color-foreground: #3b2330; /* 深梅紫，印在奶白底上 ≥11:1 */
+  --color-foreground-muted: #6b4456; /* 次级文本 ≥7:1 */
+  --color-foreground-dim: #8c6a7a; /* 辅助 / 状态小字 ≥5:1 */
+  --color-foreground-invert: #fff8f4;
 
-  /* Typography */
+  /* —— 边框 —— */
+  --color-border: rgba(236, 125, 157, 0.24);
+  --color-border-strong: rgba(236, 125, 157, 0.48);
+
+  /* —— 品牌色 —— */
+  --color-accent: #ec7d9d; /* 樱花粉：主 CTA，情绪色 */
+  --color-accent-strong: #d85f84;
+  --color-accent-contrast: #ffffff;
+
+  /* —— 选项 A（顺着听下去：薄荷绿，暖而软）—— */
+  --color-align: #4a9e7b;
+  --color-align-bg: #eafaf2;
+  --color-align-border: #89d1b2;
+
+  /* —— 选项 B（追问：珊瑚橙，温和而不激进）—— */
+  --color-challenge: #c86a54;
+  --color-challenge-bg: #fdece5;
+  --color-challenge-border: #f2a28c;
+
+  /* —— 语义 —— */
+  --color-danger: #d04848;
+  --color-success: #4a9e7b;
+  --color-focus-ring: #ec7d9d;
+
+  /* —— 背景模式的舞台色（galgame 风：粉紫→奶油→蜜桃）—— */
+  --palette-myth-from: #f8d8e6;
+  --palette-myth-to: #fef5ec;
+  --palette-heritage-from: #f5e4cf;
+  --palette-heritage-to: #fff4e8;
+  --palette-bridge-from: #e6dff7;
+  --palette-bridge-to: #fde6ef;
+
+  /* —— 字体 —— */
   --font-serif:
     "Noto Serif SC", "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC",
     "STSong", serif;
   --font-sans:
     "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei",
     "PingFang SC", system-ui, sans-serif;
+  /* 可爱风的主要字体：略圆润、更接近手写感，降级到系统无衬线 */
+  --font-display:
+    "LXGW WenKai", "LXGW WenKai Screen", "Huiwen-mincho",
+    "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
 
   --font-size-xs: 12px;
   --font-size-sm: 14px;
   --font-size-md: 16px;
   --font-size-lg: 18px;
-  --font-size-xl: 24px;
-  --font-size-2xl: 32px;
+  --font-size-xl: 22px;
+  --font-size-2xl: 30px;
 
-  --line-height-body: 1.7;
-  --line-height-tight: 1.3;
+  --line-height-body: 1.8;
+  --line-height-tight: 1.35;
 
-  /* Spacing rhythm (4 / 8) */
+  /* —— 间距 —— */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -77,33 +82,39 @@
   --space-6: 32px;
   --space-7: 48px;
 
-  /* Radius & shadow */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --shadow-surface: 0 24px 48px -24px rgba(0, 0, 0, 0.55);
-  --shadow-pop: 0 12px 24px -12px rgba(0, 0, 0, 0.6);
+  /* —— 圆角：galgame 风偏圆润 —— */
+  --radius-sm: 10px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
+  --radius-pill: 999px;
 
-  /* Motion */
-  --motion-fast: 150ms;
-  --motion-base: 240ms;
-  --motion-slow: 360ms;
-  --ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* —— 阴影：软而粉，像糖霜 —— */
+  --shadow-surface: 0 18px 40px -22px rgba(232, 110, 148, 0.45),
+    0 2px 6px -2px rgba(95, 41, 64, 0.08);
+  --shadow-pop: 0 10px 22px -10px rgba(232, 110, 148, 0.5);
+  --shadow-soft: 0 4px 14px -6px rgba(95, 41, 64, 0.12);
 
-  /* Z-index scale */
+  /* —— 动效：稍慢一些，让弹性出来 —— */
+  --motion-fast: 180ms;
+  --motion-base: 280ms;
+  --motion-slow: 420ms;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bouncy: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* —— z-index 分层 —— */
   --z-background: 0;
   --z-stage: 10;
   --z-panel: 20;
   --z-overlay: 40;
   --z-toast: 60;
 
-  /* Safe-area padding（移动端刘海/底部 Home 指示条兼容） */
+  /* —— 安全区 —— */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
 
-  /* Touch targets（WCAG 2.5.5 ≥44px；关键选项按钮 ≥56px） */
+  /* —— 触控目标 —— */
   --tap-target-min: 44px;
   --tap-target-choice: 56px;
 }
@@ -115,12 +126,28 @@ body,
   padding: 0;
   background: var(--color-bg);
   color: var(--color-foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-size: var(--font-size-md);
   line-height: var(--line-height-body);
   min-height: 100vh;
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+}
+
+body {
+  /* 整体底层加一层非常淡的粉/紫晕染，不抢画面，但让纯色背景不显得"死"。 */
+  background:
+    radial-gradient(
+      1200px 600px at 20% -5%,
+      rgba(236, 125, 157, 0.18),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 500px at 85% 10%,
+      rgba(168, 140, 220, 0.14),
+      transparent 60%
+    ),
+    var(--color-bg);
 }
 
 button {
@@ -129,7 +156,8 @@ button {
 
 :focus-visible {
   outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  border-radius: inherit;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -137,20 +165,18 @@ button {
     --motion-fast: 0ms;
     --motion-base: 0ms;
     --motion-slow: 0ms;
+    --ease-bouncy: var(--ease-standard);
   }
 }
 
-/*
- * 高对比度偏好（WCAG 1.4.6 AAA 级可选支持）：进一步抬高辅助文本
- * 与边框的可见度，让低视力用户可以通过系统设置拿到更强对比。
- */
+/* 高对比度偏好 */
 @media (prefers-contrast: more) {
   :root {
-    --color-foreground-muted: rgba(245, 247, 251, 0.92);
-    --color-foreground-dim: rgba(245, 247, 251, 0.78);
-    --color-border: rgba(255, 255, 255, 0.22);
-    --color-border-strong: rgba(255, 255, 255, 0.45);
-    --color-focus-ring: #ffd86b;
+    --color-foreground-muted: #4a2c3a;
+    --color-foreground-dim: #5c3a4a;
+    --color-border: rgba(192, 80, 124, 0.55);
+    --color-border-strong: rgba(192, 80, 124, 0.78);
+    --color-focus-ring: #c83d6a;
   }
   :focus-visible {
     outline-width: 3px;
@@ -158,18 +184,15 @@ button {
   }
 }
 
-/*
- * Windows 高对比度 / forced-colors：让系统色接管关键视觉，
- * 仅保留形状与焦点指示，避免主题色被忽略导致无法识别按钮边界。
- */
+/* Windows forced-colors 兼容：让系统色接管关键视觉。 */
 @media (forced-colors: active) {
   :focus-visible {
     outline: 2px solid CanvasText;
     outline-offset: 2px;
   }
   button,
-  [role='switch'],
-  [role='dialog'] {
+  [role="switch"],
+  [role="dialog"] {
     forced-color-adjust: none;
     border-color: CanvasText;
   }

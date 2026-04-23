@@ -54,18 +54,38 @@ const showErrorState = computed(() => props.view.snapshot.state === 'error')
     aria-live="polite"
     aria-atomic="false"
   >
-    <header class="dialog-panel__header">
-      <span class="dialog-panel__speaker">{{ speakerLabel ?? '叙述者' }}</span>
-      <span class="dialog-panel__state" data-testid="dialog-state">{{ stateLabel }}</span>
-    </header>
-
-    <div v-if="showEmptyState" class="dialog-panel__empty" data-testid="dialog-empty">
-      <p>旅人，点击下方“继续”开始昆仑之上的第一段对话。</p>
+    <div class="dialog-panel__nameplate" aria-hidden="true">
+      <span class="dialog-panel__heart">♡</span>
+      <span class="dialog-panel__nameplate-text">{{
+        speakerLabel ?? "昆仑"
+      }}</span>
     </div>
 
-    <div v-else-if="showErrorState" class="dialog-panel__error" role="alert" data-testid="dialog-error">
+    <header class="dialog-panel__header">
+      <span class="dialog-panel__speaker sr-only">{{
+        speakerLabel ?? "昆仑"
+      }}</span>
+      <span class="dialog-panel__state" data-testid="dialog-state">{{
+        stateLabel
+      }}</span>
+    </header>
+
+    <div
+      v-if="showEmptyState"
+      class="dialog-panel__empty"
+      data-testid="dialog-empty"
+    >
+      <p>诶——第一次见面呢。点一下下面的「进入昆仑」，我们慢慢聊。</p>
+    </div>
+
+    <div
+      v-else-if="showErrorState"
+      class="dialog-panel__error"
+      role="alert"
+      data-testid="dialog-error"
+    >
       <p class="dialog-panel__error-text">
-        {{ view.snapshot.errorMessage ?? '模型暂时无法回答，请稍后重试。' }}
+        {{ view.snapshot.errorMessage ?? "唔，我这里卡住了，重试一下？" }}
       </p>
       <button
         type="button"
@@ -77,7 +97,11 @@ const showErrorState = computed(() => props.view.snapshot.state === 'error')
       </button>
     </div>
 
-    <div v-else-if="showLoadingSkeleton" class="dialog-panel__skeleton" aria-hidden="true">
+    <div
+      v-else-if="showLoadingSkeleton"
+      class="dialog-panel__skeleton"
+      aria-hidden="true"
+    >
       <span class="dialog-panel__skeleton-line" />
       <span class="dialog-panel__skeleton-line dialog-panel__skeleton-line--short" />
       <span class="dialog-panel__skeleton-line" />
@@ -90,7 +114,8 @@ const showErrorState = computed(() => props.view.snapshot.state === 'error')
           v-if="view.isRevealing"
           class="dialog-panel__cursor"
           aria-hidden="true"
-        >▍</span>
+          >▍</span
+        >
       </p>
       <button
         v-if="view.isRevealing"
@@ -109,37 +134,73 @@ const showErrorState = computed(() => props.view.snapshot.state === 'error')
 .dialog-panel {
   position: relative;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: 2px solid var(--color-border-strong);
   border-radius: var(--radius-lg);
-  padding: var(--space-5) var(--space-6);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  padding: var(--space-6) var(--space-6) var(--space-5);
   box-shadow: var(--shadow-surface);
   min-height: 220px;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   color: var(--color-foreground);
+  margin-top: var(--space-5);
+}
+
+/* galgame 风的名字牌：从对话框左上角翘起来一截 */
+.dialog-panel__nameplate {
+  position: absolute;
+  top: -20px;
+  left: var(--space-5);
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    135deg,
+    var(--color-accent) 0%,
+    var(--color-accent-strong) 100%
+  );
+  color: var(--color-accent-contrast);
+  font-family: var(--font-display);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  box-shadow: var(--shadow-pop);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+}
+
+.dialog-panel__heart {
+  font-size: var(--font-size-sm);
+  color: #fff;
+  opacity: 0.85;
+  transform: translateY(-1px);
 }
 
 .dialog-panel__header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: baseline;
   font-size: var(--font-size-sm);
 }
 
-.dialog-panel__speaker {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-lg);
-  letter-spacing: 0.08em;
-  color: var(--color-foreground);
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .dialog-panel__state {
   color: var(--color-foreground-dim);
   font-size: var(--font-size-xs);
   letter-spacing: 0.12em;
+  font-family: var(--font-sans);
 }
 
 .dialog-panel__body {
@@ -152,9 +213,10 @@ const showErrorState = computed(() => props.view.snapshot.state === 'error')
   margin: 0;
   font-size: var(--font-size-lg);
   line-height: var(--line-height-body);
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   white-space: pre-wrap;
   word-break: break-word;
+  color: var(--color-foreground);
 }
 
 .dialog-panel__cursor {
@@ -198,15 +260,18 @@ const showErrorState = computed(() => props.view.snapshot.state === 'error')
 .dialog-panel__skip {
   align-self: flex-start;
   background: transparent;
-  color: var(--color-accent);
-  border: 1px solid var(--color-accent);
+  color: var(--color-accent-strong);
+  border: 1.5px solid var(--color-accent);
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   font-size: var(--font-size-sm);
+  font-weight: 600;
   cursor: pointer;
-  transition: background var(--motion-fast) var(--ease-standard),
-    color var(--motion-fast) var(--ease-standard);
-  min-height: 40px;
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-bouncy);
+  min-height: 36px;
 }
 
 .dialog-panel__retry:hover,
@@ -215,6 +280,7 @@ const showErrorState = computed(() => props.view.snapshot.state === 'error')
 .dialog-panel__skip:focus-visible {
   background: var(--color-accent);
   color: var(--color-accent-contrast);
+  transform: translateY(-1px);
 }
 
 .dialog-panel__skeleton {
@@ -229,9 +295,9 @@ const showErrorState = computed(() => props.view.snapshot.state === 'error')
   border-radius: var(--radius-sm);
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(255, 255, 255, 0.14) 50%,
-    rgba(255, 255, 255, 0.04) 100%
+    rgba(236, 125, 157, 0.1) 0%,
+    rgba(236, 125, 157, 0.28) 50%,
+    rgba(236, 125, 157, 0.1) 100%
   );
   background-size: 200% 100%;
   animation: dialog-shimmer 1600ms linear infinite;

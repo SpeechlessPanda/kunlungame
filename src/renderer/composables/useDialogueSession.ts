@@ -29,6 +29,10 @@ import type { ChoiceModel, TurnController } from './useTurnController.js'
 
 export type DialogueDependenciesFactory = (context: {
     node: StoryNode
+    runtimeState: RuntimeState
+    retrievedEntries: KnowledgeEntry[]
+    attitudeChoiceMode: PlayerAttitudeChoice
+    recentTurns: string[]
 }) => DialogueDependencies
 
 export interface DialogueSessionTurnInput {
@@ -106,7 +110,13 @@ export const createDialogueSession = (
                 recentTurns: input.recentTurns
             }
 
-            const dependencies = dependenciesFactory({ node: input.node })
+            const dependencies = dependenciesFactory({
+                node: input.node,
+                runtimeState: input.runtimeState,
+                retrievedEntries: input.retrievedEntries,
+                attitudeChoiceMode: input.attitudeChoiceMode,
+                recentTurns: input.recentTurns
+            })
 
             let streamEnded = false
 

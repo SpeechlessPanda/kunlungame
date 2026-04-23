@@ -26,14 +26,35 @@ describe('buildStoryPrompt', () => {
       recentTurns: ['玩家：我只记得昆仑这个名字。']
     })
 
-    expect(prompt.system).toContain('始终使用中文回答')
-    expect(prompt.system).toContain('不得剧透后续节点')
-    expect(prompt.system).toContain('附和型')
-    expect(prompt.system).toContain('反驳型')
+    expect(prompt.system).toContain('必须使用中文')
+    expect(prompt.system).toContain('昆仑')
+    expect(prompt.system).toContain('小妹妹')
     expect(prompt.user).toContain(currentNode.coreQuestion)
     expect(prompt.user).toContain(currentNode.mustIncludeFacts[0] ?? '')
     expect(prompt.user).toContain('昆仑被视为世界中心。')
-    expect(prompt.user).toContain('玩家当前倾向：附和型')
+    expect(prompt.user).toContain('顺着你继续听下去')
     expect(prompt.user).toContain('禁止提前涉及')
+  })
+
+  it("reflects challenge tone and later-turn familiarity in the user prompt", () => {
+    const currentNode = mainlineStoryOutline.nodes[3]
+    const defaultState = createDefaultRuntimeState(mainlineStoryOutline)
+    const runtimeState = {
+      ...defaultState,
+      turnIndex: 4,
+      attitudeScore: -2
+    }
+
+    const prompt = buildStoryPrompt({
+      currentNode,
+      retrievedEntries: [],
+      runtimeState,
+      attitudeChoiceMode: 'challenge',
+      recentTurns: []
+    })
+
+    expect(prompt.user).toContain('怀疑或反驳')
+    expect(prompt.user).toContain('主动调侃、打趣')
+    expect(prompt.user).toContain('具体的史实、时间、地名')
   })
 })

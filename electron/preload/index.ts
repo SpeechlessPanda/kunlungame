@@ -1,7 +1,15 @@
-import type { DesktopBridge, DesktopDialogueSmokeResult, DesktopStartupSnapshot } from '../../src/shared/types/desktop.js'
+import type {
+  DesktopBridge,
+  DesktopDialogueSmokeResult,
+  DesktopMainlineTurnRequest,
+  DesktopMainlineTurnResult,
+  DesktopRuntimeStateSnapshot,
+  DesktopSerializedRuntimeState,
+  DesktopStartupSnapshot
+} from '../../src/shared/types/desktop.js'
 
 export interface IpcRendererLike {
-  invoke(channel: string): Promise<unknown>
+  invoke(channel: string, ...args: unknown[]): Promise<unknown>
 }
 
 export const createDesktopBridge = (renderer: IpcRendererLike): DesktopBridge => ({
@@ -13,6 +21,15 @@ export const createDesktopBridge = (renderer: IpcRendererLike): DesktopBridge =>
   },
   async runDialogueSmoke(): Promise<DesktopDialogueSmokeResult> {
     return await renderer.invoke('desktop:run-dialogue-smoke') as DesktopDialogueSmokeResult
+  },
+  async runMainlineTurn(request: DesktopMainlineTurnRequest): Promise<DesktopMainlineTurnResult> {
+    return await renderer.invoke('desktop:run-mainline-turn', request) as DesktopMainlineTurnResult
+  },
+  async loadRuntimeState(): Promise<DesktopRuntimeStateSnapshot> {
+    return await renderer.invoke('desktop:load-runtime-state') as DesktopRuntimeStateSnapshot
+  },
+  async saveRuntimeState(state: DesktopSerializedRuntimeState): Promise<void> {
+    await renderer.invoke('desktop:save-runtime-state', state)
   }
 })
 

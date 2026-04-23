@@ -2,21 +2,21 @@
 
 ## Execution Status
 
-Status: in progress (real-model smoke deferred)
+Status: in progress (real-model smoke deferred until assets delivered)
 
 Completed to date:
 
 1. Part 01–07 全部完成 UI + 非 UI 实施并通过聚焦验证；Part 07 视觉层只剩最终素材未绑定（占位管线已就位）。
 2. 非 UI 全管线集成测试已落地：`tests/integrationMainlineLoop.test.ts` 串联 canonical mainline、知识检索、对话编排、运行时状态、存档仓储，验证 chunk→options→complete 事件顺序、`readNodeIds` 驱动摘要重建、态度值钳制、节点推进、存档恢复。
 3. 黑盒 / E2E：`tests/e2e/rendererShell.spec.ts` 覆盖空态 / 流式 / 选项 / 错误重试 / 背景模式切换 / 键盘快捷键 / 焦点陷阱 / 移动端 tap target / reduced-motion / 性能预算，共 12 场景全部通过。
-4. 最近一次 fresh 全量验证：`pnpm typecheck` = 0，`pnpm test` = 28 files / 143 tests pass，`pnpm test:e2e` = 12/12 pass，`pnpm knowledge:compile` 可稳定再生产结构化产物。
-5. 发布前审计模板：`docs/audits/2026-release-audit-template.md` 已建立，覆盖依赖 / 测试 / 构建 / 冒烟 / 性能 / 文档 / 内容七项检查。
+4. 真实本地模型 IPC 通道已接通：`src/modeling/mainlineTurnRunner.ts` 把 `localDialogueDependencies` 泛化为任意节点任意运行时状态的单轮执行器；`desktop:run-mainline-turn` 在 `electron/main/index.ts` 注册，`electron/preload/index.ts` 暴露 `runMainlineTurn`，`src/renderer/adapters/rendererDialogueDependencies.ts` 提供 `createBridgeDialogueDependenciesFactory`，`src/renderer/App.vue` 在 `useMockStream(false)` 时切到 bridge 工厂。失败分支 `model-missing` / `model-load-failed` / `orchestration-failed` 均可被 UI 感知。
+5. 最近一次 fresh 全量验证：`pnpm typecheck` = 0，`pnpm test --run` = 30 files / 150 tests pass，`pnpm test:e2e` = 12/12 pass，`pnpm knowledge:compile` 可稳定再生产结构化产物。
+6. 发布前审计模板：`docs/audits/2026-release-audit-template.md` 已建立，覆盖依赖 / 测试 / 构建 / 冒烟 / 性能 / 文档 / 内容七项检查。
 
 Currently blocked or deferred:
 
 1. 真实本地模型（GGUF）文件与真实背景图片仍未就位，因此尚未完成不少于 5 分钟的桌面端真实协作闭环试玩。
-2. 渲染进程的 IPC 通道尚未把 `localDialogueDependencies` 接上 Electron preload bridge；目前 `useMockStream(false)` 会直接进入 error 态，等待后续 session 补齐。
-3. 正式发布前审计记录尚未填充具体结果。
+2. 正式发布前审计记录尚未填充具体结果。
 
 ## 1. 目标
 

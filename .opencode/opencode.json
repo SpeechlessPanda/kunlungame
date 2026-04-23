@@ -1,0 +1,10 @@
+{
+  "plugin": [
+    "@morphllm/opencode-morph-plugin",
+    "opencode-supermemory",
+    "opencode-vibeguard",
+    "opencode-workspaces",
+    "opencode-daytona",
+    "list"
+  ]
+}
