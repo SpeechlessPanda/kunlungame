@@ -19,6 +19,24 @@ Completed in this session:
 11. 已新增本地流适配白盒测试，覆盖 chunk 顺序、首次失败自动重试、重试预算耗尽报错，以及依赖注入不改写选项生成。
 12. 已把 dialogue smoke helper 接入 Electron 主进程与 preload bridge，并新增 `pnpm dialogue:smoke` 命令用于触发单轮真实协作冒烟。
 
+## 实施进度（2026-04-23 UI ↔ 编排接入轮次）
+
+Done in this iteration:
+
+1. 新增 renderer 侧组合函数 `src/renderer/composables/useDialogueSession.ts`，把 `orchestrateDialogue` 返回的 `chunk` / `options` / `complete` / `error` 事件路由进 `useTurnController`，并支持每轮调用前通过 token 判断旧轮次是否已被取消。
+2. 新增 renderer adapter `src/renderer/adapters/rendererDialogueDependencies.ts`，提供 deterministic mock `DialogueDependencies`（按节点 id 选取至少两段文本与两条 align/challenge 选项，时序可注入），用作桌面启动时无本地模型的默认依赖。
+3. `src/renderer/App.vue` 中删除原来的 `setTimeout` 脚本驱动，改为通过 `dialogueSession.runTurn(...)` 消费真正的 Part 05 管线；`beginMainline`、多节点推进、错误注入、设置面板等原有行为全部保留。
+4. `window.__kunlunDebug` 保留 `start()` / `snapshot()` / `injectError()`，并新增 `useMockStream(enabled)` 和 `getLastOptions()` 两个调试入口；`useMockStream(false)` 会挂载一个立即抛错的 fallback 工厂，供未来桌面端接入真实本地模型时替换。
+5. 新增 Vitest 单元测试 `tests/useDialogueSession.test.ts`，覆盖事件路由到 awaiting-choice、错误事件映射、取消后忽略后续事件、运行时替换依赖工厂，以及 mock adapter 至少两段文本 + 双选项的契约。
+6. `pnpm typecheck`（tsc + vue-tsc）、`pnpm test`（22 files, 95 tests）与 `pnpm test:e2e`（5 Playwright scenarios）在本轮全部通过。
+
+Deferred / follow-up:
+
+1. 真实本地模型依赖（`localDialogueDependencies`）尚未在 renderer 里装上 IPC 通道；当前 `useMockStream(false)` 只会把渲染进程推入 error 态。后续 session 需要把桌面 shell 的 llama session 通过 preload bridge 暴露给 renderer。
+2. 知识检索 `retrievedEntries` 目前在 renderer 里固定为空数组；接入 Part 03 的检索管线后需要在 `runTurn` 入参里填充真实结果。
+3. `recentTurns` 目前只堆叠 UI 层的 `fullText`，还没有和 Part 04 的存档系统对齐，首次持久化后需要改由 `RuntimeState.historySummary` / 保存仓库统一派发。
+
+
 Currently blocked or deferred:
 
 1. 真实模型流式接入、失败重试策略和依赖注入适配已具备最小实现，并已接入 Electron smoke 主流程；正式 UI 主回路与完整桌面闭环仍未完成。
