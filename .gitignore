@@ -10,3 +10,4 @@ Thumbs.db
 *.log
 runtime-cache/
 session-*.md
+.worktrees/

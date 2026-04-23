@@ -9,6 +9,9 @@ These instructions apply to all future Copilot sessions in this repository.
 3. Use Conventional Commits for commit messages. Preferred prefixes include `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, and `build:`.
 4. Before committing, confirm the working tree only includes intended changes for the current session. Do not revert user-authored changes unless explicitly instructed.
 5. If changes are blocked from being pushed because of authentication, network, or remote problems, report the exact blocker and keep the local commit in place.
+6. Before executing any implementation task, inspect the current working tree and decide which existing changes must be preserved, which should stay out of scope, and whether a cleanup or snapshot is required first.
+7. For multi-step implementation work, create and use a git worktree before making execution changes. Prefer a project-local `.worktrees/` directory that is ignored by git. If the current workspace is dirty, first preserve the in-scope changes on an appropriate preparation branch or commit, then create the execution worktree from that prepared state.
+8. After the worktree implementation has been verified, merge the worktree branch back to the intended target branch and remove the worktree. Do not leave stale worktrees behind at the end of the session.
 
 ## 2. Documentation Sync Rule
 
