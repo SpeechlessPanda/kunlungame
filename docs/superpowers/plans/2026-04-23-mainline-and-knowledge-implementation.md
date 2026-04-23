@@ -660,6 +660,7 @@ git commit -m "docs: sync non-ui asset cue rules"
    - Part 01-04 audit prerequisite is covered in Task 0.
 2. Placeholder scan:
    - No `TODO`, `TBD`, or “implement later” instructions remain in the plan body.
+  - If this plan has been fully executed and no longer carries unique working context, merge any surviving conclusions into the canonical spec or design doc and delete the one-off plan instead of leaving it behind as orphaned process residue.
 3. Type consistency:
    - Story node fields use the same names throughout: `coreQuestion`, `mustIncludeFacts`, `allowedKnowledgeTopics`, `forbiddenFutureTopics`, `characterCueIds`, `minTurns`.
    - Dialogue option semantics use the existing runtime enum names: `align` and `challenge`.

@@ -47,6 +47,7 @@
 ### 2.6 文档与发布说明
 
 - 本轮涉及修改的 spec / plan / design 文档是否同步更新：`pass / fail`
+- 已完成且不再使用的 spec / plan 是否已经合并进存续的 canonical 文档，或已及时删除：`pass / fail`
 - README 的开发命令与当前实际 scripts 一致：`pass / fail`
 - 发布说明（release notes / delivery notes）是否已撰写：`pass / fail`
 
