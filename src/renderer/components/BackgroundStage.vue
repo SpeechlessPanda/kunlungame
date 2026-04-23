@@ -1,38 +1,38 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { BackgroundPresentation } from '../../presentation/assetSlotResolver.js'
+import { computed } from "vue";
+import type { BackgroundPresentation } from "../../presentation/assetSlotResolver.js";
 
 interface Props {
-  presentation: BackgroundPresentation
+  presentation: BackgroundPresentation;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 const gradientStyle = computed(() => {
   switch (props.presentation.paletteToken) {
-    case 'palette-myth':
-      return 'linear-gradient(140deg, var(--palette-myth-from), var(--palette-myth-to))'
-    case 'palette-heritage':
-      return 'linear-gradient(140deg, var(--palette-heritage-from), var(--palette-heritage-to))'
-    case 'palette-bridge':
-      return 'linear-gradient(140deg, var(--palette-bridge-from), var(--palette-bridge-to))'
+    case "palette-myth":
+      return "linear-gradient(140deg, var(--palette-myth-from), var(--palette-myth-to))";
+    case "palette-heritage":
+      return "linear-gradient(140deg, var(--palette-heritage-from), var(--palette-heritage-to))";
+    case "palette-bridge":
+      return "linear-gradient(140deg, var(--palette-bridge-from), var(--palette-bridge-to))";
     default:
-      return 'linear-gradient(140deg, #111, #000)'
+      return "linear-gradient(140deg, #111, #000)";
   }
-})
+});
 
 const modeLabel = computed(() => {
   switch (props.presentation.slot.mode) {
-    case 'fictional':
-      return '虚构意象'
-    case 'photographic':
-      return '实景照片'
-    case 'composite':
-      return '虚实复合'
+    case "fictional":
+      return "虚构意象";
+    case "photographic":
+      return "实景照片";
+    case "composite":
+      return "虚实复合";
     default:
-      return '未知模式'
+      return "未知模式";
   }
-})
+});
 </script>
 
 <template>
@@ -55,13 +55,15 @@ const modeLabel = computed(() => {
       :style="{ background: gradientStyle }"
     >
       <div class="background-stage__hint">
-        <span class="background-stage__mode" data-testid="background-mode-label">
-          {{ modeLabel }}
-        </span>
         <p class="background-stage__text" data-testid="background-hint">
           {{ presentation.placeholderText }}
         </p>
       </div>
+    </div>
+    <div class="background-stage__mode-overlay">
+      <span class="background-stage__mode" data-testid="background-mode-label">
+        {{ modeLabel }}
+      </span>
     </div>
     <div class="background-stage__vignette" aria-hidden="true" />
   </div>
@@ -100,6 +102,15 @@ const modeLabel = computed(() => {
   letter-spacing: 0.08em;
 }
 
+.background-stage__mode-overlay {
+  position: absolute;
+  top: var(--space-5);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  pointer-events: none;
+}
+
 .background-stage__mode {
   display: inline-block;
   padding: var(--space-1) var(--space-3);
@@ -107,7 +118,8 @@ const modeLabel = computed(() => {
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
   color: var(--color-foreground);
-  margin-bottom: var(--space-3);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
 }
 
 .background-stage__text {

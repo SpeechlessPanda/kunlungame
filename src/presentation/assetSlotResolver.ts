@@ -13,6 +13,10 @@ import {
   type BackgroundMode,
   type StoryNode
 } from '../shared/contracts/contentContracts.js'
+import {
+  resolveAssetPath,
+  type AssetManifest
+} from '../shared/contracts/assetManifest.js'
 
 export interface BackgroundPresentation {
   slot: BackgroundAssetSlot
@@ -32,12 +36,16 @@ const paletteByMode: Record<BackgroundMode, BackgroundPresentation['paletteToken
 
 export const resolveBackgroundPresentation = (
   node: Pick<StoryNode, 'id' | 'backgroundMode' | 'backgroundHint'>,
-  assetPath: string | null = null
+  assetPath: string | null = null,
+  manifest: AssetManifest | null = null
 ): BackgroundPresentation => {
   const slot = createBackgroundAssetSlot(node.id, node.backgroundMode)
-  const hasRealAsset = typeof assetPath === 'string' && assetPath.length > 0
+  const explicitPath =
+    typeof assetPath === 'string' && assetPath.length > 0 ? assetPath : null
+  const resolvedPath = explicitPath ?? resolveAssetPath(manifest, slot.slotId)
+  const hasRealAsset = typeof resolvedPath === 'string' && resolvedPath.length > 0
   const resolvedSlot: BackgroundAssetSlot = hasRealAsset
-    ? { ...slot, assetPath }
+    ? { ...slot, assetPath: resolvedPath }
     : slot
 
   const placeholderText = node.backgroundHint
@@ -60,12 +68,17 @@ export interface CharacterPresentation {
 export const resolveCharacterPresentation = (
   characterId: string,
   label: string,
-  assetPath: string | null = null
+  assetPath: string | null = null,
+  manifest: AssetManifest | null = null
 ): CharacterPresentation => {
-  const hasRealAsset = typeof assetPath === 'string' && assetPath.length > 0
+  const slotId = `character.${characterId}.portrait`
+  const explicitPath =
+    typeof assetPath === 'string' && assetPath.length > 0 ? assetPath : null
+  const resolvedPath = explicitPath ?? resolveAssetPath(manifest, slotId)
+  const hasRealAsset = typeof resolvedPath === 'string' && resolvedPath.length > 0
   return {
-    slotId: `character.${characterId}.portrait`,
-    assetPath: hasRealAsset ? assetPath : null,
+    slotId,
+    assetPath: hasRealAsset ? resolvedPath : null,
     hasRealAsset,
     placeholderLabel: label
   }
