@@ -79,17 +79,31 @@ describe('applyPlayerChoice', () => {
   })
 
   it('advances through the real mainline without changing the fixed node order', () => {
-    const initialState = createDefaultRuntimeState(mainlineStoryOutline)
+    // 2026-04 扩展版：节点允许多轮对话；kunlun-threshold.minTurns = 3，
+    // 因此前两轮挑战只增加节点内轮次，第三轮才真正推进到 creation-myths。
+    const thresholdMinTurns =
+      mainlineStoryOutline.nodes.find((n) => n.id === 'kunlun-threshold')?.minTurns ?? 1
+
+    let state = createDefaultRuntimeState(mainlineStoryOutline)
+    for (let i = 0; i < thresholdMinTurns - 1; i += 1) {
+      state = applyPlayerChoice({
+        state,
+        storyOutline: mainlineStoryOutline,
+        choice: 'challenge'
+      })
+      expect(state.currentNodeId).toBe('kunlun-threshold')
+      expect(state.readNodeIds).toEqual([])
+    }
 
     const result = applyPlayerChoice({
-      state: initialState,
+      state,
       storyOutline: mainlineStoryOutline,
       choice: 'challenge'
     })
 
     expect(result.currentNodeId).toBe('creation-myths')
-    expect(result.turnIndex).toBe(1)
-    expect(result.attitudeScore).toBe(-1)
+    expect(result.turnIndex).toBe(thresholdMinTurns)
+    expect(result.attitudeScore).toBe(-3)
     expect(result.readNodeIds).toEqual(['kunlun-threshold'])
     expect(result.historySummary).toContain('昆仑初问')
     expect(result.historySummary).toContain('已修复')
@@ -114,16 +128,22 @@ describe('applyPlayerChoice', () => {
 
     expect(atTerminal.isCompleted).toBe(false)
 
-    const result = applyPlayerChoice({
-      state: atTerminal,
-      storyOutline: mainlineStoryOutline,
-      choice: 'align'
-    })
+    // 2026-04 扩展版：终节点也要满足 minTurns 才算完结，调用 minTurns 次 align 以推进到结局。
+    const terminalMinTurns =
+      mainlineStoryOutline.nodes.find((n) => n.id === 'contemporary-return')?.minTurns ?? 1
+    let result = atTerminal as ReturnType<typeof applyPlayerChoice>
+    for (let i = 0; i < terminalMinTurns; i += 1) {
+      result = applyPlayerChoice({
+        state: result,
+        storyOutline: mainlineStoryOutline,
+        choice: 'align'
+      })
+    }
 
     // 终章不再推进到下一个节点（没有下一个），但标记为已完结，供 UI 走"再走一次"分支。
     expect(result.currentNodeId).toBe('contemporary-return')
     expect(result.isCompleted).toBe(true)
-    expect(result.turnIndex).toBe(8)
+    expect(result.turnIndex).toBe(7 + terminalMinTurns)
     expect(result.readNodeIds).toContain('contemporary-return')
   })
 

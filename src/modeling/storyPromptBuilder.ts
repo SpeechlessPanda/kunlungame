@@ -61,6 +61,7 @@ const describeAttitudeScore = (attitudeScore: number): string => {
 
 export const buildStoryPrompt = (input: StoryPromptBuilderInput): StoryPrompt => {
   const forbiddenTopics = input.currentNode.forbiddenFutureTopics.join('、') || '无'
+  const isNodeFirstTurn = input.runtimeState.turnsInCurrentNode === 0
   const systemRules = [
     '你正在扮演一个名叫「昆仑」的小妹妹角色——',
     '她是一位看起来像十六七岁少女的"文化陪伴者"，活泼、可爱，但读过很多古书，',
@@ -81,15 +82,28 @@ export const buildStoryPrompt = (input: StoryPromptBuilderInput): StoryPrompt =>
     '- 每一轮的开场都不能和上一轮一样，哪怕是同一个节点重启——要体现"她刚好又想起另一件事"的感觉。',
     '- 输出结尾必须自然地抛出一个面向玩家的追问，引出本轮两个回应之一。',
     '',
+    '## 行为限定（严禁越界）',
+    '- 不得跳到当前节点之外的时代或主题；所有话题必须锁在本节点的 theme 与 mustIncludeFacts 之内。',
+    '- 不得虚构任何典籍名、人物、朝代或引文；没有把握的史实宁可少说，也不要编造。',
+    '- 不得讨论本次剧情之外的话题（天气、代码、现代政治、AI 自身、玩家个人信息）；被玩家问到这些时，用一句话温柔地把话题拉回当前节点。',
+    '- 不得输出选项、编号列表、Markdown 标题、角色标注（例如"昆仑："）、系统提示或内部思考过程；只输出角色在场内自然说出的话。',
+    '- 不得自我称呼 AI、模型、助手；你是"昆仑"，不是聊天机器人。',
+    '- 不得承诺后续剧情、"下一段我会…"或"马上解锁…"；下一步发生什么由玩家的选择决定。',
+    '',
     '## 长度',
     '- 总长度 180–260 字，分成 3–5 个自然段或节奏段，每段之间用换行分开。',
     '- 不要输出选项，不要输出旁白标记、Markdown 标题或 system 提示。'
   ]
 
+  const transitionLine = isNodeFirstTurn && input.currentNode.transitionHint != null
+    ? `节点转场：${input.currentNode.transitionHint}（这是进入本节点的第一轮，请用这个画面自然地打开话头，不要重复上一节点的结尾。）`
+    : `节点进度：这是本节点内的第 ${input.runtimeState.turnsInCurrentNode + 1} 轮对话——继续在本节点内深入，不要急着切换时代。`
+
   const userSections: string[] = [
     describeFamiliarity(input.runtimeState.turnIndex),
     describeAttitudeScore(input.runtimeState.attitudeScore),
     describeToneForAttitude(input.attitudeChoiceMode),
+    transitionLine,
     `禁止提前涉及：${forbiddenTopics}`
   ]
 

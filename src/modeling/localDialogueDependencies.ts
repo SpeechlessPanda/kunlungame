@@ -39,7 +39,9 @@ const defaultCreateSession = async (modelPath: string): Promise<LocalLlamaSessio
     return {
         prompt: async (prompt, options) => {
             return await session.prompt(prompt, {
-                maxTokens: options.maxTokens ?? 120,
+                // 120 是 node-llama-cpp 老默认，Galgame 一段自然对白往往要 250~400 字，
+                // 用 512 tokens 给模型一个足够完成「引入 + 举例 + 抛回问题」三段式的预算。
+                maxTokens: options.maxTokens ?? 512,
                 onTextChunk: options.onTextChunk,
                 stopOnAbortSignal: true
             })

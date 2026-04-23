@@ -14,6 +14,9 @@ export const runtimeStateSchema = z.object({
   saveVersion: z.literal(SAVE_VERSION),
   currentNodeId: z.string().min(1),
   turnIndex: z.number().int().min(0),
+  // 当前节点内已经消耗掉的轮数。用于配合 StoryNode.minTurns 决定什么时候才
+  // 真正切换到下一节点。新字段，旧存档加载时由 zod 默认补 0，向后兼容。
+  turnsInCurrentNode: z.number().int().min(0).default(0),
   attitudeScore: z.number().int().min(ATTITUDE_MIN).max(ATTITUDE_MAX),
   historySummary: z.string(),
   readNodeIds: z.array(z.string().min(1)),
@@ -82,6 +85,7 @@ export const createDefaultRuntimeState = (storyOutline: StoryOutline): RuntimeSt
     saveVersion: SAVE_VERSION,
     currentNodeId: storyOutline.entryNodeId,
     turnIndex: 0,
+    turnsInCurrentNode: 0,
     attitudeScore: 0,
     historySummary: summarizeRepairedMemories(storyOutline, readNodeIds),
     readNodeIds,
@@ -94,20 +98,40 @@ export const createDefaultRuntimeState = (storyOutline: StoryOutline): RuntimeSt
 
 export const applyPlayerChoice = (input: ApplyPlayerChoiceInput): RuntimeState => {
   const currentNode = resolveCurrentNode(input.storyOutline, input.state.currentNodeId)
-  const nextNodeId = resolveNextNodeId(input.storyOutline, currentNode.id, currentNode.nextNodeId)
   const attitudeDelta = input.choice === 'align' ? 1 : -1
-  const readNodeIds = input.state.readNodeIds.includes(currentNode.id)
-    ? input.state.readNodeIds
-    : [...input.state.readNodeIds, currentNode.id]
+
+  // 每次玩家选择都算一轮，先把节点内的轮数 +1；若还没达到 minTurns，就继续留在当前节点。
+  const nextTurnsInCurrentNode = input.state.turnsInCurrentNode + 1
+  const shouldAdvanceNode = nextTurnsInCurrentNode >= currentNode.minTurns
+
+  // 终节点不再推进，只把 isCompleted 抬成 true；其余节点视 minTurns 决定是否进入下一节点。
+  const advanceTargetId = currentNode.nextNodeId === null
+    ? currentNode.id
+    : shouldAdvanceNode
+      ? resolveNextNodeId(input.storyOutline, currentNode.id, currentNode.nextNodeId)
+      : currentNode.id
+
+  const didAdvance = advanceTargetId !== currentNode.id
+
+  // 终节点也要在 minTurns 满足后把自己计入"已读"——否则结局页会没有任何已读节点。
+  const shouldMarkCurrentRead =
+    didAdvance || (currentNode.nextNodeId === null && shouldAdvanceNode)
+
+  const readNodeIds = shouldMarkCurrentRead && !input.state.readNodeIds.includes(currentNode.id)
+    ? [...input.state.readNodeIds, currentNode.id]
+    : input.state.readNodeIds
 
   // 当当前节点没有下一节点（终节点）时，把运行时状态标记为已完成；
   // 渲染层据此展示升华式结尾而不是继续派发新一轮对话。
-  const isCompleted = input.state.isCompleted || currentNode.nextNodeId === null
+  const isCompleted =
+    input.state.isCompleted ||
+    (currentNode.nextNodeId === null && shouldAdvanceNode)
 
   return runtimeStateSchema.parse({
     ...input.state,
-    currentNodeId: nextNodeId,
+    currentNodeId: advanceTargetId,
     turnIndex: input.state.turnIndex + 1,
+    turnsInCurrentNode: didAdvance ? 0 : nextTurnsInCurrentNode,
     attitudeScore: clampAttitude(input.state.attitudeScore + attitudeDelta),
     historySummary: summarizeRepairedMemories(input.storyOutline, readNodeIds),
     readNodeIds,

@@ -16,6 +16,7 @@ const runtimeState: RuntimeState = {
     saveVersion: SAVE_VERSION,
     currentNodeId: node.id,
     turnIndex: 0,
+    turnsInCurrentNode: 0,
     attitudeScore: 0,
     historySummary: '尚未展开任何对话。',
     readNodeIds: [],

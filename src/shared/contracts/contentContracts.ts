@@ -18,6 +18,8 @@ export const storyNodeSchema = z.object({
   backgroundMode: backgroundModeSchema,
   backgroundHint: z.string().min(1),
   toneHint: z.string().min(1),
+  /** 进入这个节点时的转场提示，供 prompt builder 在节点首轮插入衔接语，让节点切换不突兀。可选。 */
+  transitionHint: z.string().min(1).optional(),
   characterCueIds: z.array(z.string().min(1)).default([]),
   minTurns: z.number().int().min(1),
   nextNodeId: z.string().min(1).nullable()

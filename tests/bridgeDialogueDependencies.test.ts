@@ -13,6 +13,7 @@ const runtimeState: RuntimeState = {
     saveVersion: SAVE_VERSION,
     currentNodeId: node.id,
     turnIndex: 0,
+    turnsInCurrentNode: 0,
     attitudeScore: 0,
     historySummary: '起点。',
     readNodeIds: [],

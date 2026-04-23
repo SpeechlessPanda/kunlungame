@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import type { TurnViewModel } from "../composables/useTurnController.js";
 
 interface Props {
@@ -14,6 +14,21 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+const bodyRef = ref<HTMLDivElement | null>(null);
+
+/** 流式追加时自动滚到底，保证用户永远看到最新讲出来的那句；
+ *  静态展示时不动，让用户能向上回读。 */
+watch(
+  () => props.view.visibleText,
+  async () => {
+    if (!props.view.isRevealing) return;
+    await nextTick();
+    const el = bodyRef.value;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  },
+);
 
 const stateLabel = computed(() => {
   switch (props.view.snapshot.state) {
@@ -108,7 +123,7 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
       <span class="dialog-panel__skeleton-line" />
     </div>
 
-    <div v-else class="dialog-panel__body">
+    <div v-else class="dialog-panel__body" ref="bodyRef">
       <p class="dialog-panel__text" data-testid="dialog-text">
         <span>{{ view.visibleText }}</span>
         <span
@@ -139,12 +154,16 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
   border-radius: var(--radius-lg);
   padding: var(--space-6) var(--space-6) var(--space-5);
   box-shadow: var(--shadow-surface);
-  min-height: 220px;
+  /* 自适应高度：正文短时塌到 ~180px，长时可以撑开到屏幕高度的 55%，
+     再多就在内部滚，避免把角色立绘和状态栏都挤掉。 */
+  min-height: clamp(180px, 22vh, 240px);
+  max-height: min(55vh, 520px);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   color: var(--color-foreground);
   margin-top: var(--space-5);
+  transition: max-height var(--motion-slow) var(--ease-standard);
 }
 
 /* galgame 风的名字牌：从对话框左上角翘起来一截 */
@@ -208,6 +227,26 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  /* 让文本区成为真正的滚动容器：flex:1 + min-height:0 是 flex 布局下滚动的标配。 */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* 粉色细滚动条，避免破坏可爱风 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-accent) transparent;
+}
+
+.dialog-panel__body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dialog-panel__body::-webkit-scrollbar-thumb {
+  background: var(--color-accent);
+  border-radius: var(--radius-pill);
+}
+
+.dialog-panel__body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .dialog-panel__text {

@@ -26,36 +26,27 @@ const resolveModelPath = (input: RuntimeBootstrapInput): { profileId: string; mo
 }
 
 const buildCandidateInputs = (projectRoot: string, appDataDir: string): RuntimeBootstrapInput[] => {
-    return [
-        {
-            preferredMode: 'default',
-            availableGpuVramGb: null,
-            isPackaged: false,
-            projectRoot,
-            appDataDir
-        },
-        {
-            preferredMode: 'compatibility',
-            availableGpuVramGb: null,
-            isPackaged: false,
-            projectRoot,
-            appDataDir
-        },
-        {
-            preferredMode: 'default',
-            availableGpuVramGb: null,
-            isPackaged: true,
-            projectRoot,
-            appDataDir
-        },
-        {
-            preferredMode: 'compatibility',
-            availableGpuVramGb: null,
-            isPackaged: true,
-            projectRoot,
-            appDataDir
+    // 允许通过环境变量 KUNLUN_SMOKE_MODE=compatibility 强制优先使用 3B fallback 方案，
+    // 便于在同一机器上对 7B 与 3B 做对照 smoke。
+    const forcedMode = process.env['KUNLUN_SMOKE_MODE']
+    const preferredModes: Array<'default' | 'compatibility'> =
+        forcedMode === 'compatibility'
+            ? ['compatibility', 'default']
+            : ['default', 'compatibility']
+
+    const inputs: RuntimeBootstrapInput[] = []
+    for (const isPackaged of [false, true]) {
+        for (const preferredMode of preferredModes) {
+            inputs.push({
+                preferredMode,
+                availableGpuVramGb: null,
+                isPackaged,
+                projectRoot,
+                appDataDir
+            })
         }
-    ]
+    }
+    return inputs
 }
 
 const resolveExecutableSmokeInput = async (projectRoot: string, appDataDir: string): Promise<RuntimeBootstrapInput> => {

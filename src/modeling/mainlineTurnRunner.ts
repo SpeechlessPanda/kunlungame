@@ -13,6 +13,7 @@ import {
     type DialogueOption
 } from './dialogueOrchestrator.js'
 import type { RuntimeState } from '../runtime/runtimeState.js'
+import { buildGalgameOptionLabels } from './optionLabels.js'
 
 /**
  * Part 08 · 真实本地模型主线回合执行器。
@@ -66,7 +67,13 @@ export interface MainlineTurnDependencies {
     /** 检查模型文件是否存在；默认用 `fs.access`。*/
     checkFileExists: (path: string) => Promise<boolean>
     /** 构造真实 `DialogueDependencies`；默认调用 `createLocalDialogueDependencies`。可在测试里注入 mock 以避免加载 GGUF。 */
-    createDialogueDependencies: (input: { modelPath: string; currentNodeTheme: string; currentNodeCoreQuestion: string }) => DialogueDependencies
+    createDialogueDependencies: (input: {
+        modelPath: string
+        /** 当前已经走到第几轮（用于轮换 option 文案，避免每轮选项长一样）。 */
+        turnIndex: number
+        /** 这一轮是否已是结局，结局的选项语义变成"再走一次 / 暂时离开"。 */
+        isEnding: boolean
+    }) => DialogueDependencies
 }
 
 const defaultReadKnowledgeEntries: MainlineTurnDependencies['readKnowledgeEntries'] = async (file) => {
@@ -83,20 +90,11 @@ const defaultCheckFileExists: MainlineTurnDependencies['checkFileExists'] = asyn
     }
 }
 
-const defaultCreateDialogueDependencies: MainlineTurnDependencies['createDialogueDependencies'] = ({ modelPath, currentNodeTheme, currentNodeCoreQuestion }) =>
+const defaultCreateDialogueDependencies: MainlineTurnDependencies['createDialogueDependencies'] = ({ modelPath, turnIndex, isEnding }) =>
     createLocalDialogueDependencies({
         modelPath,
         maxRetries: 1,
-        generateOptions: async () => [
-            {
-                semantic: 'align',
-                label: `顺着「${currentNodeTheme}」再听一层。`
-            },
-            {
-                semantic: 'challenge',
-                label: `先停下——我要先处理「${currentNodeCoreQuestion}」里的疑点。`
-            }
-        ]
+        generateOptions: async () => buildGalgameOptionLabels({ turnIndex, isEnding })
     })
 
 const defaultDependencies: MainlineTurnDependencies = {
@@ -162,8 +160,8 @@ export const runMainlineTurn = async (
     try {
         dialogueDependencies = deps.createDialogueDependencies({
             modelPath: selectedModel.modelPath,
-            currentNodeTheme: currentNode.theme,
-            currentNodeCoreQuestion: currentNode.coreQuestion
+            turnIndex: input.runtimeState.turnIndex,
+            isEnding: input.runtimeState.isCompleted || currentNode.nextNodeId === null
         })
     } catch (error) {
         return {

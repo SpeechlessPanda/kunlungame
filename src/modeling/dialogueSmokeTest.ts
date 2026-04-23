@@ -8,6 +8,7 @@ import { buildRuntimeBootstrapPlan, type RuntimeBootstrapInput } from './runtime
 import { knowledgeEntrySchema } from '../shared/contracts/contentContracts.js'
 import { createDefaultRuntimeState } from '../runtime/runtimeState.js'
 import { orchestrateDialogue, type DialogueDependencies, type DialogueOption } from './dialogueOrchestrator.js'
+import { buildGalgameOptionLabels } from './optionLabels.js'
 
 export interface DialogueSmokeTestResult {
     selectedProfileId: string
@@ -32,16 +33,7 @@ const defaultDependencies: DialogueSmokeTestDependencies = {
     createDialogueDependencies: ({ modelPath }) => createLocalDialogueDependencies({
         modelPath,
         maxRetries: 1,
-        generateOptions: async ({ currentNode }) => [
-            {
-                semantic: 'align',
-                label: `顺着“${currentNode.theme}”继续听下去`
-            },
-            {
-                semantic: 'challenge',
-                label: `先解释“${currentNode.coreQuestion}”`
-            }
-        ]
+        generateOptions: async () => buildGalgameOptionLabels({ turnIndex: 0 })
     })
 }
 

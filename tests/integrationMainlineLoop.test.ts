@@ -146,13 +146,16 @@ describe('Part 08 · mainline integration loop', () => {
       }
 
       // Part 04 · 应用玩家选择，推进主线并更新态度值与已读节点。
+      // 2026-04 扩展版：每个节点需要 minTurns 轮对话才会真正推进。
       const before = runtimeState
-      runtimeState = applyPlayerChoice({
-        state: runtimeState,
-        storyOutline: mainlineStoryOutline,
-        choice: 'align'
-      })
-      expect(runtimeState.turnIndex).toBe(before.turnIndex + 1)
+      for (let i = 0; i < node.minTurns; i += 1) {
+        runtimeState = applyPlayerChoice({
+          state: runtimeState,
+          storyOutline: mainlineStoryOutline,
+          choice: 'align'
+        })
+      }
+      expect(runtimeState.turnIndex).toBe(before.turnIndex + node.minTurns)
       expect(runtimeState.readNodeIds).toContain(node.id)
       expect(runtimeState.attitudeScore).toBeGreaterThanOrEqual(-3)
       expect(runtimeState.attitudeScore).toBeLessThanOrEqual(3)
@@ -187,11 +190,17 @@ describe('Part 08 · mainline integration loop', () => {
   })
 
   it('rebuilds cultural-memory summary from readNodeIds on reload', async () => {
-    const stateAfterOneTurn = applyPlayerChoice({
-      state: createDefaultRuntimeState(mainlineStoryOutline),
-      storyOutline: mainlineStoryOutline,
-      choice: 'challenge'
-    })
+    // 2026-04 扩展版：kunlun-threshold 需要 minTurns 轮才会推进，readNodeIds 只在翻页时追加。
+    const thresholdMinTurns =
+      mainlineStoryOutline.nodes.find((n) => n.id === 'kunlun-threshold')?.minTurns ?? 1
+    let stateAfterOneTurn = createDefaultRuntimeState(mainlineStoryOutline)
+    for (let i = 0; i < thresholdMinTurns; i += 1) {
+      stateAfterOneTurn = applyPlayerChoice({
+        state: stateAfterOneTurn,
+        storyOutline: mainlineStoryOutline,
+        choice: 'challenge'
+      })
+    }
     expect(stateAfterOneTurn.readNodeIds).toEqual(['kunlun-threshold'])
     expect(stateAfterOneTurn.historySummary).toContain('昆仑初问')
 
