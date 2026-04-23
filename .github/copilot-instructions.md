@@ -75,6 +75,7 @@ The audit record should clearly list what was checked, what passed, what failed,
 3. If user confirmation, clarification, or further scoping detail is needed at any point, do not interrupt the flow with a plain-text question, and do not make the decision silently on the user's behalf. Use the question tool so the user can choose directly.
 4. If a task is likely to run for a long time or consume substantial context, explicitly judge whether it should be delegated to a subagent. Base that decision on whether the work is largely independent and whether its intermediate context is useful to the main agent.
 5. When the long-running or context-heavy task is a good fit for delegation, hand it to a subagent instead of keeping the full workload in the main agent context. If additional user detail is needed before that delegation decision or before dispatch, use the question tool rather than interrupting the conversation in plain text.
+6. After the question tool returns an answer, continue the task immediately using that answer unless the user explicitly asks to stop or wait. Do not pause for redundant confirmation after receiving the user's selection or clarification.
 
 ## 9. Project-Specific Content Rule
 

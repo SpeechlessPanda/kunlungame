@@ -55,9 +55,21 @@
 3. 已有分层上下文构造器。
 4. 已有模型下载脚本与清单写入逻辑，Windows 侧统一使用 `curl.exe` 顺序下载并支持断点续传，不再依赖 BITS 或 `Invoke-WebRequest` 回退链。
 5. 已有 runtime bootstrap plan，可供后续 Electron 启动阶段直接消费。
+6. 已有桌面壳模型检查编排器 `src/modeling/modelSetupPlanner.ts`，可在首次启动和设置页入口统一生成启动动作、模型可用性状态和 UI 事件契约。
 
 ## 下载执行约束
 
 1. 同一时刻只允许一条模型下载链运行。
 2. 下载脚本会在模型缓存目录下创建临时锁文件，防止重复启动导致同一模型文件被多个进程同时写入。
 3. 如果锁文件残留，应先确认没有存活的下载进程，再手工清理锁文件并重试。
+
+## 桌面壳与设置页接口保留
+
+当前仓库还没有正式 Electron/Vue 壳实现，因此本轮只把壳层和 UI 需要消费的接口先写死，不直接落具体界面。
+
+1. 首次启动与设置页都应通过 `buildModelSetupPlan()` 获取当前模型模式、已下载状态、默认动作和设置页落点。
+2. 首次启动在 `shellAction = auto-download-required` 时应自动触发下载，不再等待二次确认。
+3. 设置页在 `shellAction = settings-download-required` 时只进入模型页检查态，由用户主动点击开始或重试。
+4. UI 层需要监听以下固定通道：`model-download:start`、`model-download:progress`、`model-download:status`、`model-download:issue`、`model-download:cancel`。
+5. UI 需要覆盖以下阶段：`checking`、`queued`、`downloading`、`switching-to-mirror`、`completed`、`failed`。
+6. 失败态需要直接展示恢复动作：重试下载、切换镜像、打开网络帮助；默认模式下还应允许切换兼容模式。
