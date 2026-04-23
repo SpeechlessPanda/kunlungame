@@ -13,3 +13,5 @@ session-*.md
 .worktrees/
 .tmp-commit-msg.txt
 .commit-msg.txt
+
+audit.json
