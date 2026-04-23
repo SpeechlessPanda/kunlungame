@@ -121,3 +121,21 @@ Currently blocked or deferred:
 1. 真实背景与立绘素材的接入（等待资源交付）。
 2. 正式 BGM 轨道与音量曲线（等待音频资源）。
 3. 转场动画细节（待视觉定稿后补）。
+
+## 14. 实施进度（feat/asset-placeholder-pipeline）
+
+已完成：
+
+1. 资源清单合同：新增 `src/shared/contracts/assetManifest.ts`，声明 `AssetManifest` Zod schema、纯函数 `resolveAssetPath` 与合流工具 `mergeManifests`；entries key 必须与 `slotId` 完全一致，否则解析抛错。
+2. 占位 SVG：`src/renderer/assets/placeholders/` 下提供 `background-fictional.svg`、`background-photographic.svg`、`background-composite.svg`、`character-silhouette.svg` 四张图，统一调色板 `#0F172A`/`#D97706`/`#3F9A6A`/`#C55A48`，均 ≤ 4 KB，无内嵌文字标签。
+3. 默认清单：`src/renderer/assets/manifest.ts` 通过 Vite `?url` 导入把当前 demo 的三个节点与 `narrator` 角色映射到占位 SVG，真实素材上线时以 `mergeManifests` 覆盖即可。
+4. Resolver 对齐：`resolveBackgroundPresentation` / `resolveCharacterPresentation` 新增可选 `manifest` 参数，优先级为 `explicit assetPath > manifest > 空态`，旧的二参调用保持行为不变。
+5. 视觉层：`BackgroundStage` 把模式标签抽到独立 overlay，与占位 / 真实图片两种状态共存，E2E 里 `background-mode-label` 仍然稳定可见。
+6. App 接线：`App.vue` 在不改动 GameShell 合同的前提下读取默认清单，并把解析后的 `backgroundAssetPath` 与 `character.assetPath` 传入。
+7. 测试：新增 `tests/assetManifest.test.ts`（schema hit/miss/invalid、合流不可变等 10 个用例），扩充 `tests/assetSlotResolver.test.ts` 的 manifest 集成分组；保留既有用例全部通过。
+
+有意延后：
+
+1. 真实背景与立绘素材仍未接入（仅铺好管线）。
+2. 3D 运行时角色 (`character.<id>.runtime-3d`) 槽位暂未进入默认清单，等 Part 03D 推进到可播放阶段后再注册。
+3. BGM 等音频资源未纳入当前清单合同，后续若要合流，需要独立的 slotType 扩展。

@@ -38,3 +38,37 @@
 2. 背景模式归主线内容负责，素材资源路径归资源管理负责，UI 只负责消费结果。
 3. 空态是合同的一部分，不是异常分支。
 4. 内容层先固定 cue 与 slot 规则，再在后续阶段分别接入 portrait 和 runtime-3d 资产。
+
+## 资源清单（Asset Manifest）
+
+为了让占位素材和未来的真实素材走同一条映射管线，项目在 `src/shared/contracts/assetManifest.ts` 中声明了统一的清单合同：
+
+```ts
+AssetManifest = {
+  version: 1,
+  entries: Record<string, {
+    slotId: string
+    slotType: 'background' | 'character'
+    assetPath: string
+    placeholderPolicy: 'empty-ok' | 'static-placeholder'
+  }>
+}
+```
+
+约束与辅助函数：
+
+1. `entries` 的 key 必须与条目的 `slotId` 完全一致；校验失败会抛错，避免两侧脱节。
+2. `resolveAssetPath(manifest, slotId)` 为纯查询，命中返回路径，未命中或清单为 null 时返回 `null`。
+3. `mergeManifests(base, override)` 返回新对象，override 中同键条目会覆盖 base，用于后续把真实素材叠加到默认占位上。
+4. `resolveBackgroundPresentation(node, assetPath?, manifest?)` 与 `resolveCharacterPresentation(characterId, label, assetPath?, manifest?)` 支持传入清单；显式 `assetPath` 的优先级高于清单。
+
+## 占位素材目录
+
+1. 默认占位清单位于 `src/renderer/assets/manifest.ts`，通过 Vite 的 `?url` 静态资源导入把 SVG 文件映射到浏览器可加载路径。
+2. 占位 SVG 统一存放在 `src/renderer/assets/placeholders/`，当前包括：
+   - `background-fictional.svg` — 神话向（`palette-myth`）；
+   - `background-photographic.svg` — 历史向（`palette-heritage`）；
+   - `background-composite.svg` — 虚实复合向（`palette-bridge`）；
+   - `character-silhouette.svg` — 通用角色剪影。
+3. 所有占位 SVG 保持 ≤ 4 KB，仅使用项目调色板 `#0F172A` / `#D97706` / `#3F9A6A` / `#C55A48`，不在图形内嵌文字标签（模式文字由 UI 覆盖层提供）。
+4. 当真实素材交付时，在不修改 `manifest.ts` 的前提下，调用方可以用 `mergeManifests(defaultAssetManifest, realManifest)` 得到合并后的清单；文件本体落盘位置由后续资源管理阶段统一规定。

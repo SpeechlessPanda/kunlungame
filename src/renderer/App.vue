@@ -1,251 +1,281 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import {
-  ATTITUDE_MAX,
-  ATTITUDE_MIN
-} from '../runtime/runtimeState.js'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { ATTITUDE_MAX, ATTITUDE_MIN } from "../runtime/runtimeState.js";
 import {
   minimalStoryOutline,
-  type StoryNode
-} from '../shared/contracts/contentContracts.js'
+  type StoryNode,
+} from "../shared/contracts/contentContracts.js";
 import {
   createBgmController,
-  type BgmControllerState
-} from '../presentation/bgmController.js'
-import GameShell from './components/GameShell.vue'
+  type BgmControllerState,
+} from "../presentation/bgmController.js";
+import GameShell from "./components/GameShell.vue";
 import {
   createTurnController,
-  type ChoiceModel
-} from './composables/useTurnController.js'
+  type ChoiceModel,
+} from "./composables/useTurnController.js";
+import { defaultAssetManifest } from "./assets/manifest.js";
+import { resolveAssetPath } from "../shared/contracts/assetManifest.js";
 
 // --- 演示用节点（未接入真实主线前的回退内容） -------------------------------
 const demoNodes: StoryNode[] = [
   minimalStoryOutline.nodes[0]!,
   {
-    id: 'kunlun-rites',
-    title: '礼乐之径',
-    era: 'ritual-music',
-    theme: '礼乐文明',
-    coreQuestion: '礼乐如何把神话秩序落地成生活秩序？',
-    summary: '从神话边界过渡到礼乐文明的历史现场。',
-    mustIncludeFacts: ['周代礼乐制度以钟鼓为核心'],
-    retrievalKeywords: ['礼乐', '周礼', '编钟'],
-    recommendedFigures: ['周公'],
-    allowedKnowledgeTopics: ['ritual-music'],
+    id: "kunlun-rites",
+    title: "礼乐之径",
+    era: "ritual-music",
+    theme: "礼乐文明",
+    coreQuestion: "礼乐如何把神话秩序落地成生活秩序？",
+    summary: "从神话边界过渡到礼乐文明的历史现场。",
+    mustIncludeFacts: ["周代礼乐制度以钟鼓为核心"],
+    retrievalKeywords: ["礼乐", "周礼", "编钟"],
+    recommendedFigures: ["周公"],
+    allowedKnowledgeTopics: ["ritual-music"],
     forbiddenFutureTopics: [],
-    backgroundMode: 'photographic',
-    backgroundHint: '青铜编钟与朱漆礼器陈列在博物馆灯光下。',
-    toneHint: '沉稳、克制、略带敬畏。',
+    backgroundMode: "photographic",
+    backgroundHint: "青铜编钟与朱漆礼器陈列在博物馆灯光下。",
+    toneHint: "沉稳、克制、略带敬畏。",
     characterCueIds: [],
     minTurns: 1,
-    nextNodeId: null
+    nextNodeId: null,
   },
   {
-    id: 'kunlun-dialogue',
-    title: '今古对谈',
-    era: 'modern-dialogue',
-    theme: '现代转化',
-    coreQuestion: '古典文化如何在今天的日常里继续生效？',
-    summary: '神话与今天的日常生活在同一个画面里并置。',
-    mustIncludeFacts: ['传统文化的现代转化是持续命题'],
-    retrievalKeywords: ['现代', '传统', '转化'],
-    recommendedFigures: ['叙述者'],
-    allowedKnowledgeTopics: ['modern-transformation'],
+    id: "kunlun-dialogue",
+    title: "今古对谈",
+    era: "modern-dialogue",
+    theme: "现代转化",
+    coreQuestion: "古典文化如何在今天的日常里继续生效？",
+    summary: "神话与今天的日常生活在同一个画面里并置。",
+    mustIncludeFacts: ["传统文化的现代转化是持续命题"],
+    retrievalKeywords: ["现代", "传统", "转化"],
+    recommendedFigures: ["叙述者"],
+    allowedKnowledgeTopics: ["modern-transformation"],
     forbiddenFutureTopics: [],
-    backgroundMode: 'composite',
-    backgroundHint: '夜色中的城市天际线与昆仑雪山叠印。',
-    toneHint: '好奇、清醒、对话式。',
+    backgroundMode: "composite",
+    backgroundHint: "夜色中的城市天际线与昆仑雪山叠印。",
+    toneHint: "好奇、清醒、对话式。",
     characterCueIds: [],
     minTurns: 1,
-    nextNodeId: null
-  }
-]
+    nextNodeId: null,
+  },
+];
 
-const nodeIndex = ref(0)
-const currentNode = computed<StoryNode | null>(() => demoNodes[nodeIndex.value] ?? null)
+const nodeIndex = ref(0);
+const currentNode = computed<StoryNode | null>(
+  () => demoNodes[nodeIndex.value] ?? null,
+);
 
-const turnIndex = ref(0)
-const attitudeScore = ref(0)
+const turnIndex = ref(0);
+const attitudeScore = ref(0);
 
-const turn = createTurnController()
+const turn = createTurnController();
 
-const bgm = createBgmController({ enabled: true })
-const bgmState = ref<BgmControllerState>(bgm.snapshot())
-const bgmSrc = ref<string | null>(null)
+const bgm = createBgmController({ enabled: true });
+const bgmState = ref<BgmControllerState>(bgm.snapshot());
+const bgmSrc = ref<string | null>(null);
 
 const refreshBgm = (next: BgmControllerState): void => {
-  bgmState.value = next
-}
+  bgmState.value = next;
+};
 
-const settingsOpen = ref(false)
+const settingsOpen = ref(false);
 
 const sampleNarratives: Record<string, string[]> = {
-  'kunlun-prologue': [
-    '云海之间，',
-    '一道昆仑的轮廓渐渐自寒气里浮现。',
-    '你听见山口传来风声，仿佛有人在等你开口。'
+  "kunlun-prologue": [
+    "云海之间，",
+    "一道昆仑的轮廓渐渐自寒气里浮现。",
+    "你听见山口传来风声，仿佛有人在等你开口。",
   ],
-  'kunlun-rites': [
-    '转过玉阶，',
-    '铜色的编钟正好奏完一组清音。',
-    '礼官示意你落座，今天要讲的是雅乐如何拴住人心。'
+  "kunlun-rites": [
+    "转过玉阶，",
+    "铜色的编钟正好奏完一组清音。",
+    "礼官示意你落座，今天要讲的是雅乐如何拴住人心。",
   ],
-  'kunlun-dialogue': [
-    '夜色里，',
-    '霓虹与雪山在同一扇玻璃上互相叠印。',
-    '她看着你，问：这些旧辞还能装进今天的生活吗？'
-  ]
-}
+  "kunlun-dialogue": [
+    "夜色里，",
+    "霓虹与雪山在同一扇玻璃上互相叠印。",
+    "她看着你，问：这些旧辞还能装进今天的生活吗？",
+  ],
+};
 
 const sampleChoices: Record<string, [string, string]> = {
-  'kunlun-prologue': ['我愿意聆听昆仑的第一句话。', '这听起来过于神话，我需要证据。'],
-  'kunlun-rites': ['雅乐确实让我心绪平稳。', '这些声响离今天太远了。'],
-  'kunlun-dialogue': ['这份交叠正是文化延续的样子。', '霓虹归霓虹，旧辞应当留在旧辞里。']
-}
+  "kunlun-prologue": [
+    "我愿意聆听昆仑的第一句话。",
+    "这听起来过于神话，我需要证据。",
+  ],
+  "kunlun-rites": ["雅乐确实让我心绪平稳。", "这些声响离今天太远了。"],
+  "kunlun-dialogue": [
+    "这份交叠正是文化延续的样子。",
+    "霓虹归霓虹，旧辞应当留在旧辞里。",
+  ],
+};
 
-const timers = reactive<{ timeouts: ReturnType<typeof setTimeout>[]; intervals: ReturnType<typeof setInterval>[] }>({
+const timers = reactive<{
+  timeouts: ReturnType<typeof setTimeout>[];
+  intervals: ReturnType<typeof setInterval>[];
+}>({
   timeouts: [],
-  intervals: []
-})
+  intervals: [],
+});
 const clearTimers = (): void => {
-  timers.timeouts.forEach((h) => clearTimeout(h))
-  timers.intervals.forEach((h) => clearInterval(h))
-  timers.timeouts.length = 0
-  timers.intervals.length = 0
-}
+  timers.timeouts.forEach((h) => clearTimeout(h));
+  timers.intervals.forEach((h) => clearInterval(h));
+  timers.timeouts.length = 0;
+  timers.intervals.length = 0;
+};
 
 const scheduleReveal = (): void => {
   const handle = setInterval(() => {
-    turn.revealNext(2)
-    if (!turn.view.value.isRevealing && turn.view.value.snapshot.state === 'streaming') {
-      clearInterval(handle)
+    turn.revealNext(2);
+    if (
+      !turn.view.value.isRevealing &&
+      turn.view.value.snapshot.state === "streaming"
+    ) {
+      clearInterval(handle);
     }
-  }, 60)
-  timers.intervals.push(handle)
-}
+  }, 60);
+  timers.intervals.push(handle);
+};
 
 const runTurn = (): void => {
   if (!currentNode.value) {
-    return
+    return;
   }
-  clearTimers()
-  turn.dispatch({ type: 'request-start' })
-  const chunks = sampleNarratives[currentNode.value.id] ?? ['…']
-  let delay = 320
+  clearTimers();
+  turn.dispatch({ type: "request-start" });
+  const chunks = sampleNarratives[currentNode.value.id] ?? ["…"];
+  let delay = 320;
   chunks.forEach((chunk) => {
     const handle = setTimeout(() => {
-      turn.appendText(chunk)
-    }, delay)
-    timers.timeouts.push(handle)
-    delay += 480
-  })
+      turn.appendText(chunk);
+    }, delay);
+    timers.timeouts.push(handle);
+    delay += 480;
+  });
   const endHandle = setTimeout(() => {
-    turn.endStream()
-    scheduleReveal()
-  }, delay)
-  timers.timeouts.push(endHandle)
+    turn.endStream();
+    scheduleReveal();
+  }, delay);
+  timers.timeouts.push(endHandle);
   const choicesHandle = setTimeout(() => {
-    turn.skipReveal()
-    const pair = sampleChoices[currentNode.value!.id] ?? ['同意', '反驳']
+    turn.skipReveal();
+    const pair = sampleChoices[currentNode.value!.id] ?? ["同意", "反驳"];
     const choices: ChoiceModel[] = [
-      { id: 'align', label: pair[0] },
-      { id: 'challenge', label: pair[1] }
-    ]
-    turn.setChoices(choices)
-  }, delay + 360)
-  timers.timeouts.push(choicesHandle)
-}
+      { id: "align", label: pair[0] },
+      { id: "challenge", label: pair[1] },
+    ];
+    turn.setChoices(choices);
+  }, delay + 360);
+  timers.timeouts.push(choicesHandle);
+};
 
 const beginMainline = (): void => {
-  nodeIndex.value = 0
-  turnIndex.value = 0
-  attitudeScore.value = 0
-  turn.reset()
-  runTurn()
-}
+  nodeIndex.value = 0;
+  turnIndex.value = 0;
+  attitudeScore.value = 0;
+  turn.reset();
+  runTurn();
+};
 
 const onChoose = (choice: ChoiceModel): void => {
-  const delta = choice.id === 'align' ? 1 : -1
-  attitudeScore.value = Math.min(ATTITUDE_MAX, Math.max(ATTITUDE_MIN, attitudeScore.value + delta))
-  turnIndex.value += 1
-  turn.dispatch({ type: 'choice-made' })
+  const delta = choice.id === "align" ? 1 : -1;
+  attitudeScore.value = Math.min(
+    ATTITUDE_MAX,
+    Math.max(ATTITUDE_MIN, attitudeScore.value + delta),
+  );
+  turnIndex.value += 1;
+  turn.dispatch({ type: "choice-made" });
   if (nodeIndex.value < demoNodes.length - 1) {
-    nodeIndex.value += 1
+    nodeIndex.value += 1;
   }
-  runTurn()
-}
+  runTurn();
+};
 
 const onRetry = (): void => {
-  turn.dispatch({ type: 'retry' })
-  runTurn()
-}
+  turn.dispatch({ type: "retry" });
+  runTurn();
+};
 
 const onSkip = (): void => {
-  turn.skipReveal()
-}
+  turn.skipReveal();
+};
 
 const onOpenSettings = (): void => {
-  settingsOpen.value = true
-}
+  settingsOpen.value = true;
+};
 const onCloseSettings = (): void => {
-  settingsOpen.value = false
-}
+  settingsOpen.value = false;
+};
 const onToggleBgm = (): void => {
-  refreshBgm(bgm.toggle())
-}
+  refreshBgm(bgm.toggle());
+};
 const onSetVolume = (value: number): void => {
-  refreshBgm(bgm.setVolume(value))
-}
+  refreshBgm(bgm.setVolume(value));
+};
 const onBgmSource = (available: boolean): void => {
-  refreshBgm(bgm.markSourceAvailable(available))
-}
+  refreshBgm(bgm.markSourceAvailable(available));
+};
 
 interface KunlunDebug {
-  start(): void
-  injectError(message: string): void
+  start(): void;
+  injectError(message: string): void;
   snapshot(): {
-    state: string
-    visibleText: string
-    nodeId: string | null
-    attitude: number
-  }
+    state: string;
+    visibleText: string;
+    nodeId: string | null;
+    attitude: number;
+  };
 }
 const exposeDebug = (): void => {
   const debug: KunlunDebug = {
     start: beginMainline,
     injectError(message: string) {
-      clearTimers()
-      turn.dispatch({ type: 'error', message })
+      clearTimers();
+      turn.dispatch({ type: "error", message });
     },
     snapshot() {
       return {
         state: turn.view.value.snapshot.state,
         visibleText: turn.view.value.visibleText,
         nodeId: currentNode.value?.id ?? null,
-        attitude: attitudeScore.value
-      }
-    }
-  }
-  ;(window as unknown as { __kunlunDebug?: KunlunDebug }).__kunlunDebug = debug
-}
+        attitude: attitudeScore.value,
+      };
+    },
+  };
+  (window as unknown as { __kunlunDebug?: KunlunDebug }).__kunlunDebug = debug;
+};
 
 onMounted(() => {
-  exposeDebug()
-})
+  exposeDebug();
+});
 onBeforeUnmount(() => {
-  clearTimers()
-})
+  clearTimers();
+});
 
 const demoCharacter = computed(() => ({
-  id: 'narrator',
-  label: '叙述者',
-  assetPath: null
-}))
+  id: "narrator",
+  label: "叙述者",
+  assetPath: resolveAssetPath(
+    defaultAssetManifest,
+    "character.narrator.portrait",
+  ),
+}));
+
+const backgroundAssetPath = computed<string | null>(() => {
+  if (!currentNode.value) {
+    return null;
+  }
+  return resolveAssetPath(
+    defaultAssetManifest,
+    `background.${currentNode.value.id}.scene`,
+  );
+});
 
 const showStartButton = computed(
   () =>
-    turn.view.value.snapshot.state === 'idle' && turn.view.value.fullText.length === 0
-)
+    turn.view.value.snapshot.state === "idle" &&
+    turn.view.value.fullText.length === 0,
+);
 </script>
 
 <template>
@@ -257,7 +287,7 @@ const showStartButton = computed(
     :attitude-max="ATTITUDE_MAX"
     :view="turn.view.value"
     :character="demoCharacter"
-    :background-asset-path="null"
+    :background-asset-path="backgroundAssetPath"
     :bgm="bgmState"
     :bgm-src="bgmSrc"
     :settings-open="settingsOpen"
