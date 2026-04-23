@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Kunlun galgame 可爱风小妹妹占位立绘（384×512，approx 3:4）。
+  使用柔和樱粉 + 奶油 + 薄荷配色，与 tokens.css 的 palette 呼应。
+  真实立绘交付后，替换此文件或通过 mergeManifests 指向新资源即可。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="384" height="512" role="img" aria-label="昆仑立绘占位">
+  <defs>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff3e8"/>
+      <stop offset="100%" stop-color="#ffd9e4"/>
+    </linearGradient>
+    <linearGradient id="hairGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4b2b3a"/>
+      <stop offset="100%" stop-color="#2d1a26"/>
+    </linearGradient>
+    <linearGradient id="ribbonGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ec7d9d"/>
+      <stop offset="100%" stop-color="#d85f84"/>
+    </linearGradient>
+    <linearGradient id="dressGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fce3ec"/>
+      <stop offset="100%" stop-color="#f5c7d8"/>
+    </linearGradient>
+    <radialGradient id="cheekGrad" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ffb0c0" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#ffb0c0" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="1.2"/>
+    </filter>
+  </defs>
+
+  <!-- 柔光底（透明处由 BackgroundStage 的舞台色带出氛围） -->
+  <ellipse cx="192" cy="460" rx="110" ry="18" fill="#d85f84" opacity="0.18"/>
+
+  <!-- 衣襟 / 连衣裙 -->
+  <path d="M88 400 Q112 300 168 290 L216 290 Q272 300 296 400 L296 500 L88 500 Z"
+    fill="url(#dressGrad)" stroke="#d85f84" stroke-opacity="0.35" stroke-width="2"/>
+
+  <!-- 领口 + 粉色蝴蝶结 -->
+  <path d="M164 296 Q192 316 220 296 L220 312 Q192 326 164 312 Z" fill="#ffffff" stroke="#e0a6bd" stroke-width="1.5"/>
+  <path d="M168 304 L148 296 L152 316 Z" fill="url(#ribbonGrad)"/>
+  <path d="M216 304 L236 296 L232 316 Z" fill="url(#ribbonGrad)"/>
+  <circle cx="192" cy="304" r="5" fill="#ec7d9d" stroke="#ffffff" stroke-width="1"/>
+
+  <!-- 脖子 -->
+  <path d="M172 264 Q192 284 212 264 L212 296 L172 296 Z" fill="url(#bodyGrad)"/>
+
+  <!-- 后发（长发） -->
+  <path d="M120 200 Q108 310 132 420 Q118 430 108 420 Q96 320 108 210 Z" fill="url(#hairGrad)"/>
+  <path d="M264 200 Q276 310 252 420 Q266 430 276 420 Q288 320 276 210 Z" fill="url(#hairGrad)"/>
+
+  <!-- 头 -->
+  <ellipse cx="192" cy="210" rx="66" ry="78" fill="url(#bodyGrad)" stroke="#e9b5c6" stroke-width="1"/>
+
+  <!-- 前发（蓬松刘海） -->
+  <path d="M128 176 Q140 126 192 118 Q244 126 256 176 Q244 170 230 180 Q220 150 204 152 Q196 174 188 160 Q178 176 162 162 Q148 176 140 190 Q134 186 128 176 Z" fill="url(#hairGrad)"/>
+  <path d="M156 160 Q172 200 160 230 Q144 222 148 196 Z" fill="url(#hairGrad)"/>
+  <path d="M228 160 Q212 200 224 230 Q240 222 236 196 Z" fill="url(#hairGrad)"/>
+
+  <!-- 侧边发丝辫 -->
+  <path d="M124 200 Q116 230 128 244 Q134 226 128 210 Z" fill="url(#hairGrad)"/>
+  <path d="M260 200 Q268 230 256 244 Q250 226 256 210 Z" fill="url(#hairGrad)"/>
+
+  <!-- 左耳小樱花 -->
+  <g transform="translate(132 196)">
+    <circle r="3" fill="#ffffff"/>
+    <circle r="2.2" fill="#ec7d9d"/>
+  </g>
+  <g transform="translate(120 204)">
+    <circle r="2.2" fill="#f4a7c0"/>
+  </g>
+
+  <!-- 腮红 -->
+  <ellipse cx="156" cy="230" rx="14" ry="8" fill="url(#cheekGrad)" filter="url(#soft)"/>
+  <ellipse cx="228" cy="230" rx="14" ry="8" fill="url(#cheekGrad)" filter="url(#soft)"/>
+
+  <!-- 眉 -->
+  <path d="M148 198 Q160 192 174 198" stroke="#5a3447" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+  <path d="M210 198 Q224 192 236 198" stroke="#5a3447" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+
+  <!-- 眼（大眼睛 + 高光） -->
+  <g>
+    <!-- 白底 -->
+    <ellipse cx="162" cy="216" rx="10" ry="12" fill="#ffffff"/>
+    <ellipse cx="222" cy="216" rx="10" ry="12" fill="#ffffff"/>
+    <!-- 瞳（琥珀偏粉） -->
+    <ellipse cx="162" cy="218" rx="7" ry="9" fill="#8a3b55"/>
+    <ellipse cx="222" cy="218" rx="7" ry="9" fill="#8a3b55"/>
+    <ellipse cx="162" cy="220" rx="4.5" ry="6" fill="#c5526f"/>
+    <ellipse cx="222" cy="220" rx="4.5" ry="6" fill="#c5526f"/>
+    <!-- 高光 -->
+    <circle cx="159" cy="213" r="2.2" fill="#ffffff"/>
+    <circle cx="219" cy="213" r="2.2" fill="#ffffff"/>
+    <circle cx="165" cy="222" r="1.2" fill="#ffd2dd"/>
+    <circle cx="225" cy="222" r="1.2" fill="#ffd2dd"/>
+  </g>
+  <!-- 上眼线 -->
+  <path d="M152 210 Q162 204 172 210" stroke="#3b2330" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M212 210 Q222 204 232 210" stroke="#3b2330" stroke-width="2" stroke-linecap="round" fill="none"/>
+
+  <!-- 鼻/嘴（小巧笑意） -->
+  <path d="M192 238 Q194 242 192 244" stroke="#b58aa0" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M184 252 Q192 258 200 252" stroke="#b85a77" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M186 253 Q192 256 198 253" fill="#ec7d9d" opacity="0.5"/>
+
+  <!-- 袖子/手（略微抬起一点点，galgame "嘻嘻" 感） -->
+  <path d="M92 410 Q80 348 104 320 Q124 318 130 352 Q128 380 112 408 Z" fill="url(#dressGrad)" stroke="#d85f84" stroke-opacity="0.3" stroke-width="1.5"/>
+  <path d="M292 410 Q304 348 280 320 Q260 318 254 352 Q256 380 272 408 Z" fill="url(#dressGrad)" stroke="#d85f84" stroke-opacity="0.3" stroke-width="1.5"/>
+  <ellipse cx="108" cy="412" rx="14" ry="10" fill="url(#bodyGrad)"/>
+  <ellipse cx="276" cy="412" rx="14" ry="10" fill="url(#bodyGrad)"/>
+
+  <!-- 胸口小挂饰（玉色昆仑符号） -->
+  <g transform="translate(192 342)">
+    <circle r="9" fill="#ffffff" stroke="#89d1b2" stroke-width="1.5"/>
+    <path d="M-4 0 Q0 -6 4 0 Q0 6 -4 0 Z" fill="#4a9e7b"/>
+  </g>
+</svg>

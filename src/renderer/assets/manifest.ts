@@ -13,7 +13,7 @@ import {
 import backgroundFictionalUrl from './placeholders/background-fictional.svg?url'
 import backgroundPhotographicUrl from './placeholders/background-photographic.svg?url'
 import backgroundCompositeUrl from './placeholders/background-composite.svg?url'
-import characterSilhouetteUrl from './placeholders/character-silhouette.svg?url'
+import characterKunlunUrl from './placeholders/character-kunlun-portrait.svg?url'
 
 export const defaultAssetManifest: AssetManifest = parseAssetManifest({
     version: 1,
@@ -89,13 +89,19 @@ export const defaultAssetManifest: AssetManifest = parseAssetManifest({
         'character.narrator.portrait': {
             slotId: 'character.narrator.portrait',
             slotType: 'character',
-            assetPath: characterSilhouetteUrl,
+            assetPath: characterKunlunUrl,
+            placeholderPolicy: 'static-placeholder'
+        },
+        'character.kunlun.portrait': {
+            slotId: 'character.kunlun.portrait',
+            slotType: 'character',
+            assetPath: characterKunlunUrl,
             placeholderPolicy: 'static-placeholder'
         },
         'character.guide.kunlun.portrait': {
             slotId: 'character.guide.kunlun.portrait',
             slotType: 'character',
-            assetPath: characterSilhouetteUrl,
+            assetPath: characterKunlunUrl,
             placeholderPolicy: 'static-placeholder'
         }
     }

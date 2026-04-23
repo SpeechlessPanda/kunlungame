@@ -288,11 +288,11 @@ onBeforeUnmount(() => {
 });
 
 const demoCharacter = computed(() => ({
-  id: "narrator",
-  label: "叙述者",
+  id: "kunlun",
+  label: "昆仑",
   assetPath: resolveAssetPath(
     defaultAssetManifest,
-    "character.narrator.portrait",
+    "character.kunlun.portrait",
   ),
 }));
 
@@ -326,7 +326,7 @@ const showStartButton = computed(
     :bgm="bgmState"
     :bgm-src="bgmSrc"
     :settings-open="settingsOpen"
-    speaker-label="叙述者"
+    speaker-label="昆仑"
     @retry="onRetry"
     @skip="onSkip"
     @choose="onChoose"

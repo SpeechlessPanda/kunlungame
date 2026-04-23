@@ -79,11 +79,39 @@ const modeLabel = computed(() => {
   transition: opacity var(--motion-slow) var(--ease-standard);
 }
 
+/* 可爱风统一调：无论节点配的原始背景多冷多深，这里叠一层粉紫奶油的暖纱，
+   让舞台整体和 UI 同一个 mood，而不是画面一半冷一半暖。 */
+.background-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      1200px 600px at 15% 10%,
+      rgba(236, 125, 157, 0.35),
+      transparent 70%
+    ),
+    radial-gradient(
+      900px 600px at 85% 90%,
+      rgba(255, 226, 236, 0.55),
+      transparent 65%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(253, 245, 241, 0.45) 0%,
+      rgba(253, 245, 241, 0.2) 60%,
+      rgba(253, 245, 241, 0.55) 100%
+    );
+  mix-blend-mode: screen;
+}
+
 .background-stage__image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  filter: saturate(0.78) brightness(1.08);
 }
 
 .background-stage__placeholder {
@@ -115,10 +143,10 @@ const modeLabel = computed(() => {
   display: inline-block;
   padding: var(--space-1) var(--space-3);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   font-size: var(--font-size-sm);
   color: var(--color-foreground);
-  background: rgba(15, 23, 42, 0.55);
+  background: rgba(255, 250, 247, 0.78);
   backdrop-filter: blur(6px);
 }
 

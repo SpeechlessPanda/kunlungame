@@ -94,6 +94,58 @@ describe('applyPlayerChoice', () => {
     expect(result.historySummary).toContain('昆仑初问')
     expect(result.historySummary).toContain('已修复')
   })
+
+  it('marks the run as completed when the terminal node is resolved', () => {
+    const baseState = createDefaultRuntimeState(mainlineStoryOutline)
+    const atTerminal = {
+      ...baseState,
+      currentNodeId: 'contemporary-return',
+      turnIndex: 7,
+      readNodeIds: [
+        'kunlun-threshold',
+        'creation-myths',
+        'civilization-roots',
+        'order-and-thought',
+        'empire-and-openness',
+        'fusion-and-refinement',
+        'rupture-and-guardianship'
+      ]
+    }
+
+    expect(atTerminal.isCompleted).toBe(false)
+
+    const result = applyPlayerChoice({
+      state: atTerminal,
+      storyOutline: mainlineStoryOutline,
+      choice: 'align'
+    })
+
+    // 终章不再推进到下一个节点（没有下一个），但标记为已完结，供 UI 走"再走一次"分支。
+    expect(result.currentNodeId).toBe('contemporary-return')
+    expect(result.isCompleted).toBe(true)
+    expect(result.turnIndex).toBe(8)
+    expect(result.readNodeIds).toContain('contemporary-return')
+  })
+
+  it('preserves isCompleted=true once the ending has been reached', () => {
+    const baseState = createDefaultRuntimeState(mainlineStoryOutline)
+    const endedState = {
+      ...baseState,
+      currentNodeId: 'contemporary-return',
+      turnIndex: 8,
+      readNodeIds: ['contemporary-return'],
+      isCompleted: true
+    }
+
+    const result = applyPlayerChoice({
+      state: endedState,
+      storyOutline: mainlineStoryOutline,
+      choice: 'challenge'
+    })
+
+    expect(result.isCompleted).toBe(true)
+    expect(result.currentNodeId).toBe('contemporary-return')
+  })
 })
 
 describe('resolveRuntimeStateAgainstStoryOutline', () => {
