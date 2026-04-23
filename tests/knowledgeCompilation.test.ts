@@ -268,7 +268,7 @@ describe('retrieveKnowledgeEntries', () => {
       theme: '神话',
       keywords: ['昆仑'],
       limit: 2
-    } as const
+    }
 
     const turn0 = retrieveKnowledgeEntries({ ...baseInput, turnSalt: 0 })
     const turn1 = retrieveKnowledgeEntries({ ...baseInput, turnSalt: 1 })

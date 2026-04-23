@@ -30,7 +30,17 @@ export const createRealLlamaSession = async (
             return await session.prompt(prompt, {
                 maxTokens: options.maxTokens ?? 512,
                 onTextChunk: options.onTextChunk,
-                stopOnAbortSignal: true
+                stopOnAbortSignal: true,
+                temperature: 0.85,
+                topP: 0.9,
+                // 压低「你是不是觉得这有点儿神奇」这类句式被反复拼贴的概率，
+                // 也减少轮与轮之间模型拿上一轮输出原句复诵。
+                repeatPenalty: {
+                    penalty: 1.18,
+                    lastTokens: 256,
+                    frequencyPenalty: 0.4,
+                    presencePenalty: 0.4
+                }
             })
         },
         dispose: async () => {
