@@ -1,0 +1,322 @@
+{
+  "entryNodeId": "kunlun-threshold",
+  "nodes": [
+    {
+      "id": "kunlun-threshold",
+      "title": "昆仑初问",
+      "era": "myth-origin",
+      "theme": "文明原点",
+      "coreQuestion": "我们为什么从昆仑开始回望自己？",
+      "summary": "现代青年从昆仑入口重新辨认中国文明最初的精神坐标。",
+      "mustIncludeFacts": [
+        "昆仑被视为世界中心",
+        "昆仑承载天人之轴的象征意义",
+        "西王母形象见证昆仑文化的长期演化"
+      ],
+      "retrievalKeywords": [
+        "昆仑",
+        "西王母",
+        "天柱"
+      ],
+      "recommendedFigures": [
+        "西王母"
+      ],
+      "allowedKnowledgeTopics": [
+        "myth-origin"
+      ],
+      "forbiddenFutureTopics": [
+        "civilization-origin",
+        "order-and-thought",
+        "empire-and-openness",
+        "fusion-and-refinement",
+        "rupture-and-guardianship",
+        "contemporary-return"
+      ],
+      "backgroundMode": "fictional",
+      "backgroundHint": "远古雪山、云海与若隐若现的天门构成文明回廊的起点。",
+      "toneHint": "亲切邀请，但保留史诗感与开场庄严。",
+      "characterCueIds": [
+        "guide.kunlun"
+      ],
+      "minTurns": 1,
+      "nextNodeId": "creation-myths"
+    },
+    {
+      "id": "creation-myths",
+      "title": "神话开天",
+      "era": "myth-origin",
+      "theme": "天地初开与秩序起源",
+      "coreQuestion": "中国神话怎样解释天地、人类与秩序从何而来？",
+      "summary": "以创世与救世神话串起中国文明最初的自我想象。",
+      "mustIncludeFacts": [
+        "盘古开天说明天地生成",
+        "女娲造人与补天并置创造与修补",
+        "大禹治水把神话过渡到秩序建设"
+      ],
+      "retrievalKeywords": [
+        "盘古",
+        "女娲",
+        "大禹"
+      ],
+      "recommendedFigures": [
+        "盘古",
+        "女娲",
+        "大禹"
+      ],
+      "allowedKnowledgeTopics": [
+        "myth-origin"
+      ],
+      "forbiddenFutureTopics": [
+        "civilization-origin",
+        "order-and-thought",
+        "empire-and-openness",
+        "fusion-and-refinement",
+        "rupture-and-guardianship",
+        "contemporary-return"
+      ],
+      "backgroundMode": "fictional",
+      "backgroundHint": "裂开的天幕、初生山川与神话人物的行动轨迹交叠。",
+      "toneHint": "生动讲述，但避免神怪堆砌。",
+      "characterCueIds": [
+        "guide.kunlun"
+      ],
+      "minTurns": 1,
+      "nextNodeId": "civilization-roots"
+    },
+    {
+      "id": "civilization-roots",
+      "title": "三皇五帝与文明起源",
+      "era": "civilization-origin",
+      "theme": "共同身份的形成",
+      "coreQuestion": "炎黄子孙这句话，为什么能成为共同身份的来源？",
+      "summary": "把神话人物、文明发明与多元一体的身份想象连成一条线。",
+      "mustIncludeFacts": [
+        "燧人、伏羲、神农分别对应火、礼制与农医想象",
+        "黄帝与尧舜禹构成早期文明秩序叙事",
+        "炎黄概念服务于多元一体的共同身份"
+      ],
+      "retrievalKeywords": [
+        "伏羲",
+        "神农",
+        "黄帝"
+      ],
+      "recommendedFigures": [
+        "伏羲",
+        "神农",
+        "黄帝",
+        "大禹"
+      ],
+      "allowedKnowledgeTopics": [
+        "civilization-origin"
+      ],
+      "forbiddenFutureTopics": [
+        "order-and-thought",
+        "empire-and-openness",
+        "fusion-and-refinement",
+        "rupture-and-guardianship",
+        "contemporary-return"
+      ],
+      "backgroundMode": "fictional",
+      "backgroundHint": "祭火、耕作、星象与部族会盟的远古文明图景。",
+      "toneHint": "把抽象身份讲得贴近当代人的自我认同。",
+      "characterCueIds": [
+        "guide.kunlun"
+      ],
+      "minTurns": 1,
+      "nextNodeId": "order-and-thought"
+    },
+    {
+      "id": "order-and-thought",
+      "title": "礼乐与诸子",
+      "era": "order-and-thought",
+      "theme": "秩序、伦理与争鸣",
+      "coreQuestion": "中国文化怎样在争论中形成稳定的秩序观？",
+      "summary": "从礼乐制度、易理结构到百家争鸣，解释思想如何塑造中国人的意义感。",
+      "mustIncludeFacts": [
+        "周公制礼作乐塑造秩序框架",
+        "周易连接自然变化、社会秩序与人生判断",
+        "诸子百家说明中国文化并非单一声音"
+      ],
+      "retrievalKeywords": [
+        "周公",
+        "周易",
+        "诸子百家"
+      ],
+      "recommendedFigures": [
+        "周公",
+        "孔子",
+        "老子",
+        "孟子"
+      ],
+      "allowedKnowledgeTopics": [
+        "order-and-thought"
+      ],
+      "forbiddenFutureTopics": [
+        "empire-and-openness",
+        "fusion-and-refinement",
+        "rupture-and-guardianship",
+        "contemporary-return"
+      ],
+      "backgroundMode": "composite",
+      "backgroundHint": "青铜礼器、竹简与学宫辩论场景并置。",
+      "toneHint": "理性清楚，但保留思想碰撞的张力。",
+      "characterCueIds": [
+        "guide.kunlun"
+      ],
+      "minTurns": 1,
+      "nextNodeId": "empire-and-openness"
+    },
+    {
+      "id": "empire-and-openness",
+      "title": "周秦汉唐的大一统与开放",
+      "era": "empire-and-openness",
+      "theme": "制度、交流与共同想象",
+      "coreQuestion": "中国怎样在统一与开放之间形成共同体想象？",
+      "summary": "通过制度、书写、史学、丝路与都城记忆，理解中国为何既能聚合也能外向交流。",
+      "mustIncludeFacts": [
+        "秦统一塑造书写与制度的共同基础",
+        "司马迁让历史记忆形成连续叙事",
+        "汉唐丝路与长安开放气象展示文明交流能力"
+      ],
+      "retrievalKeywords": [
+        "秦统一",
+        "司马迁",
+        "长安"
+      ],
+      "recommendedFigures": [
+        "秦始皇",
+        "汉武帝",
+        "司马迁",
+        "李白"
+      ],
+      "allowedKnowledgeTopics": [
+        "empire-and-openness"
+      ],
+      "forbiddenFutureTopics": [
+        "fusion-and-refinement",
+        "rupture-and-guardianship",
+        "contemporary-return"
+      ],
+      "backgroundMode": "photographic",
+      "backgroundHint": "都城遗址、丝路风沙与盛唐城市气象相互呼应。",
+      "toneHint": "大开大合，但避免口号化赞叹。",
+      "characterCueIds": [
+        "guide.kunlun"
+      ],
+      "minTurns": 2,
+      "nextNodeId": "fusion-and-refinement"
+    },
+    {
+      "id": "fusion-and-refinement",
+      "title": "宋元明清的精致、融合与再创造",
+      "era": "fusion-and-refinement",
+      "theme": "日常审美与文明再写作",
+      "coreQuestion": "中国文化怎样在成熟阶段不断细化、融合并重写自己？",
+      "summary": "从词、曲、理学、科技、航海与小说，看文明如何在日常与高峰之间持续生成。",
+      "mustIncludeFacts": [
+        "宋代词学与理学共同塑造更精细的精神生活",
+        "元明清时期出现跨地域与跨文化的艺术融合",
+        "典籍整理与小说高峰体现文明的再创造能力"
+      ],
+      "retrievalKeywords": [
+        "苏轼",
+        "青花",
+        "红楼梦"
+      ],
+      "recommendedFigures": [
+        "苏轼",
+        "李清照",
+        "沈括",
+        "郑和",
+        "曹雪芹"
+      ],
+      "allowedKnowledgeTopics": [
+        "fusion-and-refinement"
+      ],
+      "forbiddenFutureTopics": [
+        "rupture-and-guardianship",
+        "contemporary-return"
+      ],
+      "backgroundMode": "composite",
+      "backgroundHint": "宋代书斋、海上航路与戏曲舞台层层叠映。",
+      "toneHint": "细腻、灵动，允许更强的审美描写。",
+      "characterCueIds": [
+        "guide.kunlun"
+      ],
+      "minTurns": 2,
+      "nextNodeId": "rupture-and-guardianship"
+    },
+    {
+      "id": "rupture-and-guardianship",
+      "title": "近代断裂与守护",
+      "era": "rupture-and-guardianship",
+      "theme": "危机、反思与保存",
+      "coreQuestion": "文脉在断裂时刻，是怎样被人一点点守住的？",
+      "summary": "把近代危机、思想反思与文化守护者连到同一条痛感与复苏线索上。",
+      "mustIncludeFacts": [
+        "近代危机迫使传统秩序接受剧烈冲击",
+        "五四与新文化运动包含批判与再认识的双重面向",
+        "文化守护者在战火与动荡中保存了大量文脉"
+      ],
+      "retrievalKeywords": [
+        "五四",
+        "鲁迅",
+        "梁思成"
+      ],
+      "recommendedFigures": [
+        "谭嗣同",
+        "鲁迅",
+        "胡适",
+        "梁思成",
+        "林徽因"
+      ],
+      "allowedKnowledgeTopics": [
+        "rupture-and-guardianship"
+      ],
+      "forbiddenFutureTopics": [
+        "contemporary-return"
+      ],
+      "backgroundMode": "photographic",
+      "backgroundHint": "旧报刊、残损建筑与被抢救的典籍构成近代断裂的现场感。",
+      "toneHint": "克制、清醒，不消费苦难。",
+      "characterCueIds": [
+        "guide.kunlun"
+      ],
+      "minTurns": 2,
+      "nextNodeId": "contemporary-return"
+    },
+    {
+      "id": "contemporary-return",
+      "title": "当代回响与文化自觉",
+      "era": "contemporary-return",
+      "theme": "传统如何回到今天",
+      "coreQuestion": "为什么今天的我，仍然需要这些文化记忆？",
+      "summary": "把前面的文明记忆重新照回当代生活，完成文化自觉的闭环。",
+      "mustIncludeFacts": [
+        "费孝通提出文化自觉",
+        "非遗、文创与数字文化让传统以新形式继续活着",
+        "当代传播让文化回到普通人的日常感知"
+      ],
+      "retrievalKeywords": [
+        "文化自觉",
+        "非遗",
+        "国家宝藏"
+      ],
+      "recommendedFigures": [
+        "费孝通"
+      ],
+      "allowedKnowledgeTopics": [
+        "contemporary-return"
+      ],
+      "forbiddenFutureTopics": [],
+      "backgroundMode": "composite",
+      "backgroundHint": "故宫文创、数字展陈与当代青年日常场景自然拼接。",
+      "toneHint": "回收前文，温暖但不空泛。",
+      "characterCueIds": [
+        "guide.kunlun"
+      ],
+      "minTurns": 1,
+      "nextNodeId": null
+    }
+  ]
+}

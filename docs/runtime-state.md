@@ -1,6 +1,6 @@
 # 运行时状态与存档说明
 
-Part 04 当前先建立一个最小稳定闭环：状态对象可序列化、选择只改变风格态度不改变主线分叉、文件存档可以创建与恢复。
+Part 04 当前已经对齐到真实主线的状态闭环：状态对象可序列化、选择只改变风格态度不改变主线分叉、文件存档可以创建与恢复，并且 `historySummary` 会按已修复的文化记忆片段自动重建。
 
 ## 状态结构
 
@@ -26,9 +26,17 @@ Part 04 当前先建立一个最小稳定闭环：状态对象可序列化、选
 ## 推进规则
 
 1. 每次选择都会让 `turnIndex + 1`。
-2. 如果当前节点存在 `nextNodeId`，则推进到下一个主线节点。
-3. 如果当前节点已经是终点，状态层仍允许继续回合推进，但 `currentNodeId` 保持在终点节点。
-4. 如果当前节点或下一节点不在 story outline 中，状态层会抛出明确错误，而不是静默推进。
+2. 默认入口节点取自当前 story outline 的 `entryNodeId`，当前真实主线入口是 `kunlun-threshold`。
+3. 如果当前节点存在 `nextNodeId`，则推进到下一个主线节点。
+4. 如果当前节点已经是终点，状态层仍允许继续回合推进，但 `currentNodeId` 保持在终点节点。
+5. 如果当前节点或下一节点不在 story outline 中，状态层会抛出明确错误，而不是静默推进。
+
+## 文化记忆摘要规则
+
+1. 默认摘要固定为 `尚未修复任何文化记忆片段。`。
+2. 每次推进时，当前节点会进入 `readNodeIds`，并被写入 `historySummary`。
+3. 摘要格式当前固定为 `已修复的文化记忆片段：<节点标题列表>。`。
+4. 存档恢复时不会盲信旧的 `historySummary` 文本，而是根据 `readNodeIds` 和最新 story outline 重新构建。
 
 ## 存档仓储行为
 
@@ -40,7 +48,7 @@ Part 04 当前先建立一个最小稳定闭环：状态对象可序列化、选
 
 ## 当前验证范围
 
-1. `pnpm test -- tests/runtimeState.test.ts`
+1. `pnpm vitest run tests/runtimeState.test.ts`
 2. `pnpm test -- tests/desktopShell.test.ts tests/knowledgeCompilation.test.ts`
 3. `pnpm test:e2e`
 4. `pnpm build`

@@ -40,6 +40,29 @@
 4. 历史摘要。
 5. 最近对话。
 
+## 主线 prompt 约束
+
+1. 当前 prompt builder 会把 system prompt 固定为中文输出、陪伴式表达、单主线不分叉、二选一语义固定映射。
+2. 当前节点会显式带入 `coreQuestion`、`summary`、`mustIncludeFacts`。
+3. `forbiddenFutureTopics` 会被写入 prompt，作为反剧透边界。
+4. 当前玩家倾向会被翻译为 `附和型` 或 `反驳型`，但不会改变主线事实或节点顺序。
+
+## 对话事件契约
+
+当前对话编排 facade 已固定以下事件类型：
+
+1. `chunk`：流式文本片段。
+2. `options`：两个动态中文选项，分别映射 `align` 与 `challenge`。
+3. `complete`：本轮输出正常结束。
+4. `error`：本轮输出失败，并带 `retryable` 标记。
+
+事件顺序约束：
+
+1. 文本片段先于选项事件。
+2. 选项事件晚于所有 `chunk`。
+3. 成功路径最后必须是 `complete`。
+4. 失败路径不得伪装成 `complete`。
+
 ## 打包适配要求
 
 1. 安装包内需要包含下载器、模型清单和缓存目录逻辑。
@@ -59,12 +82,17 @@
 7. 清单记录已扩展为可写入 `verifiedAt` 与 `smokeTestedAt` 时间戳，供后续用户端设置页或诊断页消费。
 8. 已有 runtime bootstrap plan，可供后续 Electron 启动阶段直接消费。
 9. 已有桌面壳模型检查编排器 `src/modeling/modelSetupPlanner.ts`，可在首次启动和设置页入口统一生成启动动作、模型可用性状态和 UI 事件契约。
+10. 已有 `src/modeling/storyPromptBuilder.ts` 与 `src/modeling/dialogueOrchestrator.ts`，可为后续真实模型流式接入提供稳定的 prompt 和事件边界。
+11. 已有 `src/modeling/localDialogueDependencies.ts`，可把 `node-llama-cpp` 封装为可注入的本地流式依赖，并在首个文本 chunk 发出前失败时执行一次受控自动重试。
+12. 已有 `desktop:run-dialogue-smoke` bridge 与 `pnpm dialogue:smoke` 命令，可触发主线首节点、知识检索、prompt builder、orchestrator 和本地 llama adapter 的单轮联调。
 
 ## 当前已验证状态
 
 1. 3B 模型已通过最小中文对话冒烟测试。
 2. 7B 模型先前的运行失败已定位为第一分片文件损坏；重新下载并校验后，7B 模型也已通过最小中文对话冒烟测试。
 3. 当前下载链路需要在用户端保留主源失败后自动切镜像的恢复路径，这在本地修复过程中已经被实际触发验证。
+4. 当前仓库已对白盒验证本地流式对话适配器，确认 chunk 可按顺序转发，且仅在首个 chunk 发出前失败时执行自动重试，避免半途重放导致重复文本。
+5. `pnpm dialogue:smoke` 当前会显式检查开发态与用户目录两组模型路径；在本次工作机上，由于四个候选路径都没有 GGUF 文件，真实联调被准确阻塞在模型资产缺失，而非代码异常。
 
 ## 下载执行约束
 

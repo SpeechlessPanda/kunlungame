@@ -1,5 +1,20 @@
 # Part 07 Spec: 视觉表现层与资源位系统
 
+## Execution Status
+
+Status: in progress
+
+Completed in this session:
+
+1. 已补齐非 UI 的角色 cue 规则，明确 `characterCueIds` 先映射稳定 cue，再映射 portrait 或 runtime-3d 槽位。
+2. 已把 `guide.kunlun` 和 `player.memory-self` 写入共享资产规则文档，避免后续把角色 cue 直接写成平台路径或文件名。
+3. 已完成一次 fresh non-UI 全量验证，确认 Part 02 至 Part 05 与当前 cue 规则没有合同漂移。
+
+Currently blocked or deferred:
+
+1. Part 06 UI 容器尚未实现，因此本部分的 renderer-side stage、背景切换组件和 BGM 占位组件仍未开始。
+2. 最终 2D 角色立绘、3D 运行时模型和真实背景素材路径继续保持未绑定状态。
+
 ## 1. 目标
 
 在不依赖最终素材文件本体的前提下，先建立背景模式切换、资源位占位、BGM 占位和视觉表现接入规则。
@@ -30,20 +45,23 @@
 2. 背景图选择逻辑必须从 story node 的 `backgroundMode` 与 `backgroundHint` 出发。
 3. BGM 必须可禁用。
 4. 视觉层只负责表现，不改变剧情状态。
+5. story node 中的 `characterCueIds` 必须先映射到稳定 cue，再映射到具体 portrait 或 runtime-3d 槽位。
 
 ## 6. 关键流程
 
 1. 根据当前节点读取背景模式。
 2. 选择对应资源位或占位画面。
-3. 执行背景切换与过渡。
-4. 挂载角色占位。
-5. 控制 BGM 开关与基础音量。
+3. 根据 `characterCueIds` 解析当前角色 cue。
+4. 执行背景切换与过渡。
+5. 挂载角色占位。
+6. 控制 BGM 开关与基础音量。
 
 ## 7. 错误处理要求
 
 1. 资源缺失时使用占位而不是白屏。
 2. 模式值与资源位不匹配时输出调试提示。
 3. 音频文件不存在时不能阻断主界面渲染。
+4. cue id 未映射到资源槽位时，必须回落到角色空态而不是报错中断。
 
 ## 8. 测试策略
 
@@ -58,6 +76,7 @@
 1. 模式到资源位的映射逻辑正确。
 2. 视觉层不会改写业务状态。
 3. 缺失素材时降级逻辑稳定。
+4. `characterCueIds` 到 portrait 或 runtime-3d 槽位的映射规则稳定。
 
 ## 9. 验收条件
 
@@ -65,6 +84,7 @@
 2. 主线节点切换时，背景切换逻辑可工作。
 3. 角色与音频资源位具备后续替换能力。
 4. 背景模式与主线内容的关系在运行时得到体现。
+5. canonical 主线里出现的 cue id 不会直接绑定平台路径或最终资产文件名。
 
 ## 10. 交付物
 
@@ -73,12 +93,19 @@
 3. BGM 占位组件。
 4. 视觉层测试与占位演示。
 
-## 11. 风险与回滚边界
+## 11. Deferred After Part 05
+
+1. Part 06 UI shell。
+2. Part 07 renderer-side stage components。
+3. Part 08 end-to-end acceptance and release audit。
+
+## 12. 风险与回滚边界
 
 1. 若先写死真实素材路径，后续用户交付素材时会大面积返工。
 2. 若视觉模式不服从主线节点定义，内容与画面会持续失配。
+3. 若 cue 规则不稳定，后续 2D 立绘与 3D 角色接入会同时返工。
 
-## 12. 实施进度（feat/ui-shell）
+## 13. 实施进度（feat/ui-shell）
 
 已完成：
 

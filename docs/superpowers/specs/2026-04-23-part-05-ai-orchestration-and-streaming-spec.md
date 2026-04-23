@@ -11,11 +11,19 @@ Completed in this session:
 3. 下载脚本已增强为在文件下载后执行完整性校验，并在每个模型 profile 下载完成后自动执行本地冒烟测试。
 4. 若下载后的完整性校验或冒烟测试失败，脚本会删除当前 profile 文件并自动重下一次后再验证。
 5. 7B 模型第一分片损坏问题已修复；重新下载并完成哈希校验后，7B 模型最小中文对话冒烟测试已通过。
+6. 已新增 `storyPromptBuilder`，将当前节点问题、必经事实、历史摘要、检索知识和反剧透边界组装进中文 prompt。
+7. 已新增 `dialogueOrchestrator` facade，固定输出 `chunk`、`options`、`complete`、`error` 四类事件。
+8. 已完成 Part 05 聚焦单测，验证中文 prompt、反剧透边界、二选一语义映射和事件顺序。
+9. 已完成一次 fresh non-UI 全量验证：`pnpm typecheck`、`pnpm test`、`pnpm build`、`pnpm knowledge:compile` 全部通过。
+10. 已新增 `localDialogueDependencies`，把 `node-llama-cpp` 封装为可注入的真实本地流式 adapter，并支持“首个 chunk 发出前失败时”的单次自动重试。
+11. 已新增本地流适配白盒测试，覆盖 chunk 顺序、首次失败自动重试、重试预算耗尽报错，以及依赖注入不改写选项生成。
+12. 已把 dialogue smoke helper 接入 Electron 主进程与 preload bridge，并新增 `pnpm dialogue:smoke` 命令用于触发单轮真实协作冒烟。
 
 Currently blocked or deferred:
 
-1. 正式的对话编排 facade、流事件层和动态选项生成尚未开始实现，需等 Part 01 至 Part 04 的运行基座先补齐。
-2. 涉及真实主线内容、角色素材和前端 UI 呈现的部分继续保留接口，不在本轮写死。
+1. 真实模型流式接入、失败重试策略和依赖注入适配已具备最小实现，并已接入 Electron smoke 主流程；正式 UI 主回路与完整桌面闭环仍未完成。
+2. 涉及真实角色素材和前端 UI 呈现的部分继续保留接口，不在本轮写死。
+3. 与真实本地模型联动的一轮对话协作冒烟已有显式命令入口，但当前工作机缺少本地 GGUF 文件，因此真实执行仍被模型资产阻塞。
 
 ## 1. 目标
 
@@ -48,13 +56,14 @@ Currently blocked or deferred:
 2. 输出至少包括文本流片段、选项结果、完成事件、错误事件。
 3. 模型层不得自行推进主线节点。
 4. 生成的两个选项必须分别映射附和型与反驳型语义。
+5. prompt 必须显式包含中文输出约束和未来主题禁区。
 
 ## 6. 关键流程
 
 1. 读取当前状态。
 2. 拉取当前节点相关知识片段。
 3. 组装系统与用户提示内容。
-4. 调用本地 OpenAI 兼容接口。
+4. 调用对话编排 facade，先构建 prompt，再委托底层流式实现。
 5. 将响应按流式片段向上游转发。
 6. 在结束时输出两个动态选项。
 
@@ -78,6 +87,7 @@ Currently blocked or deferred:
 1. 提示词中包含节点约束、风格约束、反剧透约束。
 2. 流事件序列顺序正确。
 3. 动态选项映射到内部态度枚举正确。
+4. `complete` 与 `error` 事件不能混用或倒序。
 
 ## 9. 验收条件
 
@@ -89,8 +99,8 @@ Currently blocked or deferred:
 ## 10. 交付物
 
 1. Prompt builder。
-2. OpenAI 兼容流式客户端。
-3. 对话编排 facade。
+2. 对话编排 facade。
+3. 后续真实模型适配客户端。
 4. AI 层单元测试与失败路径测试。
 
 ## 11. 风险与回滚边界

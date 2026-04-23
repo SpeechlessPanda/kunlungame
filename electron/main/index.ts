@@ -1,7 +1,8 @@
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import type { DesktopStartupSnapshot } from '../../src/shared/types/desktop.js'
+import type { DesktopDialogueSmokeResult, DesktopStartupSnapshot } from '../../src/shared/types/desktop.js'
 import { buildModelSetupPlan, type BuildModelSetupPlanInput } from '../../src/modeling/modelSetupPlanner.js'
+import { runDialogueSmokeTest } from '../../src/modeling/dialogueSmokeTest.js'
 
 export interface MainWindowOptions {
   width: number
@@ -21,10 +22,12 @@ export interface DesktopStartupInput extends Omit<BuildModelSetupPlanInput, 'ent
 
 export interface DesktopStartupDependencies {
   buildSetupPlan: (input: BuildModelSetupPlanInput) => Promise<Awaited<ReturnType<typeof buildModelSetupPlan>>>
+  runDialogueSmoke: (input: DesktopStartupInput) => Promise<DesktopDialogueSmokeResult>
 }
 
 const defaultStartupDependencies: DesktopStartupDependencies = {
-  buildSetupPlan: buildModelSetupPlan
+  buildSetupPlan: buildModelSetupPlan,
+  runDialogueSmoke: runDialogueSmokeTest
 }
 
 export const resolveRendererEntryPath = (currentDir: string): string => {
@@ -80,6 +83,18 @@ export const buildDesktopStartupSnapshot = async (
   }
 }
 
+export const runDesktopDialogueSmoke = async (
+  input: DesktopStartupInput,
+  dependencies: Partial<DesktopStartupDependencies> = {}
+): Promise<DesktopDialogueSmokeResult> => {
+  const resolvedDependencies = {
+    ...defaultStartupDependencies,
+    ...dependencies
+  }
+
+  return await resolvedDependencies.runDialogueSmoke(input)
+}
+
 export const logDesktopShellBootstrapFailure = (error: unknown): void => {
   console.error('[desktop-shell] bootstrap failed', error)
 }
@@ -95,6 +110,13 @@ const bootstrapDesktopShell = async (): Promise<void> => {
   ipcMain.handle('desktop:ping', async () => 'pong')
   ipcMain.handle('desktop:get-startup-snapshot', async () => {
     return await buildDesktopStartupSnapshot(buildDesktopStartupInput({
+      isPackaged: app.isPackaged,
+      projectRoot: process.cwd(),
+      appDataDir: app.getPath('userData')
+    }))
+  })
+  ipcMain.handle('desktop:run-dialogue-smoke', async () => {
+    return await runDesktopDialogueSmoke(buildDesktopStartupInput({
       isPackaged: app.isPackaged,
       projectRoot: process.cwd(),
       appDataDir: app.getPath('userData')

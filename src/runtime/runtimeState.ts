@@ -33,6 +33,23 @@ const clampAttitude = (value: number): number => {
   return Math.min(ATTITUDE_MAX, Math.max(ATTITUDE_MIN, value))
 }
 
+const summarizeRepairedMemories = (storyOutline: StoryOutline, readNodeIds: string[]): string => {
+  if (readNodeIds.length === 0) {
+    return '尚未修复任何文化记忆片段。'
+  }
+
+  const repairedNodeTitles = readNodeIds.map((nodeId) => {
+    const node = storyOutline.nodes.find((candidate) => candidate.id === nodeId)
+    if (!node) {
+      throw new Error(`Read runtime node '${nodeId}' is not present in the story outline.`)
+    }
+
+    return node.title
+  })
+
+  return `已修复的文化记忆片段：${repairedNodeTitles.join('、')}。`
+}
+
 const resolveCurrentNode = (storyOutline: StoryOutline, currentNodeId: string) => {
   const currentNode = storyOutline.nodes.find((node) => node.id === currentNodeId)
   if (!currentNode) {
@@ -56,13 +73,15 @@ const resolveNextNodeId = (storyOutline: StoryOutline, currentNodeId: string, ne
 }
 
 export const createDefaultRuntimeState = (storyOutline: StoryOutline): RuntimeState => {
+  const readNodeIds: string[] = []
+
   return runtimeStateSchema.parse({
     saveVersion: SAVE_VERSION,
     currentNodeId: storyOutline.entryNodeId,
     turnIndex: 0,
     attitudeScore: 0,
-    historySummary: '',
-    readNodeIds: [],
+    historySummary: summarizeRepairedMemories(storyOutline, readNodeIds),
+    readNodeIds,
     settings: {
       bgmEnabled: true
     }
@@ -82,6 +101,7 @@ export const applyPlayerChoice = (input: ApplyPlayerChoiceInput): RuntimeState =
     currentNodeId: nextNodeId,
     turnIndex: input.state.turnIndex + 1,
     attitudeScore: clampAttitude(input.state.attitudeScore + attitudeDelta),
+    historySummary: summarizeRepairedMemories(input.storyOutline, readNodeIds),
     readNodeIds
   })
 }
@@ -91,7 +111,11 @@ export const resolveRuntimeStateAgainstStoryOutline = (
   storyOutline: StoryOutline
 ): RuntimeState => {
   resolveCurrentNode(storyOutline, state.currentNodeId)
-  return runtimeStateSchema.parse(state)
+
+  return runtimeStateSchema.parse({
+    ...state,
+    historySummary: summarizeRepairedMemories(storyOutline, state.readNodeIds)
+  })
 }
 
 export const serializeRuntimeState = (state: RuntimeState): string => {
