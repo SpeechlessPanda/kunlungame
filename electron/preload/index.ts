@@ -1,4 +1,4 @@
-import type { DesktopBridge, DesktopStartupSnapshot } from '../../src/shared/types/desktop.js'
+import type { DesktopBridge, DesktopDialogueSmokeResult, DesktopStartupSnapshot } from '../../src/shared/types/desktop.js'
 
 export interface IpcRendererLike {
   invoke(channel: string): Promise<unknown>
@@ -10,6 +10,9 @@ export const createDesktopBridge = (renderer: IpcRendererLike): DesktopBridge =>
   },
   async getStartupSnapshot(): Promise<DesktopStartupSnapshot> {
     return await renderer.invoke('desktop:get-startup-snapshot') as DesktopStartupSnapshot
+  },
+  async runDialogueSmoke(): Promise<DesktopDialogueSmokeResult> {
+    return await renderer.invoke('desktop:run-dialogue-smoke') as DesktopDialogueSmokeResult
   }
 })
 

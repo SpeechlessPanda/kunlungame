@@ -13,6 +13,7 @@
         "test:watch": "vitest",
         "coverage": "vitest run --coverage",
         "models:download": "tsx scripts/download-models.ts",
+        "dialogue:smoke": "tsx scripts/run-dialogue-smoke.ts",
         "knowledge:compile": "tsx scripts/compile-knowledge.ts",
         "test:e2e": "playwright test"
     },

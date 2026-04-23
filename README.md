@@ -19,16 +19,18 @@ Kunlungame 是一个面向 Windows 的桌面叙事游戏项目。当前仓库已
 5. `pnpm test`
 6. `pnpm test:e2e`
 7. `pnpm models:download`
-8. `pnpm knowledge:compile`
+8. `pnpm dialogue:smoke`
+9. `pnpm knowledge:compile`
 
 ## 当前桌面壳能力
 
 1. 主进程创建最小安全窗口，默认关闭 `nodeIntegration`，只允许预加载桥接暴露白名单 API。
-2. 预加载层向渲染层暴露 `window.kunlunDesktop`，当前包含 `ping()` 和 `getStartupSnapshot()`。
+2. 预加载层向渲染层暴露 `window.kunlunDesktop`，当前包含 `ping()`、`getStartupSnapshot()` 和 `runDialogueSmoke()`。
 3. 主进程启动时会调用模型启动规划器，为后续首次启动下载流程与设置页模型页预留稳定摘要。
 4. 渲染层当前只挂载最小页面，用于验证壳层链路已通。
 5. 知识层已经支持从受约束 Markdown 编译为结构化知识 JSON，并提供按节点、关键词、主题排序的检索逻辑。
 6. 状态层已经支持默认存档创建、态度值钳制、终点节点回合推进、存档持久化与损坏回退。
+7. 主进程已挂上单轮对话 smoke 入口，可串起主线首节点、知识检索、prompt builder、orchestrator 和本地 llama 流式 adapter。
 
 ## 当前已验证项
 

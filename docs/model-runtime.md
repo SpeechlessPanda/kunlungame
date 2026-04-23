@@ -84,6 +84,7 @@
 9. 已有桌面壳模型检查编排器 `src/modeling/modelSetupPlanner.ts`，可在首次启动和设置页入口统一生成启动动作、模型可用性状态和 UI 事件契约。
 10. 已有 `src/modeling/storyPromptBuilder.ts` 与 `src/modeling/dialogueOrchestrator.ts`，可为后续真实模型流式接入提供稳定的 prompt 和事件边界。
 11. 已有 `src/modeling/localDialogueDependencies.ts`，可把 `node-llama-cpp` 封装为可注入的本地流式依赖，并在首个文本 chunk 发出前失败时执行一次受控自动重试。
+12. 已有 `desktop:run-dialogue-smoke` bridge 与 `pnpm dialogue:smoke` 命令，可触发主线首节点、知识检索、prompt builder、orchestrator 和本地 llama adapter 的单轮联调。
 
 ## 当前已验证状态
 
@@ -91,6 +92,7 @@
 2. 7B 模型先前的运行失败已定位为第一分片文件损坏；重新下载并校验后，7B 模型也已通过最小中文对话冒烟测试。
 3. 当前下载链路需要在用户端保留主源失败后自动切镜像的恢复路径，这在本地修复过程中已经被实际触发验证。
 4. 当前仓库已对白盒验证本地流式对话适配器，确认 chunk 可按顺序转发，且仅在首个 chunk 发出前失败时执行自动重试，避免半途重放导致重复文本。
+5. `pnpm dialogue:smoke` 当前会显式检查开发态与用户目录两组模型路径；在本次工作机上，由于四个候选路径都没有 GGUF 文件，真实联调被准确阻塞在模型资产缺失，而非代码异常。
 
 ## 下载执行约束
 

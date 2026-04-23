@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createDesktopBridge } from '../electron/preload/index.js'
 import {
   buildDesktopStartupInput,
+  runDesktopDialogueSmoke,
   buildDesktopStartupSnapshot,
   createMainWindowOptions,
   logDesktopShellBootstrapFailure,
@@ -62,17 +63,43 @@ describe('createDesktopBridge', () => {
           }
         }
 
+        if (channel === 'desktop:run-dialogue-smoke') {
+          return {
+            selectedProfileId: 'qwen2.5-3b-instruct-q4km',
+            currentNodeId: 'kunlun-threshold',
+            fallbackUsed: false,
+            chunkCount: 2,
+            combinedText: '第一段。第二段。',
+            options: [
+              {
+                semantic: 'align',
+                label: '继续听'
+              },
+              {
+                semantic: 'challenge',
+                label: '先说理由'
+              }
+            ],
+            completed: true
+          }
+        }
+
         throw new Error(`Unexpected channel: ${channel}`)
       }
     })
 
-    expect(Object.keys(bridge).sort()).toEqual(['getStartupSnapshot', 'ping'])
+    expect(Object.keys(bridge).sort()).toEqual(['getStartupSnapshot', 'ping', 'runDialogueSmoke'])
     await expect(bridge.ping()).resolves.toBe('pong')
     await expect(bridge.getStartupSnapshot()).resolves.toMatchObject({
       appName: 'Kunlungame',
       modelSetup: {
         selectedProfileId: 'qwen2.5-3b-instruct-q4km'
       }
+    })
+    await expect(bridge.runDialogueSmoke()).resolves.toMatchObject({
+      currentNodeId: 'kunlun-threshold',
+      chunkCount: 2,
+      completed: true
     })
   })
 })
@@ -161,5 +188,43 @@ describe('logDesktopShellBootstrapFailure', () => {
 
     expect(messages).toHaveLength(1)
     expect(messages[0]?.[0]).toBe('[desktop-shell] bootstrap failed')
+  })
+})
+
+describe('runDesktopDialogueSmoke', () => {
+  it('adapts the smoke helper into a desktop-shell callable bridge result', async () => {
+    const result = await runDesktopDialogueSmoke(
+      {
+        preferredMode: 'default',
+        availableGpuVramGb: null,
+        isPackaged: false,
+        projectRoot: 'D:/project/kunlungame',
+        appDataDir: 'C:/Users/test/AppData/Roaming/Kunlungame'
+      },
+      {
+        runDialogueSmoke: async () => ({
+          selectedProfileId: 'qwen2.5-3b-instruct-q4km',
+          currentNodeId: 'kunlun-threshold',
+          fallbackUsed: false,
+          chunkCount: 2,
+          combinedText: '第一段。第二段。',
+          options: [
+            {
+              semantic: 'align',
+              label: '继续听'
+            },
+            {
+              semantic: 'challenge',
+              label: '先说理由'
+            }
+          ],
+          completed: true
+        })
+      }
+    )
+
+    expect(result.selectedProfileId).toBe('qwen2.5-3b-instruct-q4km')
+    expect(result.currentNodeId).toBe('kunlun-threshold')
+    expect(result.completed).toBe(true)
   })
 })
