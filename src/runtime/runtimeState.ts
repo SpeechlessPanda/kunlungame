@@ -1,0 +1,103 @@
+import { z } from 'zod'
+import type { StoryOutline } from '../shared/contracts/contentContracts.js'
+
+export const SAVE_VERSION = 1 as const
+export const ATTITUDE_MIN = -3
+export const ATTITUDE_MAX = 3
+
+export const playerAttitudeChoiceSchema = z.enum(['align', 'challenge'])
+export const runtimeSettingsSchema = z.object({
+  bgmEnabled: z.boolean()
+})
+
+export const runtimeStateSchema = z.object({
+  saveVersion: z.literal(SAVE_VERSION),
+  currentNodeId: z.string().min(1),
+  turnIndex: z.number().int().min(0),
+  attitudeScore: z.number().int().min(ATTITUDE_MIN).max(ATTITUDE_MAX),
+  historySummary: z.string(),
+  readNodeIds: z.array(z.string().min(1)),
+  settings: runtimeSettingsSchema
+})
+
+export type PlayerAttitudeChoice = z.infer<typeof playerAttitudeChoiceSchema>
+export type RuntimeState = z.infer<typeof runtimeStateSchema>
+
+export interface ApplyPlayerChoiceInput {
+  state: RuntimeState
+  storyOutline: StoryOutline
+  choice: PlayerAttitudeChoice
+}
+
+const clampAttitude = (value: number): number => {
+  return Math.min(ATTITUDE_MAX, Math.max(ATTITUDE_MIN, value))
+}
+
+const resolveCurrentNode = (storyOutline: StoryOutline, currentNodeId: string) => {
+  const currentNode = storyOutline.nodes.find((node) => node.id === currentNodeId)
+  if (!currentNode) {
+    throw new Error(`Current runtime node '${currentNodeId}' is not present in the story outline.`)
+  }
+
+  return currentNode
+}
+
+const resolveNextNodeId = (storyOutline: StoryOutline, currentNodeId: string, nextNodeId: string | null): string => {
+  if (nextNodeId === null) {
+    return currentNodeId
+  }
+
+  const nextNodeExists = storyOutline.nodes.some((node) => node.id === nextNodeId)
+  if (!nextNodeExists) {
+    throw new Error(`Next story node '${nextNodeId}' is not present in the story outline.`)
+  }
+
+  return nextNodeId
+}
+
+export const createDefaultRuntimeState = (storyOutline: StoryOutline): RuntimeState => {
+  return runtimeStateSchema.parse({
+    saveVersion: SAVE_VERSION,
+    currentNodeId: storyOutline.entryNodeId,
+    turnIndex: 0,
+    attitudeScore: 0,
+    historySummary: '',
+    readNodeIds: [],
+    settings: {
+      bgmEnabled: true
+    }
+  })
+}
+
+export const applyPlayerChoice = (input: ApplyPlayerChoiceInput): RuntimeState => {
+  const currentNode = resolveCurrentNode(input.storyOutline, input.state.currentNodeId)
+  const nextNodeId = resolveNextNodeId(input.storyOutline, currentNode.id, currentNode.nextNodeId)
+  const attitudeDelta = input.choice === 'align' ? 1 : -1
+  const readNodeIds = input.state.readNodeIds.includes(currentNode.id)
+    ? input.state.readNodeIds
+    : [...input.state.readNodeIds, currentNode.id]
+
+  return runtimeStateSchema.parse({
+    ...input.state,
+    currentNodeId: nextNodeId,
+    turnIndex: input.state.turnIndex + 1,
+    attitudeScore: clampAttitude(input.state.attitudeScore + attitudeDelta),
+    readNodeIds
+  })
+}
+
+export const resolveRuntimeStateAgainstStoryOutline = (
+  state: RuntimeState,
+  storyOutline: StoryOutline
+): RuntimeState => {
+  resolveCurrentNode(storyOutline, state.currentNodeId)
+  return runtimeStateSchema.parse(state)
+}
+
+export const serializeRuntimeState = (state: RuntimeState): string => {
+  return `${JSON.stringify(runtimeStateSchema.parse(state), null, 2)}\n`
+}
+
+export const deserializeRuntimeState = (payload: string): RuntimeState => {
+  return runtimeStateSchema.parse(JSON.parse(payload))
+}

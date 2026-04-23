@@ -27,4 +27,16 @@ describe('buildRuntimeBootstrapPlan', () => {
     expect(result.selectedProfile.id).toBe('qwen2.5-3b-instruct-q4km')
     expect(result.storage.modelsDir).toBe('D:/project/kunlungame/runtime-cache/models')
   })
+
+  it('keeps the preferred default profile when GPU VRAM is unknown', () => {
+    const result = buildRuntimeBootstrapPlan({
+      preferredMode: 'default',
+      availableGpuVramGb: null,
+      isPackaged: true,
+      projectRoot: 'D:/project/kunlungame',
+      appDataDir: 'C:/Users/test/AppData/Roaming/Kunlungame'
+    })
+
+    expect(result.selectedProfile.id).toBe('qwen2.5-7b-instruct-q4km')
+  })
 })

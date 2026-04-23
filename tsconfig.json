@@ -1,15 +1,30 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "rootDir": ".",
-    "types": ["node", "vitest/globals"]
-  },
-  "include": ["src/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "allowArbitraryExtensions": true,
+        "strict": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true,
+        "outDir": "dist",
+        "rootDir": ".",
+        "types": [
+            "node",
+            "vitest/globals"
+        ]
+    },
+    "include": [
+        "electron/**/*.ts",
+        "src/modeling/**/*.ts",
+        "src/runtime/**/*.ts",
+        "src/shared/**/*.ts",
+        "scripts/**/*.ts",
+        "tests/**/*.ts",
+        "vitest.config.ts",
+        "vite.config.ts",
+        "electron.vite.config.ts",
+        "playwright.config.ts"
+    ]
 }

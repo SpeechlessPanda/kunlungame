@@ -3,7 +3,7 @@ import { resolveModelStoragePaths, type ModelStoragePaths } from './modelPaths.j
 
 export interface RuntimeBootstrapInput {
   preferredMode: 'default' | 'compatibility'
-  availableGpuVramGb: number
+  availableGpuVramGb: number | null
   isPackaged: boolean
   projectRoot: string
   appDataDir: string
@@ -18,7 +18,9 @@ export const buildRuntimeBootstrapPlan = (input: RuntimeBootstrapInput): Runtime
   const defaultProfile = getDefaultModelProfile()
   const fallbackProfile = getFallbackModelProfile()
 
-  const selectedProfile = input.preferredMode === 'compatibility' || input.availableGpuVramGb < defaultProfile.recommendedGpuVramGb
+  const selectedProfile =
+    input.preferredMode === 'compatibility' ||
+    (input.availableGpuVramGb !== null && input.availableGpuVramGb < defaultProfile.recommendedGpuVramGb)
     ? fallbackProfile
     : defaultProfile
 

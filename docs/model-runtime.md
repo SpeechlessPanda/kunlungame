@@ -77,7 +77,7 @@
 
 ## 桌面壳与设置页接口保留
 
-当前仓库还没有正式 Electron/Vue 壳实现，因此本轮只把壳层和 UI 需要消费的接口先写死，不直接落具体界面。
+当前仓库已经落下最小 Electron/Vue 桌面壳，但仍未进入正式 UI 实现阶段，因此本轮只把壳层与后续设置页需要消费的接口接通，不展开视觉和交互细节。
 
 1. 首次启动与设置页都应通过 `buildModelSetupPlan()` 获取当前模型模式、已下载状态、默认动作和设置页落点。
 2. 首次启动在 `shellAction = auto-download-required` 时应自动触发下载，不再等待二次确认。
@@ -85,3 +85,4 @@
 4. UI 层需要监听以下固定通道：`model-download:start`、`model-download:progress`、`model-download:status`、`model-download:issue`、`model-download:cancel`。
 5. UI 需要覆盖以下阶段：`checking`、`queued`、`downloading`、`switching-to-mirror`、`completed`、`failed`。
 6. 失败态需要直接展示恢复动作：重试下载、切换镜像、打开网络帮助；默认模式下还应允许切换兼容模式。
+7. 当前最小桌面壳已暴露 `desktop:ping` 与 `desktop:get-startup-snapshot` IPC，并在预加载层以白名单 `window.kunlunDesktop` 形式提供给渲染层。
