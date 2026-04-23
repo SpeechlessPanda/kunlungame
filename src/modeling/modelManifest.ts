@@ -5,6 +5,8 @@ export interface DownloadedModelRecord {
   profileId: string
   files: string[]
   downloadedAt: string
+  verifiedAt?: string
+  smokeTestedAt?: string
 }
 
 export interface ModelManifest {

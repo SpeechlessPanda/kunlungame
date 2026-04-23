@@ -16,6 +16,8 @@ These instructions apply to all future Copilot sessions in this repository.
 2. At minimum, update the impacted design document or implementation plan when the change alters behavior, structure, scope, assets, test policy, or workflow.
 3. If a change affects content authoring, update the corresponding content format or authoring guide.
 4. If a release-facing behavior changes, update release notes or delivery notes before release.
+5. When implementing against project specs, update the relevant spec file as progress is made. Mark what has been completed, what is intentionally deferred, and what is currently blocked.
+6. If some work cannot be completed yet because required assets, story content, UI implementation, or external constraints are missing, record that explicitly in the relevant spec instead of leaving the gap implicit.
 
 ## 3. Reusable Knowledge And Project Skills
 
