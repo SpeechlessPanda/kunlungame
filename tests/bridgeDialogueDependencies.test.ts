@@ -45,7 +45,7 @@ describe('createBridgeDialogueDependenciesFactory', () => {
 
         const factory = createBridgeDialogueDependenciesFactory(bridge, {
             chunkDelayMs: 0,
-            sleep: async () => {}
+            sleep: async () => { }
         })
         const deps = factory({
             node,
@@ -93,7 +93,7 @@ describe('createBridgeDialogueDependenciesFactory', () => {
         })
         const factory = createBridgeDialogueDependenciesFactory(bridge, {
             chunkDelayMs: 0,
-            sleep: async () => {}
+            sleep: async () => { }
         })
         const deps = factory({
             node,

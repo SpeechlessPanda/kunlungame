@@ -8,7 +8,8 @@ import {
   runtimeStateSchema,
   type PlayerAttitudeChoice,
   type RuntimeState,
-} from "../runtime/runtimeState.js";import { mainlineStoryOutline } from "../content/source/mainlineOutline.js";
+} from "../runtime/runtimeState.js";
+import { mainlineStoryOutline } from "../content/source/mainlineOutline.js";
 import type { StoryNode } from "../shared/contracts/contentContracts.js";
 import type { DesktopBridge } from "../shared/types/desktop.js";
 import {

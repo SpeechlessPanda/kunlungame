@@ -1,50 +1,49 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { TurnViewModel } from '../composables/useTurnController.js'
+import { computed } from "vue";
+import type { TurnViewModel } from "../composables/useTurnController.js";
 
 interface Props {
-  view: TurnViewModel
-  speakerLabel?: string
+  view: TurnViewModel;
+  speakerLabel?: string;
 }
 
 interface Emits {
-  (event: 'retry'): void
-  (event: 'skip'): void
+  (event: "retry"): void;
+  (event: "skip"): void;
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
 const stateLabel = computed(() => {
   switch (props.view.snapshot.state) {
-    case 'idle':
-      return '等待开启'
-    case 'loading':
-      return '正在唤起记忆…'
-    case 'streaming':
-      return props.view.isRevealing ? '讲述中…' : '讲述完毕'
-    case 'awaiting-choice':
-      return '等待你的回应'
-    case 'error':
-      return '出现问题'
+    case "idle":
+      return "等待开启";
+    case "loading":
+      return "正在唤起记忆…";
+    case "streaming":
+      return props.view.isRevealing ? "讲述中…" : "讲述完毕";
+    case "awaiting-choice":
+      return "等待你的回应";
+    case "error":
+      return "出现问题";
     default:
-      return ''
+      return "";
   }
-})
+});
 
 const showEmptyState = computed(
   () =>
-    props.view.snapshot.state === 'idle' &&
-    props.view.fullText.length === 0
-)
+    props.view.snapshot.state === "idle" && props.view.fullText.length === 0,
+);
 
 const showLoadingSkeleton = computed(
   () =>
-    props.view.snapshot.state === 'loading' &&
-    props.view.visibleText.length === 0
-)
+    props.view.snapshot.state === "loading" &&
+    props.view.visibleText.length === 0,
+);
 
-const showErrorState = computed(() => props.view.snapshot.state === 'error')
+const showErrorState = computed(() => props.view.snapshot.state === "error");
 </script>
 
 <template>
@@ -103,7 +102,9 @@ const showErrorState = computed(() => props.view.snapshot.state === 'error')
       aria-hidden="true"
     >
       <span class="dialog-panel__skeleton-line" />
-      <span class="dialog-panel__skeleton-line dialog-panel__skeleton-line--short" />
+      <span
+        class="dialog-panel__skeleton-line dialog-panel__skeleton-line--short"
+      />
       <span class="dialog-panel__skeleton-line" />
     </div>
 
