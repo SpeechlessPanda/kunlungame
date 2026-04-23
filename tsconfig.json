@@ -18,6 +18,7 @@
     "include": [
         "electron/**/*.ts",
         "src/modeling/**/*.ts",
+        "src/presentation/**/*.ts",
         "src/runtime/**/*.ts",
         "src/shared/**/*.ts",
         "scripts/**/*.ts",
