@@ -95,6 +95,12 @@
 
 ## 11. 执行状态
 
+Status: completed
+
+Audit:
+
+1. See `docs/audits/2026-04-23-part-01-04-audit.md`
+
 已完成：
 
 1. 已建立 story node、knowledge entry、story outline、background mode 的共享 schema 与类型。

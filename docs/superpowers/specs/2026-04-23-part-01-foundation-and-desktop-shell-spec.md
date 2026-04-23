@@ -79,6 +79,12 @@
 
 ## 11. 执行状态
 
+Status: completed
+
+Audit:
+
+1. See `docs/audits/2026-04-23-part-01-04-audit.md`
+
 已完成：
 
 1. 已建立 Electron + Vue 3 + TypeScript + Vite 的最小桌面壳骨架。
