@@ -15,10 +15,12 @@ Completed in this session:
 7. 已新增 `dialogueOrchestrator` facade，固定输出 `chunk`、`options`、`complete`、`error` 四类事件。
 8. 已完成 Part 05 聚焦单测，验证中文 prompt、反剧透边界、二选一语义映射和事件顺序。
 9. 已完成一次 fresh non-UI 全量验证：`pnpm typecheck`、`pnpm test`、`pnpm build`、`pnpm knowledge:compile` 全部通过。
+10. 已新增 `localDialogueDependencies`，把 `node-llama-cpp` 封装为可注入的真实本地流式 adapter，并支持“首个 chunk 发出前失败时”的单次自动重试。
+11. 已新增本地流适配白盒测试，覆盖 chunk 顺序、首次失败自动重试、重试预算耗尽报错，以及依赖注入不改写选项生成。
 
 Currently blocked or deferred:
 
-1. 真实模型流式接入、失败重试策略和依赖注入适配尚未完全接到当前 facade。
+1. 真实模型流式接入、失败重试策略和依赖注入适配已具备最小实现，但尚未接入 Electron 主流程与真实一轮对话闭环。
 2. 涉及真实角色素材和前端 UI 呈现的部分继续保留接口，不在本轮写死。
 3. 与真实本地模型联动的一轮对话协作冒烟尚未固化为自动化测试，暂留到 Part 08 的集成验收门。
 

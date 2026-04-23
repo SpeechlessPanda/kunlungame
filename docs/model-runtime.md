@@ -83,12 +83,14 @@
 8. 已有 runtime bootstrap plan，可供后续 Electron 启动阶段直接消费。
 9. 已有桌面壳模型检查编排器 `src/modeling/modelSetupPlanner.ts`，可在首次启动和设置页入口统一生成启动动作、模型可用性状态和 UI 事件契约。
 10. 已有 `src/modeling/storyPromptBuilder.ts` 与 `src/modeling/dialogueOrchestrator.ts`，可为后续真实模型流式接入提供稳定的 prompt 和事件边界。
+11. 已有 `src/modeling/localDialogueDependencies.ts`，可把 `node-llama-cpp` 封装为可注入的本地流式依赖，并在首个文本 chunk 发出前失败时执行一次受控自动重试。
 
 ## 当前已验证状态
 
 1. 3B 模型已通过最小中文对话冒烟测试。
 2. 7B 模型先前的运行失败已定位为第一分片文件损坏；重新下载并校验后，7B 模型也已通过最小中文对话冒烟测试。
 3. 当前下载链路需要在用户端保留主源失败后自动切镜像的恢复路径，这在本地修复过程中已经被实际触发验证。
+4. 当前仓库已对白盒验证本地流式对话适配器，确认 chunk 可按顺序转发，且仅在首个 chunk 发出前失败时执行自动重试，避免半途重放导致重复文本。
 
 ## 下载执行约束
 
