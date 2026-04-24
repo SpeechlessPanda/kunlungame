@@ -22,6 +22,7 @@ describe('createDefaultRuntimeState', () => {
     expect(result.turnIndex).toBe(0)
     expect(result.attitudeScore).toBe(0)
     expect(result.settings.bgmEnabled).toBe(true)
+    expect(result.settings.preferredModelMode).toBe('default')
     expect(result.readNodeIds).toEqual([])
   })
 

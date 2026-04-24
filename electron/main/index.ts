@@ -110,11 +110,18 @@ export const runDesktopMainlineTurn = async (
   startupInput: DesktopStartupInput,
   request: DesktopMainlineTurnRequest
 ): Promise<DesktopMainlineTurnResult> => {
-  const result = await runMainlineTurn({
+  const parsedRuntimeState = runtimeStateSchema.parse(request.runtimeState)
+  // 用存档里持久化的用户偏好覆写 startupInput.preferredMode，
+  // 这样 Settings 面板一旦切换档位，下一轮就会加载对应的模型。
+  const effectiveStartupInput: DesktopStartupInput = {
     ...startupInput,
+    preferredMode: parsedRuntimeState.settings.preferredModelMode
+  }
+  const result = await runMainlineTurn({
+    ...effectiveStartupInput,
     nodeId: request.nodeId,
     attitudeChoiceMode: request.attitudeChoiceMode,
-    runtimeState: runtimeStateSchema.parse(request.runtimeState),
+    runtimeState: parsedRuntimeState,
     recentTurns: request.recentTurns
   })
   if (result.ok) {
@@ -162,7 +169,10 @@ export const loadDesktopRuntimeState = async (
       attitudeScore: result.state.attitudeScore,
       historySummary: result.state.historySummary,
       readNodeIds: [...result.state.readNodeIds],
-      settings: { bgmEnabled: result.state.settings.bgmEnabled }
+      settings: {
+        bgmEnabled: result.state.settings.bgmEnabled,
+        preferredModelMode: result.state.settings.preferredModelMode
+      }
     },
     recoveryAction: result.recoveryAction
   }

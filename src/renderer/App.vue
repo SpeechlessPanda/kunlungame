@@ -97,7 +97,10 @@ const persistState = async (): Promise<void> => {
       attitudeScore: runtimeState.value.attitudeScore,
       historySummary: runtimeState.value.historySummary,
       readNodeIds: [...runtimeState.value.readNodeIds],
-      settings: { bgmEnabled: runtimeState.value.settings.bgmEnabled },
+      settings: {
+        bgmEnabled: runtimeState.value.settings.bgmEnabled,
+        preferredModelMode: runtimeState.value.settings.preferredModelMode,
+      },
     });
   } catch (error) {
     console.error("[app] saveRuntimeState failed", error);
@@ -189,9 +192,27 @@ const onToggleBgm = (): void => {
   refreshBgm(bgm.toggle());
   runtimeState.value = {
     ...runtimeState.value,
-    settings: { bgmEnabled: bgmState.value.enabled },
+    settings: {
+      ...runtimeState.value.settings,
+      bgmEnabled: bgmState.value.enabled,
+    },
   };
   void persistState();
+};
+const onSetModelMode = (mode: "default" | "compatibility" | "pro"): void => {
+  if (runtimeState.value.settings.preferredModelMode === mode) {
+    return;
+  }
+  runtimeState.value = {
+    ...runtimeState.value,
+    settings: {
+      ...runtimeState.value.settings,
+      preferredModelMode: mode,
+    },
+  };
+  void persistState();
+  // 新模式在下一轮 `runMainlineTurn` 时生效；主进程会根据
+  // runtimeState.settings.preferredModelMode 重新 bootstrapPlan。
 };
 const onSetVolume = (value: number): void => {
   refreshBgm(bgm.setVolume(value));
@@ -357,6 +378,8 @@ const showStartButton = computed(
     :bgm-src="bgmSrc"
     :settings-open="settingsOpen"
     :is-fallback-model="isFallbackModel"
+    :preferred-model-mode="runtimeState.settings.preferredModelMode"
+    :selected-profile-id="selectedProfileId"
     speaker-label="昆仑"
     @retry="onRetry"
     @skip="onSkip"
@@ -366,6 +389,7 @@ const showStartButton = computed(
     @toggle-bgm="onToggleBgm"
     @set-volume="onSetVolume"
     @bgm-source-resolved="onBgmSource"
+    @set-model-mode="onSetModelMode"
   />
   <button
     v-if="showStartButton"

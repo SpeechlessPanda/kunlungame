@@ -142,7 +142,8 @@ const buildUiContract = (profile: ModelProfile, preferredMode: RuntimeBootstrapI
   if (downloadSources.some((source) => source.label === 'mirror')) {
     recoveryActions.push('switch-to-mirror')
   }
-  if (preferredMode === 'default') {
+  if (preferredMode !== 'compatibility') {
+    // default 或 pro 模式下，若下载/加载失败，可以建议降级到更轻的档位。
     recoveryActions.push('switch-to-compatibility')
   }
 
@@ -218,9 +219,9 @@ export const buildModelDownloadIssueView = (input: {
     suggestedFixes.push('主下载源失败后，允许切换到镜像继续下载。')
   }
 
-  if (input.preferredMode === 'default') {
+  if (input.preferredMode !== 'compatibility') {
     recoveryActions.push('switch-to-compatibility')
-    suggestedFixes.push('如果默认模式下载持续失败，可切换到兼容模式继续完成首次启动。')
+    suggestedFixes.push('如果当前模式下载持续失败，可切换到兼容模式继续完成首次启动。')
   }
 
   return {

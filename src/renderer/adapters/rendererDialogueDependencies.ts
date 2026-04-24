@@ -472,7 +472,10 @@ const serializeRuntimeState = (state: RuntimeState): DesktopSerializedRuntimeSta
     attitudeScore: state.attitudeScore,
     historySummary: state.historySummary,
     readNodeIds: [...state.readNodeIds],
-    settings: { bgmEnabled: state.settings.bgmEnabled }
+    settings: {
+        bgmEnabled: state.settings.bgmEnabled,
+        preferredModelMode: state.settings.preferredModelMode
+    }
 })
 
 export interface BridgeDialogueDependenciesFactoryOptions {

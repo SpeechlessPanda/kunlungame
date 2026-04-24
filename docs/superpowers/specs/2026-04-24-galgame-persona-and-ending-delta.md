@@ -242,3 +242,66 @@ tag、跨轮复读、短语保留、空行折叠 6 条。与主要 runner 组合
   断言同步到"3B 默认 / 1.5B fallback / 7B 可选"。
 - 全量 `pnpm test -- --run`：33 test files / 184 tests 绿。
 - 3B 默认档 playthrough 复跑通过（`test-results/playthroughs/playthrough-default-alt-2026-04-24T14-33-17-713Z.md`）。
+
+
+## 9. 2026-04-24 Round 4：Settings 面板新增模型档位选择器
+
+### 9.1 动机
+
+§8.8 决策下来后，3B Quality Mode 是默认，1.5B Lite 作为纯 CPU 兜底、7B Pro
+可选。但这三档在运行时完全靠 preferredMode 硬编码为 'default' 开机，
+玩家不能在不改环境变量的前提下切换档位。这一节把三档显式暴露到 Settings
+UI，交给用户在游戏内自主选择。
+
+### 9.2 类型 / 状态 / bootstrap 联动
+
+- `src/modeling/runtimeBootstrap.ts`: `preferredMode` 从
+  `'default' | 'compatibility'` 扩展为 `'default' | 'compatibility' | 'pro'`，
+  导出 `PreferredModelMode` 类型。`buildRuntimeBootstrapPlan` 里
+  `'pro'` 强制选 `getProModelProfile()`，其它路径保持原逻辑。
+- `src/runtime/runtimeState.ts`: `runtimeSettingsSchema` 新增
+  `preferredModelMode`，zod 默认值 `'default'`，旧存档加载时自动补齐。
+- `src/shared/types/desktop.ts`: `DesktopSerializedRuntimeState.settings`
+  同步加 `preferredModelMode` 字段。
+- `src/renderer/adapters/rendererDialogueDependencies.ts` 的
+  `serializeRuntimeState` 把 `preferredModelMode` 也串到桥。
+- `electron/main/index.ts` 的 `runDesktopMainlineTurn` 解析完
+  `request.runtimeState` 后，用 `settings.preferredModelMode` 覆写
+  `startupInput.preferredMode`，这样下一轮 `runMainlineTurn` 的
+  bootstrap 就会按新档位重算 modelPath。
+- `modelSetupPlanner.buildUiContract` 把"default 才建议降到 compatibility"
+  改为"非 compatibility 都建议降级"，以便 Pro 下载失败时也能推荐降级。
+
+### 9.3 UI
+
+- `src/renderer/components/SettingsPanel.vue`: 新增『模型档位』分区，
+  三个 `role=radio` 按钮展示 Quality / Lite / Pro，每个按钮给出 tagline 和
+  hint（显存 / 纯 CPU 表现 / 需手动下载等说明），当前加载的档位挂一个
+  "当前加载" 徽标（通过 `selectedProfileId === profile.id` 匹配）。
+- `GameShell.vue` 透传 `preferredModelMode` / `selectedProfileId` /
+  `set-model-mode` 事件；`App.vue` 在 `onSetModelMode` 里把用户选择
+  写入 `runtimeState.settings`，立刻 `persistState()` 落盘。生效点是
+  下一轮 `runMainlineTurn`，不中断当前 streaming。
+
+### 9.4 测试
+
+- `tests/runtimeBootstrap.test.ts` 新增 Pro 档用例：
+  `preferredMode: 'pro'` 且 `availableGpuVramGb = 2` 时仍选 7B。
+- `tests/runtimeState.test.ts` 默认 state 断言增加
+  `preferredModelMode === 'default'`。
+- `tests/composables/settingsPanel.dom.test.ts` （新文件，happy-dom）覆盖：
+  - 三档 radio 正确渲染 aria-checked；
+  - 点击非当前档位 emit 对应 `set-model-mode`，点击当前档位不 re-emit；
+  - `selectedProfileId` 正确驱动 "当前加载" 徽标位置。
+- 配套：`vitest.config.ts` 接入 `@vitejs/plugin-vue`，让 vitest 能加载
+  真实 `.vue` SFC 进行 DOM 测试（之前 dom 测试只覆盖 composables）。
+- 全量：`pnpm test --run` 34 test files / 188 tests 绿。
+
+### 9.5 未完成 / 后续
+
+- 当前切换到 Pro 但缺权重时，下一轮会收到 `model-missing` 错误，UI 上
+  虽然已经把 message 曝出来，但缺一个"切换到 Pro 时立即触发下载"的直达
+  按钮。后续建议把 SettingsPanel 里的 Pro 选项挂上一个"下载权重"次级按钮，
+  复用 `modelSetupPlanner` 已有的下载 UI 契约。
+- 性能：切换档位后首次 `runMainlineTurn` 会冷启动新 GGUF，约 10-20s 首
+  字；可以考虑 idle 时预热下一档位的 session——但不是首版必需。

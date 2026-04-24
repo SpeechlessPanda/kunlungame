@@ -35,6 +35,7 @@ export interface DesktopSerializedRuntimeState {
   readNodeIds: string[]
   settings: {
     bgmEnabled: boolean
+    preferredModelMode: 'default' | 'compatibility' | 'pro'
   }
 }
 

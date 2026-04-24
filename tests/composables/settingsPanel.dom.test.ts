@@ -1,0 +1,146 @@
+// @vitest-environment happy-dom
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createApp, h } from 'vue'
+import SettingsPanel from '../../src/renderer/components/SettingsPanel.vue'
+import {
+  getDefaultModelProfile,
+  getFallbackModelProfile,
+  getProModelProfile
+} from '../../src/modeling/modelProfiles.js'
+
+const defaultBgm = {
+  enabled: true,
+  volume: 0.5,
+  sourceAvailable: true
+}
+
+interface MountResult {
+  container: HTMLElement
+  unmount: () => void
+  emitted: {
+    setModelMode: Array<'default' | 'compatibility' | 'pro'>
+    close: number
+    toggleBgm: number
+    setVolume: number[]
+  }
+}
+
+const mountSettings = (
+  preferredModelMode: 'default' | 'compatibility' | 'pro',
+  selectedProfileId: string | null
+): MountResult => {
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+
+  const emitted: MountResult['emitted'] = {
+    setModelMode: [],
+    close: 0,
+    toggleBgm: 0,
+    setVolume: []
+  }
+
+  const app = createApp({
+    render() {
+      return h(SettingsPanel, {
+        open: true,
+        bgm: defaultBgm,
+        preferredModelMode,
+        selectedProfileId,
+        onClose: () => {
+          emitted.close += 1
+        },
+        'onToggle-bgm': () => {
+          emitted.toggleBgm += 1
+        },
+        'onSet-volume': (v: number) => {
+          emitted.setVolume.push(v)
+        },
+        'onSet-model-mode': (mode: 'default' | 'compatibility' | 'pro') => {
+          emitted.setModelMode.push(mode)
+        }
+      })
+    }
+  })
+
+  app.mount(container)
+
+  return {
+    container,
+    emitted,
+    unmount: () => {
+      app.unmount()
+      container.remove()
+    }
+  }
+}
+
+describe('SettingsPanel · model profile picker', () => {
+  let mounted: MountResult | null = null
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    mounted?.unmount()
+    mounted = null
+    vi.useRealTimers()
+  })
+
+  it('renders three profile options reflecting the current preferred mode', () => {
+    mounted = mountSettings('default', getDefaultModelProfile().id)
+
+    const radios = mounted.container.querySelectorAll('[role="radio"]')
+    expect(radios.length).toBe(3)
+
+    const defaultOption = mounted.container.querySelector('[data-testid="settings-model-default"]')
+    const liteOption = mounted.container.querySelector('[data-testid="settings-model-compatibility"]')
+    const proOption = mounted.container.querySelector('[data-testid="settings-model-pro"]')
+
+    expect(defaultOption?.getAttribute('aria-checked')).toBe('true')
+    expect(liteOption?.getAttribute('aria-checked')).toBe('false')
+    expect(proOption?.getAttribute('aria-checked')).toBe('false')
+
+    // 当前加载的档位（= default 时）应该显示"当前加载"徽标，在该 option 内部。
+    const activePill = defaultOption?.querySelector('[data-testid="settings-model-active-pill"]')
+    expect(activePill).not.toBeNull()
+  })
+
+  it('emits set-model-mode when user picks a different profile and suppresses re-emit on the active one', () => {
+    mounted = mountSettings('default', getDefaultModelProfile().id)
+
+    const liteOption = mounted.container.querySelector<HTMLButtonElement>(
+      '[data-testid="settings-model-compatibility"]'
+    )
+    const proOption = mounted.container.querySelector<HTMLButtonElement>(
+      '[data-testid="settings-model-pro"]'
+    )
+    const defaultOption = mounted.container.querySelector<HTMLButtonElement>(
+      '[data-testid="settings-model-default"]'
+    )
+
+    liteOption?.click()
+    proOption?.click()
+    // 点击当前已选中档位不应再触发 emit。
+    defaultOption?.click()
+
+    expect(mounted.emitted.setModelMode).toEqual(['compatibility', 'pro'])
+  })
+
+  it('labels all three profile ids consistently with modelProfiles module', () => {
+    mounted = mountSettings('pro', getProModelProfile().id)
+
+    const liteOption = mounted.container.querySelector('[data-testid="settings-model-compatibility"]')
+    expect(liteOption?.textContent ?? '').toContain('Lite Mode')
+
+    const proOption = mounted.container.querySelector('[data-testid="settings-model-pro"]')
+    expect(proOption?.getAttribute('aria-checked')).toBe('true')
+    expect(proOption?.textContent ?? '').toContain('Pro Mode')
+
+    // 默认 / lite 在这次 mount 中均未加载，不应出现"当前加载"徽标。
+    const defaultOption = mounted.container.querySelector('[data-testid="settings-model-default"]')
+    expect(defaultOption?.querySelector('[data-testid="settings-model-active-pill"]')).toBeNull()
+    // fallback profile id 与 modelProfiles 保持一致校验。
+    expect(getFallbackModelProfile().id).toBe('qwen2.5-1.5b-instruct-q4km')
+  })
+})

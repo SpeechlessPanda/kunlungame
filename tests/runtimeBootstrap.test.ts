@@ -39,4 +39,16 @@ describe('buildRuntimeBootstrapPlan', () => {
 
     expect(result.selectedProfile.id).toBe('qwen2.5-3b-instruct-q4km')
   })
+
+  it('selects the pro 7B profile when user explicitly picks pro mode, regardless of detected VRAM', () => {
+    const result = buildRuntimeBootstrapPlan({
+      preferredMode: 'pro',
+      availableGpuVramGb: 2,
+      isPackaged: false,
+      projectRoot: 'D:/project/kunlungame',
+      appDataDir: 'C:/Users/test/AppData/Roaming/Kunlungame'
+    })
+
+    expect(result.selectedProfile.id).toBe('qwen2.5-7b-instruct-q4km')
+  })
 })

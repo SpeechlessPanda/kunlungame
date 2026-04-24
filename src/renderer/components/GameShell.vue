@@ -40,6 +40,8 @@ interface Props {
   settingsOpen: boolean;
   speakerLabel?: string;
   isFallbackModel?: boolean;
+  preferredModelMode: "default" | "compatibility" | "pro";
+  selectedProfileId: string | null;
 }
 
 interface Emits {
@@ -51,6 +53,7 @@ interface Emits {
   (event: "toggle-bgm"): void;
   (event: "set-volume", value: number): void;
   (event: "bgm-source-resolved", available: boolean): void;
+  (event: "set-model-mode", mode: "default" | "compatibility" | "pro"): void;
 }
 
 const props = defineProps<Props>();
@@ -157,9 +160,12 @@ useKeyboardControls(
     <SettingsPanel
       :open="settingsOpen"
       :bgm="bgm"
+      :preferred-model-mode="preferredModelMode"
+      :selected-profile-id="selectedProfileId"
       @close="emit('close-settings')"
       @toggle-bgm="emit('toggle-bgm')"
       @set-volume="(value) => emit('set-volume', value)"
+      @set-model-mode="(mode) => emit('set-model-mode', mode)"
     />
   </main>
 </template>

@@ -6,8 +6,12 @@ export const ATTITUDE_MIN = -3
 export const ATTITUDE_MAX = 3
 
 export const playerAttitudeChoiceSchema = z.enum(['align', 'challenge'])
+export const preferredModelModeSchema = z.enum(['default', 'compatibility', 'pro'])
 export const runtimeSettingsSchema = z.object({
-  bgmEnabled: z.boolean()
+  bgmEnabled: z.boolean(),
+  // 用户在 Settings 里挑选的模型档位：Quality / Lite / Pro。
+  // 旧存档没有这个字段时按默认 'default'（Quality Mode）补齐。
+  preferredModelMode: preferredModelModeSchema.default('default')
 })
 
 export const runtimeStateSchema = z.object({
@@ -91,7 +95,8 @@ export const createDefaultRuntimeState = (storyOutline: StoryOutline): RuntimeSt
     readNodeIds,
     isCompleted: false,
     settings: {
-      bgmEnabled: true
+      bgmEnabled: true,
+      preferredModelMode: 'default'
     }
   })
 }
