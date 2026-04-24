@@ -38,7 +38,7 @@ describe('downloadProfileWeights', () => {
 
   it('downloads each file, verifies, and writes manifest on success', async () => {
     const events: ProfileDownloadProgressEvent[] = []
-    const writeManifest = vi.fn(async () => {})
+    const writeManifest = vi.fn<(manifestFile: string, manifest: ModelManifest) => Promise<void>>(async () => {})
     const profile = buildProfile({ files: ['a.gguf', 'b.gguf'] })
     const result = await downloadProfileWeights({
       profile,
@@ -126,7 +126,7 @@ describe('downloadProfileWeights', () => {
         { profileId: 'other', files: ['other.gguf'], downloadedAt: '2025-01-01T00:00:00.000Z' }
       ]
     }
-    const writeManifest = vi.fn(async () => {})
+    const writeManifest = vi.fn<(manifestFile: string, manifest: ModelManifest) => Promise<void>>(async () => {})
     await downloadProfileWeights({
       profile: buildProfile(),
       storage,

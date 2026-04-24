@@ -21,6 +21,8 @@
         "src/presentation/**/*.ts",
         "src/runtime/**/*.ts",
         "src/shared/**/*.ts",
+        "src/shared/**/*.d.ts",
+        "src/renderer/env.d.ts",
         "scripts/**/*.ts",
         "tests/**/*.ts",
         "vitest.config.ts",

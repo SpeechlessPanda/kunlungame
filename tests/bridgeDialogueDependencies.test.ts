@@ -17,7 +17,7 @@ const runtimeState: RuntimeState = {
     attitudeScore: 0,
     historySummary: '起点。',
     readNodeIds: [],
-    settings: { bgmEnabled: true },
+    settings: { bgmEnabled: true, preferredModelMode: 'default' },
     isCompleted: false
 }
 

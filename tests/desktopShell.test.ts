@@ -301,7 +301,7 @@ describe('desktop runtime state save/load roundtrip', () => {
           attitudeScore: 9999,
           historySummary: '',
           readNodeIds: [],
-          settings: { bgmEnabled: true }
+          settings: { bgmEnabled: true, preferredModelMode: 'default' }
         })
       ).rejects.toBeTruthy()
     } finally {
