@@ -15,6 +15,7 @@ import {
 import type { RuntimeState } from '../runtime/runtimeState.js'
 import { buildGalgameOptionLabels } from './optionLabels.js'
 import { getFallbackModelProfile } from './modelProfiles.js'
+import { sanitizeMainlineReply } from './replyCleanup.js'
 
 /**
  * Part 08 · 真实本地模型主线回合执行器。
@@ -216,6 +217,11 @@ export const runMainlineTurn = async (
         }
     }
 
+    const rawCombined = chunks.join('')
+    const combinedText = sanitizeMainlineReply(rawCombined, {
+        recentTurns: input.recentTurns
+    })
+
     return {
         ok: true,
         selectedProfileId: selectedModel.profileId,
@@ -223,7 +229,7 @@ export const runMainlineTurn = async (
         currentNodeId: currentNode.id,
         fallbackUsed: retrieval.fallbackUsed,
         chunks,
-        combinedText: chunks.join(''),
+        combinedText,
         options,
         completed
     }

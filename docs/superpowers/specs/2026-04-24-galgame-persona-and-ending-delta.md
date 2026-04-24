@@ -124,3 +124,21 @@ spec 合入或取代。
 
 `.copilot/skills/small-llm-prior-reply-trap.md` 记录"不要把上一轮原文喂给
 小模型"的失败信号 / 根因 / 已验证修复，便于未来类似任务复用。
+
+### 7.4 保底 sanitizer（`src/modeling/replyCleanup.ts`）
+
+即使 prompt 层做到极致，7B 仍会偶发地带出：
+- 行首角色标签 `昆仑：`、`kunlun:`；
+- `---` / `===` / markdown 标题 / `[[PREV_REPLY_N]]` / `System:` 前缀；
+- 某一句话在多轮之间被一模一样地重复。
+
+`sanitizeMainlineReply(raw, { recentTurns })` 在 `mainlineTurnRunner` 组装
+`combinedText` 之前跑一次：
+- 逐行剥离角色标签与结构性噪声；
+- 以句末符号切句，任何长度 ≥10 字且与 `recentTurns` 任一轮完全相同的句子
+  整句删除（短插入词如"嘻嘻"不会被误删）；
+- 折叠连续空行，最终 `trim`。
+
+测试：`tests/replyCleanup.test.ts` 覆盖角色标签、markdown 标题、行内 PREV_REPLY
+tag、跨轮复读、短语保留、空行折叠 6 条。与主要 runner 组合后全量单测
+33 files / 182 tests 通过。
