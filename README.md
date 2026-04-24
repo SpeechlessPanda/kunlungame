@@ -48,7 +48,7 @@ pnpm dev
 ## 验证矩阵
 
 1. `pnpm typecheck` — `tsc --noEmit` + `vue-tsc --noEmit`
-2. `pnpm test -- --run` — Vitest 32 test files / 171 tests
+2. `pnpm test -- --run` — Vitest 32 test files / 176 tests
 3. `pnpm test:e2e` — Playwright 渲染层黑盒（14 scenarios）
 4. `pnpm coverage` — 覆盖率报告（整体 Lines ≥ 88%，核心模块 ≥ 90%）
 5. `pnpm dialogue:smoke` — 本地 GGUF 端到端冒烟；设 `$env:KUNLUN_SMOKE_MODE='compatibility'` 切到 3B 兜底 profile，便于 A/B 对比

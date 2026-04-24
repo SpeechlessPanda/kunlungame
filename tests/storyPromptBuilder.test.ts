@@ -55,6 +55,55 @@ describe('buildStoryPrompt', () => {
 
     expect(prompt.user).toContain('怀疑或反驳')
     expect(prompt.user).toContain('主动调侃、打趣')
-    expect(prompt.user).toContain('具体的史实、时间、地名')
+    expect(prompt.user).toContain('具体的时间、地名、典籍')
+  })
+
+  it('injects turn fingerprints and forbidden proper nouns derived from later nodes', () => {
+    // kunlun-threshold 节点，recentTurns 里塞一条"呀，诶呀"开场，
+    // storyPromptBuilder 应该从开场/收尾里抽取指纹作为禁句，
+    // 同时从后续节点（如 creation-myths）抽出"盘古/女娲/大禹"之类禁用词。
+    const currentNode = mainlineStoryOutline.nodes[0]
+    const runtimeState = createDefaultRuntimeState(mainlineStoryOutline)
+    const prompt = buildStoryPrompt({
+      currentNode,
+      retrievedEntries: [],
+      runtimeState: { ...runtimeState, turnIndex: 1, turnsInCurrentNode: 1 },
+      attitudeChoiceMode: 'align',
+      recentTurns: [
+        '呀，诶呀！你今天来得真巧。我先简单讲讲昆仑。西王母是一位神奇的女仙。你觉得神话是不是很有趣？'
+      ]
+    })
+
+    expect(prompt.user).toContain('禁句 1：')
+    expect(prompt.user).toContain('开场：')
+    expect(prompt.user).toContain('呀，诶呀！')
+    // 不得把完整上一轮原文以 PREV_REPLY 块的形式透给模型
+    expect(prompt.user).not.toMatch(/\[\[PREV_REPLY_\d+\]\]/)
+    // 后续节点 creation-myths 的关键词之一
+    expect(prompt.user).toMatch(/盘古|女娲|大禹/)
+  })
+
+  it('reacts to attitudeScore with a score-specific tone clause', () => {
+    const currentNode = mainlineStoryOutline.nodes[0]
+    const baseState = createDefaultRuntimeState(mainlineStoryOutline)
+
+    const warm = buildStoryPrompt({
+      currentNode,
+      retrievedEntries: [],
+      runtimeState: { ...baseState, attitudeScore: 3 },
+      attitudeChoiceMode: 'align',
+      recentTurns: []
+    })
+    expect(warm.user).toContain('非常熟')
+
+    const cool = buildStoryPrompt({
+      currentNode,
+      retrievedEntries: [],
+      runtimeState: { ...baseState, attitudeScore: -3 },
+      attitudeChoiceMode: 'challenge',
+      recentTurns: []
+    })
+    expect(cool.user).toContain('非常警惕')
+    expect(cool.user).toContain('硬证据')
   })
 })

@@ -75,3 +75,52 @@ spec 合入或取代。
 2. UI 文案里"昆仑"既是世界名又是角色名，后续如果起一个更贴近"小妹妹"
    的昵称（例如"琨琨"），需要同时更新 `storyPromptBuilder` 的人设和 DialogPanel
    名字牌默认值。
+
+## 7. 2026-04-24 Round 2：提示层第二次收敛
+
+首轮真机 3B 游玩日志（`test-results/playthroughs/playthrough-compatibility-alt-2026-04-24T10-44-35-810Z.md`）
+暴露出三个新问题：
+
+1. **跨轮复述**：3 轮开场几乎完全一致，中段人物/地名列表被逐字复制。
+2. **人设只守前两句**：小妹妹语气只在开头一两段生效，后面迅速退化为百科条目。
+3. **傲娇/好感度基本不影响风格**：挑选 align 还是 challenge 输出差异极小。
+
+### 7.1 修复策略
+
+1. **彻底不再把"上一轮正文"发给模型**。
+   - 新 `LayeredContextInput` 删除 `recentTurns`，改为
+     `recentTurnFingerprints?: string[]` + `avoidOpeners?: string[]` +
+     `forbiddenProperNouns?: string[]`。
+   - `storyPromptBuilder` 通过 `collectTurnFingerprints` 只抽取每轮头 24 字 /
+     尾 26 字 / 一个中段整句（正则 `/[。！？?!]([^。！？?!]{6,40})[。！？?!]/`），
+     作为"禁句"列表注入，不再给模型看成型段落。
+2. **禁用专名显式化**。
+   - `collectForbiddenProperNouns(currentNode)` 沿 `forbiddenFutureTopics →
+     mainlineStoryOutline → retrievalKeywords + recommendedFigures` 解析出
+     具体人物/事件/典籍名，以"禁止提前出现的专名"段插入提示（从"话题 id"
+     升级到"盘古 / 女娲 / 大禹 / …"）。
+3. **态度即时校准**。
+   - `describeAttitudeScore` 改为 7 档（+3/+2/+1/0/-1/-2/-3），每档给出具体
+     语气动作指令。
+   - 系统提示新增 `## 本轮态度即时校准 (score=X, 选择=Y)` 段，明确要求
+     贯穿每一段而非仅首段。
+4. **采样层加压**。
+   - `realLlamaSession`：`temperature 0.88`、`topP 0.92`、`repeatPenalty
+     { penalty: 1.22, lastTokens: 640, frequencyPenalty: 0.55,
+     presencePenalty: 0.55 }`。
+5. **格式防泄漏**。
+   - 系统提示末尾显式列出禁止输出：`[[PREV_REPLY`、`历史轮`、`---`、`===`、
+     markdown 标题、`System:` / `User:` 前缀。
+
+### 7.2 测试
+
+- `layeredContextBuilder.test.ts` 重写：校验新段落顺序与负样本注入，断言
+  不再出现 `[[PREV_REPLY_\d+]]` 形式的块（字面串允许出现在禁用清单里）。
+- `storyPromptBuilder.test.ts` 新增两条：指纹 + 专名注入用例、7 档态度
+  专属语气子句用例。
+- 全量 `pnpm test -- --run` 通过：32 test files / 176 tests。
+
+### 7.3 相关 skill
+
+`.copilot/skills/small-llm-prior-reply-trap.md` 记录"不要把上一轮原文喂给
+小模型"的失败信号 / 根因 / 已验证修复，便于未来类似任务复用。
