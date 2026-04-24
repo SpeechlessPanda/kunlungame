@@ -376,3 +376,12 @@ UI，交给用户在游戏内自主选择。
   改用 fetch+流式写入，可作为下一轮增强。
 - 切换到 Pro 且下载完成后，首次 `runMainlineTurn` 仍是冷启动（~10-20s）。
   后续可考虑 idle 预热。
+
+### 10.6 端到端 QA（本次新增）
+
+- 在 commit `483be96` 上跑 `pnpm playthrough -- --pattern=alt --maxNodes=8`，
+  29 轮跨 8 节点全部通过，`isCompleted=true`，最终 `attitudeScore=1`，
+  终节点 `contemporary-return`，墙钟 6.35 min。详见
+  [docs/audits/2026-04-24-playthrough-8node.md](../../audits/2026-04-24-playthrough-8node.md)。
+- 结论：权重下载 CTA 合入后无主线回归，可作为后续增强（byte-level
+  百分比 / 脚本去重 / idle 预热）的基线。
