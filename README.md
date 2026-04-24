@@ -26,6 +26,13 @@ Kunlungame 是一款面向 Windows 的本地桌面叙事游戏。题材围绕昆
 8. `pnpm knowledge:compile`   — 把 `md/knowledge/**/*.md` 编译为 `src/content/generated/knowledgeEntries.json`
 9. `pnpm models:download`     — 获取 Qwen2.5-3B (默认质量档) + 1.5B (可选纯 CPU Lite 兜底) GGUF 到 `runtime-cache/models/**`；7B Pro 档需手动下载
 10. `pnpm dialogue:smoke`     — 本地跑首节点端到端烟雾，验证 GGUF 路径 + 编排 + 流式
+11. `pnpm playthrough -- --pattern=alt --maxNodes=8` — 8 节点全链路重放，记录 per-node 滚动、attitudeScore、完整文本
+
+## 模型权重获取两条路径
+
+- **命令行（开发态）**：`pnpm models:download` 批量拉默认 + Lite 档。
+- **应用内（终端用户）**：在「设置」面板下点 “下载权重”，IPC 会流式回传 byte-level 百分比
+  （`{已下载}MB / {总}MB · {N}%`），断点续传通过 HTTP Range 头自动恢复。
 
 ## 预览最小样品
 
@@ -48,12 +55,13 @@ pnpm dev
 ## 验证矩阵
 
 1. `pnpm typecheck` — `tsc --noEmit` + `vue-tsc --noEmit`
-2. `pnpm test -- --run` — Vitest 33 test files / 184 tests
+2. `pnpm test -- --run` — Vitest 35 test files / 200 tests
 3. `pnpm test:e2e` — Playwright 渲染层黑盒（14 scenarios）
-4. `pnpm coverage` — 覆盖率报告（整体 Lines ≥ 88%，核心模块 ≥ 90%）
-5. `pnpm dialogue:smoke` — 本地 GGUF 端到端冒烟；设 `$env:KUNLUN_SMOKE_MODE='compatibility'` 切到 3B Quality profile 做 A/B；设 `$env:KUNLUN_FORCE_CPU='1'` 强制禁用 GPU 加速（默认会通过 Vulkan 自动识别独显）
-6. `pnpm audit --prod --registry=https://registry.npmjs.org/` — 默认 npmmirror 不提供 audit endpoint，必须显式指向官方 registry
-7. `docs/audits/2026-release-audit-template.md` — 正式发布前填写审计记录（最近一次：`docs/audits/2026-04-24-release-audit.md`）
+4. `pnpm coverage` — 覆盖率报告（整体 Lines ≥ 86%，核心模块 ≥ 90%）
+5. `pnpm dialogue:smoke` — 本地 GGUF 端到端冷烟；设 `$env:KUNLUN_SMOKE_MODE='compatibility'` 切到 3B Quality profile 做 A/B；设 `$env:KUNLUN_FORCE_CPU='1'` 强制禁用 GPU 加速（默认会通过 Vulkan 自动识别独显）
+6. `pnpm playthrough -- --pattern=alt --maxNodes=8` — 8 节点全链路端到端，最近一次：`docs/audits/2026-04-24-playthrough-8node.md`
+7. `pnpm audit --prod --registry=https://registry.npmjs.org/` — 默认 npmmirror 不提供 audit endpoint，必须显式指向官方 registry
+8. `docs/audits/2026-release-audit-template.md` — 正式发布前填写审计记录（最近一次：`docs/audits/2026-04-24-release-audit-rc2.md`）
 
 ## 仍需交付的素材
 
