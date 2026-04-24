@@ -14,7 +14,12 @@ export const createRealLlamaSession = async (
     systemPrompt?: string
 ): Promise<LocalLlamaSession> => {
     const { getLlama, LlamaChatSession } = await import('node-llama-cpp')
-    const llama = await getLlama({ gpu: false })
+    // gpu: 'auto' 会按 CUDA → Vulkan → Metal → CPU 的顺序探测本机能力；找不到 GPU 会自动回落到
+    // 纯 CPU，因此在无显卡主机上行为与原 `gpu: false` 等价。开启后在 RTX 40 系 + 8GB VRAM
+    // 上单轮 7B 推理可以从 ~6 分钟压到 ~20-40 秒，首次加载也从十几分钟降到十几秒。
+    // 允许用 `KUNLUN_FORCE_CPU=1` 强制回退，方便排查显卡驱动问题。
+    const forceCpu = process.env.KUNLUN_FORCE_CPU === '1'
+    const llama = await getLlama({ gpu: forceCpu ? false : 'auto' })
     const model = await llama.loadModel({ modelPath })
     // 8192 token 对当前 prompt（人格 + 检索条目 + 近 5 轮）是个舒服的底线，
     // 2048 会被Qwen2.5按 token 序列错位裁掉系统 prompt。

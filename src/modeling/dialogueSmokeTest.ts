@@ -5,7 +5,7 @@ import { mainlineStoryOutline } from '../content/source/mainlineOutline.js'
 import { createLocalDialogueDependencies } from './localDialogueDependencies.js'
 import { retrieveKnowledgeEntries } from './knowledgeCompilation.js'
 import { buildRuntimeBootstrapPlan, type RuntimeBootstrapInput } from './runtimeBootstrap.js'
-import { getFallbackModelProfile } from './modelProfiles.js'
+import { getProModelProfile } from './modelProfiles.js'
 import { knowledgeEntrySchema } from '../shared/contracts/contentContracts.js'
 import { createDefaultRuntimeState } from '../runtime/runtimeState.js'
 import { orchestrateDialogue, type DialogueDependencies, type DialogueOption } from './dialogueOrchestrator.js'
@@ -86,7 +86,7 @@ export const runDialogueSmokeTest = async (
     })
 
     const selectedModel = resolveSelectedModelPath(input)
-    const strictCoverage = selectedModel.profileId === getFallbackModelProfile().id
+    const strictCoverage = selectedModel.profileId !== getProModelProfile().id
     const dialogueDependencies = resolvedDependencies.createDialogueDependencies({
         modelPath: selectedModel.modelPath
     })

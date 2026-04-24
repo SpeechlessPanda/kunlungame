@@ -11,7 +11,7 @@ describe('buildRuntimeBootstrapPlan', () => {
       appDataDir: 'C:/Users/test/AppData/Roaming/Kunlungame'
     })
 
-    expect(result.selectedProfile.id).toBe('qwen2.5-7b-instruct-q4km')
+    expect(result.selectedProfile.id).toBe('qwen2.5-1.5b-instruct-q4km')
     expect(result.storage.modelsDir).toBe('C:/Users/test/AppData/Roaming/Kunlungame/models')
   })
 
@@ -37,6 +37,6 @@ describe('buildRuntimeBootstrapPlan', () => {
       appDataDir: 'C:/Users/test/AppData/Roaming/Kunlungame'
     })
 
-    expect(result.selectedProfile.id).toBe('qwen2.5-7b-instruct-q4km')
+    expect(result.selectedProfile.id).toBe('qwen2.5-1.5b-instruct-q4km')
   })
 })

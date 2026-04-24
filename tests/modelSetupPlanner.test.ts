@@ -16,11 +16,8 @@ describe('buildModelSetupPlan', () => {
         readManifest: async () => ({
           records: [
             {
-              profileId: 'qwen2.5-7b-instruct-q4km',
-              files: [
-                'qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf',
-                'qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf'
-              ],
+              profileId: 'qwen2.5-1.5b-instruct-q4km',
+              files: ['qwen2.5-1.5b-instruct-q4_k_m.gguf'],
               downloadedAt: '2026-04-23T12:00:00.000Z'
             }
           ]
@@ -31,7 +28,7 @@ describe('buildModelSetupPlan', () => {
 
     expect(result.shellAction).toBe('launch-ready')
     expect(result.autoDownload).toBe(false)
-    expect(result.selectedProfile.id).toBe('qwen2.5-7b-instruct-q4km')
+    expect(result.selectedProfile.id).toBe('qwen2.5-1.5b-instruct-q4km')
     expect(result.uiContract.channels.startDownload).toBe('model-download:start')
   })
 
@@ -47,13 +44,13 @@ describe('buildModelSetupPlan', () => {
       },
       {
         readManifest: async () => ({ records: [] }),
-        fileExists: async (filePath) => filePath.endsWith('qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf')
+        fileExists: async () => false
       }
     )
 
     expect(result.shellAction).toBe('auto-download-required')
     expect(result.autoDownload).toBe(true)
-    expect(result.selectedProfileAvailability.status).toBe('partial')
+    expect(result.selectedProfileAvailability.status).toBe('missing')
     expect(result.uiContract.recoveryActions).toContain('retry-download')
     expect(result.uiContract.recoveryActions).toContain('switch-to-mirror')
     expect(result.settingsEntryPoint.defaultTab).toBe('models')

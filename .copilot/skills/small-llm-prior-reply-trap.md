@@ -39,5 +39,7 @@
 
 ## 适用范围
 
-Qwen2.5-3B / 7B Instruct GGUF + node-llama-cpp ChatML session，ContextSize
-8k 以内。更大的模型（>= 14B）对"参考不复述"指令遵循较好，可以酌情放宽。
+Qwen2.5-1.5B / 3B / 7B Instruct GGUF + node-llama-cpp ChatML session，ContextSize
+8k 以内。1.5B 对前轮复述的惯性甚至比 3B 更强，必须严格套用本 skill 的负样本
+清单（禁用首词 / 开场 24 字 / 中段句 / 收尾 26 字）。更大的模型（>= 14B）对
+"参考不复述"指令遵循较好，可以酌情放宽。

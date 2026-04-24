@@ -142,3 +142,63 @@ spec 合入或取代。
 测试：`tests/replyCleanup.test.ts` 覆盖角色标签、markdown 标题、行内 PREV_REPLY
 tag、跨轮复读、短语保留、空行折叠 6 条。与主要 runner 组合后全量单测
 33 files / 182 tests 通过。
+
+
+## 8. 2026-04-24 Round 3：模型瘦身 + GPU 自动侦测 + 三档切换
+
+### 8.1 问题
+
+7B Q4_K_M 在纯 CPU 上实测单轮 6 分钟（mainline loop 里多次观察到超时），
+即便通过 Vulkan 打到 RTX 4060 Laptop 上也仍要 ~18 秒/轮。面向最终用户时
+不能假设每台 Windows PC 都有独显 + 8GB VRAM，需要把默认体验压到"接近
+即时对话"（单轮 3-5 秒）。
+
+### 8.2 三档 profile 重组
+
+- **Instant Mode（新默认）**：`qwen2.5-1.5b-instruct-q4km`，单文件 ~1.12GB，
+  `recommendedGpuVramGb: 0`，纯 CPU 目标 ~3-5 秒/轮。
+- **Quality Mode（兜底升级）**：`qwen2.5-3b-instruct-q4km`，单文件 ~2GB，
+  `recommendedGpuVramGb: 4`。原"Compatibility Mode"重命名。
+- **Pro Mode（可选）**：`qwen2.5-7b-instruct-q4km` 分片 ~4.5GB，
+  `recommendedGpuVramGb: 8`，只对有独显的玩家开放。
+- `getAllModelProfiles()` 只返回 Instant + Quality；Pro 通过
+  `getOptionalModelProfiles()` 暴露，`pnpm models:download` 默认不拉 Pro。
+
+### 8.3 GPU 自动侦测
+
+- `src/modeling/realLlamaSession.ts`：之前硬编码 `gpu: false`（CPU 独占，
+  导致 7B 体验塌方）。改为 `const forceCpu = process.env.KUNLUN_FORCE_CPU === '1';
+  const llama = await getLlama({ gpu: forceCpu ? false : 'auto' })`。
+  node-llama-cpp 的 Vulkan 后端会自动识别独显；环境变量作为调试 / 降级开关。
+
+### 8.4 strictCoverage 语义更新
+
+- `mainlineTurnRunner` / `dialogueSmokeTest` 原逻辑：仅 3B fallback 启用
+  strictCoverage。现改为"非 Pro 档位一律 strict"——1.5B 比 3B 指令遵循
+  更弱，更需要"必须按顺序覆盖 mustIncludeFacts"的强约束。
+
+### 8.5 渲染层
+
+- `App.vue` 里 `isFallbackModel` 原意是"运行在非首选档位时提示叙事密度压缩"。
+  新语义：只要不在 Pro Mode，都算轻量模型，StatusBar 会继续显示压缩胶囊。
+
+### 8.6 测试
+
+- `tests/modelProfiles.test.ts` 全部重写：断言 1.5B Instant 默认 / 3B Quality
+  fallback / 7B Pro 可选 / `getAllModelProfiles` 不含 Pro。
+- `tests/runtimeBootstrap.test.ts`、`tests/modelSetupPlanner.test.ts`、
+  `tests/dialogueSmokeTest.test.ts` 同步更新预期 profileId 到 1.5B。
+- 全量：33 test files / 184 tests 绿。
+
+### 8.7 未完成（当前网络阻塞）
+
+- 本地 `pnpm models:download` 尚未成功拉取 1.5B——HF 主源与 hf-mirror
+  在本机当前都返回 fetch timeout；同一个网络问题此前已导致 `git push`
+  失败。网络恢复后需补：
+  1. `pnpm models:download` 取到 `qwen2.5-1.5b-instruct-q4_k_m.gguf`；
+  2. 重跑 `pnpm playthrough --pattern=alt --maxNodes=1 --turnsPerNode=3`
+     实测单轮 <= 5 秒、AI 仍能读节点 + 知识库并按态度分档输出；
+  3. 若 GPU 档跑 1.5B 出现显存浪费，可在 `realLlamaSession` 里加
+     `vramPadding` 上限；
+  4. 把 7B Pro 档做成 UI 里的"可选升级"入口（下载触发 + 占位 placeholder
+     告知体积 / 硬件要求）。

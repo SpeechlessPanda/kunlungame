@@ -10,7 +10,7 @@ import {
   type RuntimeState,
 } from "../runtime/runtimeState.js";
 import { mainlineStoryOutline } from "../content/source/mainlineOutline.js";
-import { getFallbackModelProfile } from "../modeling/modelProfiles.js";
+import { getProModelProfile } from "../modeling/modelProfiles.js";
 import type { StoryNode } from "../shared/contracts/contentContracts.js";
 import type { DesktopBridge } from "../shared/types/desktop.js";
 import {
@@ -61,10 +61,12 @@ const refreshBgm = (next: BgmControllerState): void => {
 
 const settingsOpen = ref(false);
 
-// 轻量模型 fallback 标识：由 getStartupSnapshot / runMainlineTurn 回填。
+// 轻量模型标识：当选中非 Pro（7B）档位时，叙事密度已按小模型模板压缩。
 const selectedProfileId = ref<string | null>(null);
 const isFallbackModel = computed(
-  () => selectedProfileId.value === getFallbackModelProfile().id,
+  () =>
+    selectedProfileId.value !== null &&
+    selectedProfileId.value !== getProModelProfile().id,
 );
 
 const recentTurns = ref<string[]>([]);

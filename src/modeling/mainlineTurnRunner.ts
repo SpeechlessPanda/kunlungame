@@ -14,7 +14,7 @@ import {
 } from './dialogueOrchestrator.js'
 import type { RuntimeState } from '../runtime/runtimeState.js'
 import { buildGalgameOptionLabels } from './optionLabels.js'
-import { getFallbackModelProfile } from './modelProfiles.js'
+import { getProModelProfile } from './modelProfiles.js'
 import { sanitizeMainlineReply } from './replyCleanup.js'
 
 /**
@@ -186,7 +186,8 @@ export const runMainlineTurn = async (
             runtimeState: input.runtimeState,
             attitudeChoiceMode: input.attitudeChoiceMode,
             recentTurns: input.recentTurns,
-            strictCoverage: selectedModel.profileId === getFallbackModelProfile().id
+            // 1.5B / 3B 都需要 strictCoverage（小模型指令遵循弱），只有 7B Pro 可以放宽。
+            strictCoverage: selectedModel.profileId !== getProModelProfile().id
         })) {
             if (event.type === 'chunk') {
                 chunks.push(event.text)
