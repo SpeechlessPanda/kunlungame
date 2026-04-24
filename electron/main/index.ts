@@ -2,15 +2,26 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import type {
   DesktopDialogueSmokeResult,
+  DesktopDownloadProfileResult,
   DesktopMainlineTurnRequest,
   DesktopMainlineTurnResult,
+  DesktopProfileAvailability,
+  DesktopProfileDownloadProgressEvent,
   DesktopRuntimeStateSnapshot,
   DesktopSerializedRuntimeState,
   DesktopStartupSnapshot
 } from '../../src/shared/types/desktop.js'
-import { buildModelSetupPlan, type BuildModelSetupPlanInput } from '../../src/modeling/modelSetupPlanner.js'
+import { buildModelSetupPlan, evaluateSingleProfileAvailability, type BuildModelSetupPlanInput } from '../../src/modeling/modelSetupPlanner.js'
 import { runDialogueSmokeTest } from '../../src/modeling/dialogueSmokeTest.js'
 import { runMainlineTurn } from '../../src/modeling/mainlineTurnRunner.js'
+import { findModelProfileById } from '../../src/modeling/modelProfiles.js'
+import { resolveModelStoragePaths } from '../../src/modeling/modelPaths.js'
+import {
+  buildDefaultProfileDownloaderDependencies,
+  downloadProfileWeights,
+  type ProfileDownloadProgressEvent,
+  type ProfileDownloaderDependencies
+} from '../../src/modeling/profileDownloader.js'
 import { runtimeStateSchema } from '../../src/runtime/runtimeState.js'
 import { loadRuntimeState, saveRuntimeState } from '../../src/runtime/saveRepository.js'
 import { mainlineStoryOutline } from '../../src/content/source/mainlineOutline.js'
@@ -189,6 +200,92 @@ export const saveDesktopRuntimeState = async (
   })
 }
 
+const resolveDesktopModelStorage = (input: { isPackaged: boolean; projectRoot: string; appDataDir: string }) => {
+  return resolveModelStoragePaths({
+    isPackaged: input.isPackaged,
+    projectRoot: input.projectRoot,
+    appDataDir: input.appDataDir
+  })
+}
+
+export const getDesktopProfileAvailability = async (
+  input: { isPackaged: boolean; projectRoot: string; appDataDir: string },
+  profileId: string
+): Promise<DesktopProfileAvailability> => {
+  const profile = findModelProfileById(profileId)
+  if (profile == null) {
+    return {
+      profileId,
+      status: 'missing',
+      expectedFiles: [],
+      presentFiles: [],
+      missingFiles: [],
+      completionRatio: 0,
+      manifestDownloadedAt: null
+    }
+  }
+  const storage = resolveDesktopModelStorage(input)
+  const availability = await evaluateSingleProfileAvailability(profile, storage)
+  return {
+    profileId: availability.profileId,
+    status: availability.status,
+    expectedFiles: availability.expectedFiles,
+    presentFiles: availability.presentFiles,
+    missingFiles: availability.missingFiles,
+    completionRatio: availability.completionRatio,
+    manifestDownloadedAt: availability.manifestDownloadedAt
+  }
+}
+
+const toDesktopProgressEvent = (event: ProfileDownloadProgressEvent): DesktopProfileDownloadProgressEvent => ({
+  profileId: event.profileId,
+  fileName: event.fileName,
+  phase: event.phase,
+  fileIndex: event.fileIndex,
+  totalFiles: event.totalFiles,
+  message: event.message
+})
+
+export interface DesktopDownloadProfileDependencies {
+  buildDependencies: () => Promise<ProfileDownloaderDependencies>
+}
+
+const activeDesktopDownloads = new Set<string>()
+
+export const runDesktopProfileDownload = async (
+  input: { isPackaged: boolean; projectRoot: string; appDataDir: string },
+  profileId: string,
+  onProgress: (event: DesktopProfileDownloadProgressEvent) => void,
+  dependencies: Partial<DesktopDownloadProfileDependencies> = {}
+): Promise<DesktopDownloadProfileResult> => {
+  const profile = findModelProfileById(profileId)
+  if (profile == null) {
+    return { ok: false, profileId, reason: 'unknown-profile', message: `未知的 profile id: ${profileId}` }
+  }
+  if (activeDesktopDownloads.has(profileId)) {
+    return { ok: false, profileId, reason: 'already-running', message: `${profile.label} 已在下载中` }
+  }
+
+  const storage = resolveDesktopModelStorage(input)
+  const deps = await (dependencies.buildDependencies ?? buildDefaultProfileDownloaderDependencies)()
+
+  activeDesktopDownloads.add(profileId)
+  try {
+    const result = await downloadProfileWeights({
+      profile,
+      storage,
+      deps,
+      onProgress: (event) => onProgress(toDesktopProgressEvent(event))
+    })
+    if (result.ok) {
+      return { ok: true, profileId }
+    }
+    return { ok: false, profileId, reason: 'download-failed', message: result.errorMessage ?? '下载失败' }
+  } finally {
+    activeDesktopDownloads.delete(profileId)
+  }
+}
+
 const bootstrapDesktopShell = async (): Promise<void> => {
   const { app, BrowserWindow, ipcMain } = await import('electron')
 
@@ -227,6 +324,33 @@ const bootstrapDesktopShell = async (): Promise<void> => {
   })
   ipcMain.handle('desktop:save-runtime-state', async (_event, state: DesktopSerializedRuntimeState) => {
     await saveDesktopRuntimeState(app.getPath('userData'), state)
+  })
+
+  ipcMain.handle('desktop:get-profile-availability', async (_event, profileId: string) => {
+    return await getDesktopProfileAvailability(
+      {
+        isPackaged: app.isPackaged,
+        projectRoot: process.cwd(),
+        appDataDir: app.getPath('userData')
+      },
+      profileId
+    )
+  })
+
+  ipcMain.handle('desktop:download-profile', async (event, profileId: string) => {
+    return await runDesktopProfileDownload(
+      {
+        isPackaged: app.isPackaged,
+        projectRoot: process.cwd(),
+        appDataDir: app.getPath('userData')
+      },
+      profileId,
+      (progress) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('desktop:profile-download-progress', progress)
+        }
+      }
+    )
   })
 
   await app.whenReady()

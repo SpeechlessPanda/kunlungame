@@ -96,6 +96,20 @@ const defaultDependencies: ModelSetupPlannerDependencies = {
   }
 }
 
+/**
+ * 单独评估一个 profile 在指定存储目录下的可用性。供 Electron main 的
+ * `desktop:get-profile-availability` 走最小路径使用，无需构建完整 setup plan。
+ */
+export const evaluateSingleProfileAvailability = async (
+  profile: ModelProfile,
+  storage: { modelsDir: string; manifestFile: string },
+  dependencies: Partial<ModelSetupPlannerDependencies> = {}
+): Promise<ModelProfileAvailability> => {
+  const resolved = { ...defaultDependencies, ...dependencies }
+  const manifest = await resolved.readManifest(storage.manifestFile)
+  return await evaluateProfileAvailability(profile, storage.modelsDir, manifest, resolved.fileExists)
+}
+
 const evaluateProfileAvailability = async (
   profile: ModelProfile,
   modelsDir: string,

@@ -10,9 +10,15 @@ import {
   type RuntimeState,
 } from "../runtime/runtimeState.js";
 import { mainlineStoryOutline } from "../content/source/mainlineOutline.js";
-import { getProModelProfile } from "../modeling/modelProfiles.js";
+import {
+  getProModelProfile,
+  getAllKnownModelProfiles,
+} from "../modeling/modelProfiles.js";
 import type { StoryNode } from "../shared/contracts/contentContracts.js";
-import type { DesktopBridge } from "../shared/types/desktop.js";
+import type {
+  DesktopBridge,
+  DesktopProfileDownloadProgressEvent,
+} from "../shared/types/desktop.js";
 import {
   createBgmController,
   type BgmControllerState,
@@ -68,6 +74,80 @@ const isFallbackModel = computed(
     selectedProfileId.value !== null &&
     selectedProfileId.value !== getProModelProfile().id,
 );
+
+const profileAvailability = ref<
+  Record<string, "ready" | "partial" | "missing" | "unknown">
+>({});
+const downloadStatus = ref<import("./components/SettingsPanel.vue").ProfileDownloadStatus | null>(null);
+
+const refreshProfileAvailability = async (
+  profileId?: string,
+): Promise<void> => {
+  const bridge = getBridge();
+  if (!bridge) return;
+  const idsToCheck = profileId
+    ? [profileId]
+    : getAllKnownModelProfiles().map((profile) => profile.id);
+  for (const id of idsToCheck) {
+    try {
+      const availability = await bridge.getProfileAvailability(id);
+      profileAvailability.value = {
+        ...profileAvailability.value,
+        [id]: availability.status,
+      };
+    } catch (error) {
+      console.warn("[app] getProfileAvailability failed", id, error);
+    }
+  }
+};
+
+const onDownloadProfile = async (profileId: string): Promise<void> => {
+  const bridge = getBridge();
+  if (!bridge) return;
+  if (downloadStatus.value != null) return;
+  downloadStatus.value = {
+    profileId,
+    phase: "starting",
+    fileIndex: 0,
+    totalFiles: 0,
+    message: "开始下载…",
+  };
+  try {
+    const result = await bridge.downloadProfile(profileId);
+    if (!result.ok) {
+      downloadStatus.value = {
+        profileId,
+        phase: "failed",
+        fileIndex: 0,
+        totalFiles: 0,
+        message: result.message,
+      };
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    downloadStatus.value = {
+      profileId,
+      phase: "failed",
+      fileIndex: 0,
+      totalFiles: 0,
+      message,
+    };
+  }
+  await refreshProfileAvailability(profileId);
+  if (
+    downloadStatus.value != null &&
+    (downloadStatus.value.phase === "completed" ||
+      downloadStatus.value.phase === "failed")
+  ) {
+    // 保留最终状态给 UI，2 秒后清空。
+    const finalStatus = downloadStatus.value;
+    setTimeout(() => {
+      if (downloadStatus.value === finalStatus) {
+        downloadStatus.value = null;
+      }
+    }, 2000);
+  }
+};
 
 const recentTurns = ref<string[]>([]);
 
@@ -235,7 +315,7 @@ interface KunlunDebug {
 }
 
 const useMockStreamFlag = ref(true);
-
+let unsubscribeDownloadProgress: (() => void) | null = null;
 // 环境探测：在真实 Electron 桌面壳里自动切到真模型；浏览器预览仍走 mock。
 const detectBridgeAvailable = (): boolean => {
   const bridge = (window as unknown as { kunlunDesktop?: DesktopBridge })
@@ -332,10 +412,26 @@ onMounted(() => {
       .catch((error) => {
         console.warn("[app] getStartupSnapshot failed", error);
       });
+    void refreshProfileAvailability();
+    unsubscribeDownloadProgress = bridge.onProfileDownloadProgress(
+      (event: DesktopProfileDownloadProgressEvent) => {
+        downloadStatus.value = {
+          profileId: event.profileId,
+          phase: event.phase,
+          fileIndex: event.fileIndex,
+          totalFiles: event.totalFiles,
+          message: event.message,
+        };
+      },
+    );
   }
 });
 onBeforeUnmount(() => {
   dialogueSession.cancel();
+  if (unsubscribeDownloadProgress) {
+    unsubscribeDownloadProgress();
+    unsubscribeDownloadProgress = null;
+  }
 });
 
 const demoCharacter = computed(() => ({
@@ -380,6 +476,8 @@ const showStartButton = computed(
     :is-fallback-model="isFallbackModel"
     :preferred-model-mode="runtimeState.settings.preferredModelMode"
     :selected-profile-id="selectedProfileId"
+    :profile-availability="profileAvailability"
+    :download-status="downloadStatus"
     speaker-label="昆仑"
     @retry="onRetry"
     @skip="onSkip"
@@ -390,6 +488,7 @@ const showStartButton = computed(
     @set-volume="onSetVolume"
     @bgm-source-resolved="onBgmSource"
     @set-model-mode="onSetModelMode"
+    @download-profile="onDownloadProfile"
   />
   <button
     v-if="showStartButton"

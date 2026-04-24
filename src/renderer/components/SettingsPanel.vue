@@ -10,11 +10,35 @@ import {
 
 type PreferredModelMode = "default" | "compatibility" | "pro";
 
+export type ProfileAvailabilityStatus =
+  | "ready"
+  | "partial"
+  | "missing"
+  | "unknown";
+
+export interface ProfileDownloadStatus {
+  profileId: string;
+  phase:
+    | "starting"
+    | "fetching-metadata"
+    | "downloading"
+    | "verifying"
+    | "file-done"
+    | "manifest-updated"
+    | "completed"
+    | "failed";
+  fileIndex: number;
+  totalFiles: number;
+  message: string;
+}
+
 interface Props {
   open: boolean;
   bgm: BgmControllerState;
   preferredModelMode: PreferredModelMode;
   selectedProfileId: string | null;
+  profileAvailability?: Record<string, ProfileAvailabilityStatus>;
+  downloadStatus?: ProfileDownloadStatus | null;
 }
 
 interface Emits {
@@ -22,9 +46,13 @@ interface Emits {
   (event: "toggle-bgm"): void;
   (event: "set-volume", value: number): void;
   (event: "set-model-mode", mode: PreferredModelMode): void;
+  (event: "download-profile", profileId: string): void;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  profileAvailability: () => ({}),
+  downloadStatus: null,
+});
 const emit = defineEmits<Emits>();
 
 const volumePercent = computed(() => Math.round(props.bgm.volume * 100));
@@ -80,6 +108,29 @@ const modelModeOptions: ModelModeOption[] = [
 const onPickMode = (mode: PreferredModelMode): void => {
   if (props.preferredModelMode === mode) return;
   emit("set-model-mode", mode);
+};
+
+const statusFor = (profileId: string): ProfileAvailabilityStatus => {
+  return props.profileAvailability?.[profileId] ?? "unknown";
+};
+
+const isDownloading = (profileId: string): boolean => {
+  return (
+    props.downloadStatus != null &&
+    props.downloadStatus.profileId === profileId &&
+    props.downloadStatus.phase !== "completed" &&
+    props.downloadStatus.phase !== "failed"
+  );
+};
+
+const showDownloadButton = (profileId: string): boolean => {
+  const status = statusFor(profileId);
+  return status !== "ready" && !isDownloading(profileId);
+};
+
+const onDownload = (event: Event, profileId: string): void => {
+  event.stopPropagation();
+  emit("download-profile", profileId);
 };
 </script>
 
@@ -189,6 +240,44 @@ const onPickMode = (mode: PreferredModelMode): void => {
             </div>
             <p class="settings-panel__model-tagline">{{ option.tagline }}</p>
             <p class="settings-panel__model-hint">{{ option.hint }}</p>
+            <div
+              v-if="showDownloadButton(option.profileId)"
+              class="settings-panel__model-cta"
+            >
+              <span
+                class="settings-panel__model-status"
+                :data-testid="`settings-model-status-${option.mode}`"
+                >{{
+                  statusFor(option.profileId) === "missing"
+                    ? "权重未下载"
+                    : statusFor(option.profileId) === "partial"
+                      ? "权重不完整"
+                      : "权重状态未知"
+                }}</span
+              >
+              <button
+                type="button"
+                class="settings-panel__model-download"
+                :data-testid="`settings-model-download-${option.mode}`"
+                @click="(event) => onDownload(event, option.profileId)"
+              >
+                下载权重
+              </button>
+            </div>
+            <div
+              v-if="isDownloading(option.profileId)"
+              class="settings-panel__model-progress"
+              :data-testid="`settings-model-progress-${option.mode}`"
+            >
+              <span class="settings-panel__model-progress-phase">
+                {{
+                  downloadStatus?.totalFiles
+                    ? `(${downloadStatus.fileIndex}/${downloadStatus.totalFiles})`
+                    : ""
+                }}
+                {{ downloadStatus?.message ?? "正在下载…" }}
+              </span>
+            </div>
           </button>
         </div>
       </section>
@@ -334,6 +423,43 @@ const onPickMode = (mode: PreferredModelMode): void => {
   margin: 0;
   font-size: var(--font-size-xs);
   color: var(--color-foreground-dim);
+}
+
+.settings-panel__model-cta {
+  margin-top: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.settings-panel__model-status {
+  font-size: var(--font-size-xs);
+  color: var(--color-foreground-muted);
+}
+
+.settings-panel__model-download {
+  font-size: var(--font-size-xs);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-foreground);
+  cursor: pointer;
+}
+
+.settings-panel__model-download:hover {
+  background: var(--color-bg-hover, rgba(255, 255, 255, 0.05));
+}
+
+.settings-panel__model-progress {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-foreground-muted);
+}
+
+.settings-panel__model-progress-phase {
+  display: inline-block;
 }
 
 .settings-panel__row {

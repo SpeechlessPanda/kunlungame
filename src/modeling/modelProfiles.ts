@@ -79,6 +79,20 @@ export const getAllModelProfiles = (): ModelProfile[] => [
 ]
 
 /**
+ * 返回所有已知 profile（含 Pro 档）——供 UI 枚举选项 / 按 id 查找使用。
+ * 与 `getAllModelProfiles` 区分：后者仅包含 startup 自动下载的两档。
+ */
+export const getAllKnownModelProfiles = (): ModelProfile[] => [
+  defaultModelProfile,
+  fallbackModelProfile,
+  proModelProfile
+]
+
+export const findModelProfileById = (profileId: string): ModelProfile | null => {
+  return getAllKnownModelProfiles().find((profile) => profile.id === profileId) ?? null
+}
+
+/**
  * 可选档（目前只有 7B Pro）。需要通过命令行参数或 UI 显式触发下载。
  */
 export const getOptionalModelProfiles = (): ModelProfile[] => [proModelProfile]

@@ -96,7 +96,7 @@ describe('createDesktopBridge', () => {
     })
 
     expect(Object.keys(bridge).sort()).toEqual(
-      ['getStartupSnapshot', 'loadRuntimeState', 'ping', 'runDialogueSmoke', 'runMainlineTurn', 'saveRuntimeState']
+      ['downloadProfile', 'getProfileAvailability', 'getStartupSnapshot', 'loadRuntimeState', 'onProfileDownloadProgress', 'ping', 'runDialogueSmoke', 'runMainlineTurn', 'saveRuntimeState']
     )
     await expect(bridge.ping()).resolves.toBe('pong')
     await expect(bridge.getStartupSnapshot()).resolves.toMatchObject({
@@ -304,6 +304,97 @@ describe('desktop runtime state save/load roundtrip', () => {
           settings: { bgmEnabled: true }
         })
       ).rejects.toBeTruthy()
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
+  })
+})
+
+import { getDesktopProfileAvailability, runDesktopProfileDownload } from '../electron/main/index.js'
+import { getProModelProfile } from '../src/modeling/modelProfiles.js'
+
+describe('getDesktopProfileAvailability', () => {
+  it('returns missing status when the weight files are absent on disk', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlun-avail-'))
+    try {
+      const availability = await getDesktopProfileAvailability(
+        { isPackaged: false, projectRoot: tempDir, appDataDir: tempDir },
+        getProModelProfile().id
+      )
+      expect(availability.profileId).toBe(getProModelProfile().id)
+      expect(availability.status).toBe('missing')
+      expect(availability.missingFiles.length).toBeGreaterThan(0)
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  it('returns missing/empty for an unknown profile id', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlun-avail-'))
+    try {
+      const availability = await getDesktopProfileAvailability(
+        { isPackaged: false, projectRoot: tempDir, appDataDir: tempDir },
+        'not-a-real-profile'
+      )
+      expect(availability.status).toBe('missing')
+      expect(availability.expectedFiles).toEqual([])
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('runDesktopProfileDownload', () => {
+  it('rejects unknown profile ids', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlun-dl-'))
+    try {
+      const result = await runDesktopProfileDownload(
+        { isPackaged: false, projectRoot: tempDir, appDataDir: tempDir },
+        'nope',
+        () => {},
+        {
+          buildDependencies: async () => ({
+            fetchArtifactMetadata: async () => null,
+            downloadFile: async () => {},
+            verifyFile: async () => ({ ok: true, sizeMatches: true, hashMatches: null }),
+            removeFile: async () => {},
+            ensureDirectory: async () => {},
+            readManifest: async () => ({ records: [] }),
+            writeManifest: async () => {}
+          })
+        }
+      )
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.reason).toBe('unknown-profile')
+      }
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  it('runs the injected downloader and forwards progress events', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlun-dl-'))
+    try {
+      const progressEvents: Array<{ phase: string; profileId: string }> = []
+      const result = await runDesktopProfileDownload(
+        { isPackaged: false, projectRoot: tempDir, appDataDir: tempDir },
+        getProModelProfile().id,
+        (event) => progressEvents.push({ phase: event.phase, profileId: event.profileId }),
+        {
+          buildDependencies: async () => ({
+            fetchArtifactMetadata: async () => ({ contentLength: null, sha256: null }),
+            downloadFile: async () => {},
+            verifyFile: async () => ({ ok: true, sizeMatches: true, hashMatches: null }),
+            removeFile: async () => {},
+            ensureDirectory: async () => {},
+            readManifest: async () => ({ records: [] }),
+            writeManifest: async () => {}
+          })
+        }
+      )
+      expect(result.ok).toBe(true)
+      expect(progressEvents.some((event) => event.phase === 'completed')).toBe(true)
     } finally {
       await rm(tempDir, { recursive: true, force: true })
     }

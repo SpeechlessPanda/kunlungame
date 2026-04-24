@@ -305,3 +305,74 @@ UI，交给用户在游戏内自主选择。
   复用 `modelSetupPlanner` 已有的下载 UI 契约。
 - 性能：切换档位后首次 `runMainlineTurn` 会冷启动新 GGUF，约 10-20s 首
   字；可以考虑 idle 时预热下一档位的 session——但不是首版必需。
+
+
+## 10. 2026-04-24 Round 5：Pro 档位「下载权重」直达按钮
+
+完成 §9.5 遗留项：在 Settings UI 的每个档位旁提供"下载权重"直达按钮，
+并在下载过程中实时显示阶段性进度。
+
+### 10.1 新增模块
+
+- `src/modeling/profileDownloader.ts`: 导出 `downloadProfileWeights`
+  （纯函数 + 全量 DI：fetchArtifactMetadata / downloadFile / verifyFile /
+  removeFile / ensureDirectory / readManifest / writeManifest / now），以及
+  `buildDefaultProfileDownloaderDependencies` 供 main/CLI 绑定真实实现。
+  与 `scripts/download-models.ts` 的差异：单 profile 运行、不做冒烟测试、
+  不抢 `.download.lock` 文件——冒烟测试交由 bootstrap 自然覆盖，锁文件
+  换成主进程侧的 `activeDesktopDownloads` Set 防并发。
+- `src/modeling/modelProfiles.ts`: 导出 `getAllKnownModelProfiles`
+  （含 Pro）与 `findModelProfileById`，供 UI 枚举 / 按 id 查找。
+- `src/modeling/modelSetupPlanner.ts`: 导出
+  `evaluateSingleProfileAvailability`，供 IPC `get-profile-availability`
+  走最短路径而无需构建完整 setup plan。
+
+### 10.2 IPC / bridge
+
+- `desktop:get-profile-availability(profileId) → DesktopProfileAvailability`
+  （status + present/missing files + manifest 时间）。
+- `desktop:download-profile(profileId) → DesktopDownloadProfileResult`，
+  过程事件通过 `event.sender.send('desktop:profile-download-progress', …)`
+  逐阶段推送（starting / fetching-metadata / downloading / verifying /
+  file-done / manifest-updated / completed / failed）。
+- Preload `DesktopBridge` 补 `getProfileAvailability` / `downloadProfile`
+  / `onProfileDownloadProgress`，后者返回 unsubscribe 函数给渲染侧在
+  onBeforeUnmount 时释放。
+
+### 10.3 UI
+
+- `SettingsPanel.vue` 每个档位底部：
+  - 当该 profile 非 ready 时，显示 "权重未下载 / 不完整 / 状态未知" + 一个
+    `下载权重` 按钮（`data-testid="settings-model-download-{mode}"`）；
+  - 下载中（phase ∉ completed/failed）显示一行 `(fileIndex/totalFiles)
+    + 阶段消息`，CTA 在此时隐藏以避免重复点击。
+- `App.vue` 负责：
+  - 启动时 `refreshProfileAvailability()` 拉三档状态；
+  - 通过 `onProfileDownloadProgress` 维护 `downloadStatus` ref；
+  - `onDownloadProfile` 调用 IPC，完成/失败后再次刷新该档可用性，
+    2 秒后清空 `downloadStatus` 让 CTA 恢复。
+
+### 10.4 测试
+
+- `tests/profileDownloader.test.ts` (4 用例): 成功路径、全镜像失败、校验
+  失败时删除文件、manifest 记录替换。
+- `tests/desktopShell.test.ts` 追加 4 用例：
+  `getDesktopProfileAvailability` 在空目录返回 `missing`、未知 id 回空；
+  `runDesktopProfileDownload` 拒绝未知 id、注入 deps 下成功发送 completed
+  事件。
+- `tests/composables/settingsPanel.dom.test.ts` 扩到 5 用例：新增 CTA
+  可见性 + `@download-profile` emit 与 radio onclick 隔离、下载中隐藏
+  CTA 并渲染进度行。
+- Preload bridge keys 期望值同步更新。
+- 全量：`pnpm test --run` → 35 test files / 198 tests 绿。
+
+### 10.5 仍未完成 / 后续
+
+- `scripts/download-models.ts` 尚未迁移到 `profileDownloader` 模块，
+  仍保有自己的 `downloadWithFallbacks` 实现。两者功能一致但重复，后续可
+  做一次去重重构。
+- 当前进度是"阶段级"（phase + fileIndex/totalFiles + 文本），没有 byte-
+  level 百分比。要接百分比需要对 curl 做 `stdout --progress-bar` 解析或
+  改用 fetch+流式写入，可作为下一轮增强。
+- 切换到 Pro 且下载完成后，首次 `runMainlineTurn` 仍是冷启动（~10-20s）。
+  后续可考虑 idle 预热。

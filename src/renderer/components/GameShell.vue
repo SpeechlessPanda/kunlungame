@@ -42,6 +42,11 @@ interface Props {
   isFallbackModel?: boolean;
   preferredModelMode: "default" | "compatibility" | "pro";
   selectedProfileId: string | null;
+  profileAvailability?: Record<
+    string,
+    "ready" | "partial" | "missing" | "unknown"
+  >;
+  downloadStatus?: import("./SettingsPanel.vue").ProfileDownloadStatus | null;
 }
 
 interface Emits {
@@ -54,6 +59,7 @@ interface Emits {
   (event: "set-volume", value: number): void;
   (event: "bgm-source-resolved", available: boolean): void;
   (event: "set-model-mode", mode: "default" | "compatibility" | "pro"): void;
+  (event: "download-profile", profileId: string): void;
 }
 
 const props = defineProps<Props>();
@@ -162,10 +168,13 @@ useKeyboardControls(
       :bgm="bgm"
       :preferred-model-mode="preferredModelMode"
       :selected-profile-id="selectedProfileId"
+      :profile-availability="profileAvailability ?? {}"
+      :download-status="downloadStatus ?? null"
       @close="emit('close-settings')"
       @toggle-bgm="emit('toggle-bgm')"
       @set-volume="(value) => emit('set-volume', value)"
       @set-model-mode="(mode) => emit('set-model-mode', mode)"
+      @download-profile="(profileId) => emit('download-profile', profileId)"
     />
   </main>
 </template>

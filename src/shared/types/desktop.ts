@@ -72,7 +72,33 @@ export interface DesktopBridge {
   runMainlineTurn(request: DesktopMainlineTurnRequest): Promise<DesktopMainlineTurnResult>
   loadRuntimeState(): Promise<DesktopRuntimeStateSnapshot>
   saveRuntimeState(state: DesktopSerializedRuntimeState): Promise<void>
+  getProfileAvailability(profileId: string): Promise<DesktopProfileAvailability>
+  downloadProfile(profileId: string): Promise<DesktopDownloadProfileResult>
+  onProfileDownloadProgress(handler: (event: DesktopProfileDownloadProgressEvent) => void): () => void
 }
+
+export interface DesktopProfileAvailability {
+  profileId: string
+  status: 'ready' | 'partial' | 'missing'
+  expectedFiles: string[]
+  presentFiles: string[]
+  missingFiles: string[]
+  completionRatio: number
+  manifestDownloadedAt: string | null
+}
+
+export interface DesktopProfileDownloadProgressEvent {
+  profileId: string
+  fileName: string | null
+  phase: 'starting' | 'fetching-metadata' | 'downloading' | 'verifying' | 'file-done' | 'manifest-updated' | 'completed' | 'failed'
+  fileIndex: number
+  totalFiles: number
+  message: string
+}
+
+export type DesktopDownloadProfileResult =
+  | { ok: true; profileId: string }
+  | { ok: false; profileId: string; reason: 'unknown-profile' | 'download-failed' | 'already-running'; message: string }
 
 export interface DesktopRuntimeStateSnapshot {
   state: DesktopSerializedRuntimeState
