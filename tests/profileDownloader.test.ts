@@ -62,6 +62,31 @@ describe('downloadProfileWeights', () => {
     expect(written.records[0]!.files).toEqual(['a.gguf', 'b.gguf'])
   })
 
+  it('forwards byte-level progress reported by downloadFile', async () => {
+    const events: ProfileDownloadProgressEvent[] = []
+    const downloadFile = vi.fn(async (_url: string, _path: string, onByteProgress?: (b: number, t: number) => void) => {
+      onByteProgress?.(0, 1000)
+      onByteProgress?.(500, 1000)
+      onByteProgress?.(1000, 1000)
+    })
+    const profile = buildProfile({ files: ['a.gguf'] })
+    const result = await downloadProfileWeights({
+      profile,
+      storage,
+      deps: buildDeps({ downloadFile }),
+      onProgress: (event) => events.push(event)
+    })
+    expect(result.ok).toBe(true)
+    const byteEvents = events.filter(
+      (event) => event.phase === 'downloading' && event.bytesDownloaded != null
+    )
+    expect(byteEvents.length).toBeGreaterThanOrEqual(2)
+    const last = byteEvents[byteEvents.length - 1]!
+    expect(last.bytesDownloaded).toBe(1000)
+    expect(last.totalBytes).toBe(1000)
+    expect(last.message).toMatch(/\//)
+  })
+
   it('fails fast when every mirror errors', async () => {
     const events: ProfileDownloadProgressEvent[] = []
     const downloadFile = vi.fn(async () => {

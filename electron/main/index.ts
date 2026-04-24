@@ -243,7 +243,9 @@ const toDesktopProgressEvent = (event: ProfileDownloadProgressEvent): DesktopPro
   phase: event.phase,
   fileIndex: event.fileIndex,
   totalFiles: event.totalFiles,
-  message: event.message
+  message: event.message,
+  bytesDownloaded: event.bytesDownloaded,
+  totalBytes: event.totalBytes
 })
 
 export interface DesktopDownloadProfileDependencies {

@@ -5,6 +5,19 @@ import type { ModelProfile } from './modelProfiles.js'
 import { readModelManifest, writeModelManifest, type ModelManifest } from './modelManifest.js'
 import type { ModelStoragePaths } from './modelPaths.js'
 
+const formatBytes = (bytes: number): string => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let value = bytes
+  let unitIndex = 0
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024
+    unitIndex += 1
+  }
+  const fixed = value >= 100 ? value.toFixed(0) : value.toFixed(1)
+  return `${fixed} ${units[unitIndex]}`
+}
+
 export type ProfileDownloadPhase =
   | 'starting'
   | 'fetching-metadata'
@@ -22,11 +35,17 @@ export interface ProfileDownloadProgressEvent {
   fileIndex: number
   totalFiles: number
   message: string
+  /** 当 phase === 'downloading' 时由 downloadFile 反馈的已下载字节数；其他阶段通常缺省。 */
+  bytesDownloaded?: number
+  /** Content-Length + 已存在的断点长度。0 表示服务器未返回大小，UI 应回退到"下载中…"。 */
+  totalBytes?: number
 }
+
+export type DownloadFileByteProgress = (bytesDownloaded: number, totalBytes: number) => void
 
 export interface ProfileDownloaderDependencies {
   fetchArtifactMetadata: (url: string) => Promise<ModelArtifactMetadata | null>
-  downloadFile: (url: string, filePath: string) => Promise<void>
+  downloadFile: (url: string, filePath: string, onByteProgress?: DownloadFileByteProgress) => Promise<void>
   verifyFile: (filePath: string, metadata: ModelArtifactMetadata) => Promise<{ ok: boolean; sizeMatches: boolean; hashMatches: boolean | null }>
   removeFile: (filePath: string) => Promise<void>
   ensureDirectory: (dirPath: string) => Promise<void>
@@ -72,6 +91,20 @@ export const downloadProfileWeights = async (
   const emitPhase = (phase: ProfileDownloadPhase, fileName: string | null, fileIndex: number, message: string): void => {
     emit({ profileId: profile.id, fileName, phase, fileIndex, totalFiles, message })
   }
+  const emitBytes = (fileName: string, fileIndex: number, bytesDownloaded: number, totalBytes: number): void => {
+    emit({
+      profileId: profile.id,
+      fileName,
+      phase: 'downloading',
+      fileIndex,
+      totalFiles,
+      message: totalBytes > 0
+        ? `${formatBytes(bytesDownloaded)} / ${formatBytes(totalBytes)}`
+        : `${formatBytes(bytesDownloaded)} …`,
+      bytesDownloaded,
+      totalBytes
+    })
+  }
 
   emitPhase('starting', null, 0, `准备下载 ${profile.label} (${totalFiles} 个文件)`)
 
@@ -105,7 +138,9 @@ export const downloadProfileWeights = async (
 
       try {
         emitPhase('downloading', fileName, fileIndex, `下载 ${fileName} 中…`)
-        await deps.downloadFile(source, filePath)
+        await deps.downloadFile(source, filePath, (bytes, total) => {
+          emitBytes(fileName, fileIndex, bytes, total)
+        })
 
         if (metadata != null) {
           emitPhase('verifying', fileName, fileIndex, `校验 ${fileName}`)
@@ -168,27 +203,117 @@ export const downloadProfileWeights = async (
 
 /**
  * 默认实现，由 Electron main / CLI 脚本包起来注入。
+ *
+ * 下载采用 `fetch + ReadableStream` 方案，天然拿到 Content-Length 与逐 chunk 字节计数，
+ * 方便上层计算百分比；断点续传通过 `Range` 头 + 文件 append flag 处理。重试最多 3 次，
+ * 每次失败后根据本地已落盘字节数重算 Range。
  */
 export const buildDefaultProfileDownloaderDependencies = async (): Promise<ProfileDownloaderDependencies> => {
-  const { mkdir, rm } = await import('node:fs/promises')
-  const { spawn } = await import('node:child_process')
+  const { mkdir, rm, stat } = await import('node:fs/promises')
+  const { createWriteStream } = await import('node:fs')
 
-  const runCurl = async (args: string[]): Promise<void> => {
-    await new Promise<void>((resolve, reject) => {
-      const child = spawn('curl.exe', args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true })
-      let stderr = ''
-      child.stderr.on('data', (chunk) => {
-        stderr += chunk.toString()
-      })
-      child.on('error', (error) => reject(error))
-      child.on('close', (code) => {
-        if (code === 0) {
-          resolve()
-          return
+  const streamDownload = async (
+    url: string,
+    filePath: string,
+    onByteProgress?: DownloadFileByteProgress
+  ): Promise<void> => {
+    const maxAttempts = 3
+    let lastError: unknown = null
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      let existingBytes = 0
+      try {
+        const stats = await stat(filePath)
+        existingBytes = stats.size
+      } catch {
+        existingBytes = 0
+      }
+
+      const headers: Record<string, string> = {}
+      if (existingBytes > 0) {
+        headers.Range = `bytes=${existingBytes}-`
+      }
+
+      let response: Response
+      try {
+        response = await fetch(url, { redirect: 'follow', headers })
+      } catch (error) {
+        lastError = error
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)))
+          continue
         }
-        reject(new Error(stderr.trim() || `curl exited with code ${code ?? 'unknown'}`))
-      })
-    })
+        throw error instanceof Error ? error : new Error(String(error))
+      }
+
+      // 416 = Range Not Satisfiable —— 本地文件已经等于或超过服务器长度，视作完成。
+      if (response.status === 416) {
+        if (onByteProgress != null) {
+          onByteProgress(existingBytes, existingBytes)
+        }
+        return
+      }
+      if (!response.ok && response.status !== 206) {
+        lastError = new Error(`HTTP ${response.status} for ${url}`)
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)))
+          continue
+        }
+        throw lastError
+      }
+
+      const contentLengthHeader = Number(response.headers.get('content-length') ?? '0')
+      const append = response.status === 206
+      const total = contentLengthHeader > 0 ? contentLengthHeader + (append ? existingBytes : 0) : 0
+      let received = append ? existingBytes : 0
+
+      const writer = createWriteStream(filePath, { flags: append ? 'a' : 'w' })
+      const body = response.body
+      if (body == null) {
+        writer.destroy()
+        throw new Error(`fetch response body was empty for ${url}`)
+      }
+
+      const reader = body.getReader()
+      let lastEmitAt = 0
+      try {
+        if (onByteProgress != null) {
+          onByteProgress(received, total)
+        }
+        while (true) {
+          const { value, done } = await reader.read()
+          if (done) break
+          if (value != null) {
+            const chunk = Buffer.from(value)
+            if (!writer.write(chunk)) {
+              await new Promise<void>((resolve) => writer.once('drain', () => resolve()))
+            }
+            received += chunk.byteLength
+            const nowMs = Date.now()
+            if (onByteProgress != null && nowMs - lastEmitAt >= 250) {
+              lastEmitAt = nowMs
+              onByteProgress(received, total)
+            }
+          }
+        }
+        await new Promise<void>((resolve, reject) => {
+          writer.end(() => resolve())
+          writer.once('error', (err) => reject(err))
+        })
+        if (onByteProgress != null) {
+          onByteProgress(received, total)
+        }
+        return
+      } catch (error) {
+        writer.destroy()
+        lastError = error
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)))
+          continue
+        }
+        throw error instanceof Error ? error : new Error(String(error))
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error(String(lastError ?? 'download failed'))
   }
 
   return {
@@ -203,23 +328,8 @@ export const buildDefaultProfileDownloaderDependencies = async (): Promise<Profi
       })
       return parseModelArtifactMetadata(headers)
     },
-    downloadFile: async (url, filePath) => {
-      await runCurl([
-        '--silent',
-        '--show-error',
-        '--fail',
-        '--location',
-        '--retry',
-        '5',
-        '--retry-delay',
-        '5',
-        '--retry-all-errors',
-        '--continue-at',
-        '-',
-        '--output',
-        filePath,
-        url
-      ])
+    downloadFile: async (url, filePath, onByteProgress) => {
+      await streamDownload(url, filePath, onByteProgress)
     },
     verifyFile: verifyModelArtifactFile,
     removeFile: async (filePath) => {

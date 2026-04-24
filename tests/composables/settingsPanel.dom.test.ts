@@ -203,4 +203,28 @@ describe('SettingsPanel · model profile picker', () => {
     )
     expect(proDownload).toBeNull()
   })
+
+  it('renders byte-level percent when downloadStatus carries bytesDownloaded/totalBytes', () => {
+    mounted = mountSettings('pro', getDefaultModelProfile().id, {
+      profileAvailability: {
+        [getProModelProfile().id]: 'missing'
+      },
+      downloadStatus: {
+        profileId: getProModelProfile().id,
+        phase: 'downloading',
+        fileIndex: 1,
+        totalFiles: 2,
+        message: '123.0 MB / 1000.0 MB',
+        bytesDownloaded: 123 * 1024 * 1024,
+        totalBytes: 1000 * 1024 * 1024
+      }
+    })
+
+    const bytesRow = mounted.container.querySelector(
+      '[data-testid="settings-model-progress-bytes-pro"]'
+    )
+    expect(bytesRow).not.toBeNull()
+    expect(bytesRow?.textContent ?? '').toContain('12%')
+    expect(bytesRow?.textContent ?? '').toContain('MB')
+  })
 })

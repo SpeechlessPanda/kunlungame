@@ -371,13 +371,14 @@ UI，交给用户在游戏内自主选择。
 - `scripts/download-models.ts` 尚未迁移到 `profileDownloader` 模块，
   仍保有自己的 `downloadWithFallbacks` 实现。两者功能一致但重复，后续可
   做一次去重重构。
-- 当前进度是"阶段级"（phase + fileIndex/totalFiles + 文本），没有 byte-
-  level 百分比。要接百分比需要对 curl 做 `stdout --progress-bar` 解析或
-  改用 fetch+流式写入，可作为下一轮增强。
+- ~~当前进度是"阶段级"（phase + fileIndex/totalFiles + 文本），没有 byte-
+  level 百分比。~~ **已在 §10.7 接入：**`downloadFile` 改走 `fetch + ReadableStream`，
+  Content-Length 与逐 chunk 累计通过 `onByteProgress` 回传，上层以 250ms
+  节流转成 `ProfileDownloadProgressEvent.bytesDownloaded / totalBytes`。
 - 切换到 Pro 且下载完成后，首次 `runMainlineTurn` 仍是冷启动（~10-20s）。
   后续可考虑 idle 预热。
 
-### 10.6 端到端 QA（本次新增）
+### 10.6 端到端 QA
 
 - 在 commit `483be96` 上跑 `pnpm playthrough -- --pattern=alt --maxNodes=8`，
   29 轮跨 8 节点全部通过，`isCompleted=true`，最终 `attitudeScore=1`，
@@ -385,3 +386,19 @@ UI，交给用户在游戏内自主选择。
   [docs/audits/2026-04-24-playthrough-8node.md](../../audits/2026-04-24-playthrough-8node.md)。
 - 结论：权重下载 CTA 合入后无主线回归，可作为后续增强（byte-level
   百分比 / 脚本去重 / idle 预热）的基线。
+
+### 10.7 byte-level 下载百分比（本次新增）
+
+- `ProfileDownloadProgressEvent` 新增可选 `bytesDownloaded` / `totalBytes`
+  字段；`downloadFile(url, path, onByteProgress?)` 通过回调每 ≥ 250 ms
+  推送一次已接收字节 + Content-Length 总量。
+- 默认实现从 `curl.exe` 子进程切换为原生 `fetch + response.body.getReader()`，
+  边读边写文件；断点续传由 `Range: bytes=<existing>-` 头 + 文件 append
+  flag 组合处理；`416 Range Not Satisfiable` 视作已完成。重试上限 3 次，
+  指数退避。
+- `DesktopProfileDownloadProgressEvent` 增补同名字段，主进程 mapper
+  透传。`SettingsPanel` 新增 `settings-model-progress-bytes-{mode}` 行，
+  显示 `{下载}MB / {总}MB · {N}%`，`totalBytes=0` 时回退为 `{下载}MB 已下载`。
+- 测试补充：`profileDownloader.test.ts` 追加"byte progress 回传"用例；
+  `settingsPanel.dom.test.ts` 追加"bytes 行 + 百分比渲染"用例。全量
+  `pnpm test --run` → 35 files / 200 tests 绿。

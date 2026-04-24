@@ -30,6 +30,8 @@ export interface ProfileDownloadStatus {
   fileIndex: number;
   totalFiles: number;
   message: string;
+  bytesDownloaded?: number;
+  totalBytes?: number;
 }
 
 interface Props {
@@ -132,6 +134,27 @@ const onDownload = (event: Event, profileId: string): void => {
   event.stopPropagation();
   emit("download-profile", profileId);
 };
+
+const formatMegabytes = (bytes: number): string => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+  const mb = bytes / (1024 * 1024);
+  return `${mb >= 100 ? mb.toFixed(0) : mb.toFixed(1)} MB`;
+};
+
+const downloadByteSummary = computed<string | null>(() => {
+  const status = props.downloadStatus;
+  if (status == null || status.phase !== "downloading") return null;
+  const bytes = status.bytesDownloaded ?? 0;
+  const total = status.totalBytes ?? 0;
+  if (total > 0) {
+    const percent = Math.min(100, Math.max(0, Math.round((bytes / total) * 100)));
+    return `${formatMegabytes(bytes)} / ${formatMegabytes(total)} · ${percent}%`;
+  }
+  if (bytes > 0) {
+    return `${formatMegabytes(bytes)} 已下载`;
+  }
+  return null;
+});
 </script>
 
 <template>
@@ -276,6 +299,13 @@ const onDownload = (event: Event, profileId: string): void => {
                     : ""
                 }}
                 {{ downloadStatus?.message ?? "正在下载…" }}
+              </span>
+              <span
+                v-if="downloadByteSummary"
+                class="settings-panel__model-progress-bytes"
+                :data-testid="`settings-model-progress-bytes-${option.mode}`"
+              >
+                {{ downloadByteSummary }}
               </span>
             </div>
           </button>

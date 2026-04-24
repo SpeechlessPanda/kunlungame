@@ -94,6 +94,8 @@ export interface DesktopProfileDownloadProgressEvent {
   fileIndex: number
   totalFiles: number
   message: string
+  bytesDownloaded?: number
+  totalBytes?: number
 }
 
 export type DesktopDownloadProfileResult =
