@@ -1,6 +1,6 @@
 # Kunlungame
 
-Kunlungame 是一款面向 Windows 的本地桌面叙事游戏。题材围绕昆仑神话与中华文明长脉络，采用 8 节点主线，驱动层使用本地 GGUF 模型（默认 Qwen2.5-1.5B Instant Mode，可选 3B Quality / 7B Pro），在离线状态下完成一轮轮沉浸式、可追问的对话。
+Kunlungame 是一款面向 Windows 的本地桌面叙事游戏。题材围绕昆仑神话与中华文明长脉络，采用 8 节点主线，驱动层使用本地 GGUF 模型（默认 Qwen2.5-3B Quality Mode，可选 1.5B Lite 纯 CPU 兜底 / 7B Pro 独显档），在离线状态下完成一轮轮沉浸式、可追问的对话。
 
 ## 当前可运行能力
 
@@ -24,7 +24,7 @@ Kunlungame 是一款面向 Windows 的本地桌面叙事游戏。题材围绕昆
 6. `pnpm test:e2e`            — Playwright 渲染层黑盒烟雾
 7. `pnpm coverage`            — 覆盖率报告
 8. `pnpm knowledge:compile`   — 把 `md/knowledge/**/*.md` 编译为 `src/content/generated/knowledgeEntries.json`
-9. `pnpm models:download`     — 获取 Qwen2.5-1.5B (默认) + 3B (可选质量档) GGUF 到 `runtime-cache/models/**`；7B Pro 档需手动下载
+9. `pnpm models:download`     — 获取 Qwen2.5-3B (默认质量档) + 1.5B (可选纯 CPU Lite 兜底) GGUF 到 `runtime-cache/models/**`；7B Pro 档需手动下载
 10. `pnpm dialogue:smoke`     — 本地跑首节点端到端烟雾，验证 GGUF 路径 + 编排 + 流式
 
 ## 预览最小样品
@@ -57,7 +57,7 @@ pnpm dev
 
 ## 仍需交付的素材
 
-1. 真正的 GGUF 权重（默认 `qwen2.5-1.5b-instruct-q4_k_m.gguf` ~1.12GB，可选 3B Quality ~2GB，可选 7B Pro ~4.5GB 需独显）。
+1. 真正的 GGUF 权重（默认 `qwen2.5-3b-instruct-q4_k_m.gguf` ~2GB，可选 1.5B Lite ~1.12GB 纯 CPU 兜底，可选 7B Pro ~4.5GB 需独显）。
 2. 8 节点的正式背景（神话节点偏虚构意象，历史节点偏实景照片，过渡节点走组合策略）。
 3. 人物立绘 / 剪影、转场 BGM 与 SFX。
 4. 当素材齐备后，按 `docs/superpowers/specs/2026-04-23-part-07-visual-presentation-and-asset-slot-spec.md` 的槽位落位即可。

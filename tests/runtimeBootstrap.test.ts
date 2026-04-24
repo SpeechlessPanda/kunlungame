@@ -11,11 +11,11 @@ describe('buildRuntimeBootstrapPlan', () => {
       appDataDir: 'C:/Users/test/AppData/Roaming/Kunlungame'
     })
 
-    expect(result.selectedProfile.id).toBe('qwen2.5-1.5b-instruct-q4km')
+    expect(result.selectedProfile.id).toBe('qwen2.5-3b-instruct-q4km')
     expect(result.storage.modelsDir).toBe('C:/Users/test/AppData/Roaming/Kunlungame/models')
   })
 
-  it('falls back to compatibility mode when user requests it explicitly', () => {
+  it('falls back to lite mode (1.5B) when user requests compatibility explicitly', () => {
     const result = buildRuntimeBootstrapPlan({
       preferredMode: 'compatibility',
       availableGpuVramGb: 4,
@@ -24,7 +24,7 @@ describe('buildRuntimeBootstrapPlan', () => {
       appDataDir: 'C:/Users/test/AppData/Roaming/Kunlungame'
     })
 
-    expect(result.selectedProfile.id).toBe('qwen2.5-3b-instruct-q4km')
+    expect(result.selectedProfile.id).toBe('qwen2.5-1.5b-instruct-q4km')
     expect(result.storage.modelsDir).toBe('D:/project/kunlungame/runtime-cache/models')
   })
 
@@ -37,6 +37,6 @@ describe('buildRuntimeBootstrapPlan', () => {
       appDataDir: 'C:/Users/test/AppData/Roaming/Kunlungame'
     })
 
-    expect(result.selectedProfile.id).toBe('qwen2.5-1.5b-instruct-q4km')
+    expect(result.selectedProfile.id).toBe('qwen2.5-3b-instruct-q4km')
   })
 })

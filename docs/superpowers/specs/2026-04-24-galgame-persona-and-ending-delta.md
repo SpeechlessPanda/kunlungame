@@ -202,3 +202,43 @@ tag、跨轮复读、短语保留、空行折叠 6 条。与主要 runner 组合
      `vramPadding` 上限；
   4. 把 7B Pro 档做成 UI 里的"可选升级"入口（下载触发 + 占位 placeholder
      告知体积 / 硬件要求）。
+
+### 8.8 Round 3 修正：1.5B 实测质量不足，回退 3B 默认 + 1.5B 降级 Lite
+
+1.5B 下载成功后做了一次 `pnpm playthrough --pattern=alt --maxNodes=1
+--turnsPerNode=3`（日志：`test-results/playthroughs/playthrough-default-alt-2026-04-24T14-30-07-142Z.md`）。
+观察到的质量退化：
+
+- **延迟达标**：3 轮 elapsed 分别 9585 / 9861 / 5504 ms，确实接近"即时"。
+- **复述被禁用开场**：轮 2 正文出现「记得上次我跟你说过为什么我们从这里
+  开始回望自己吗」—— 这是在 persona system prompt 里被明确列为 `forbiddenOpeners`
+  的句式。3B 档位在相同 prompt 下从不破防。
+- **scrubbed 口癖漏出**：轮 2 出现「对嘛」等被 `sanitizeMainlineReply`
+  在 7B/3B 档位已压下去的口癖。
+- **截断**：轮 3 只有 88 字，低于 mustIncludeFacts 需要的覆盖密度，
+  strictCoverage 无法校验完整。
+
+根因：Qwen2.5-1.5B 对 fingerprint 负样本清单 + `forbiddenOpeners` +
+`mustIncludeFacts` 的多重约束指令遵循显著弱于 3B，小模型上限就在这里，
+单靠 prompt / sanitizer 不能补齐。
+
+**决策（2026-04-24）**：
+
+- 把 **3B Quality Mode 恢复为默认档位**（`qwen2.5-3b-instruct-q4km`）。
+  GPU 档 ~6-15 秒/轮，纯 CPU 30-60 秒/轮，相对"即时"做了取舍但质量稳定
+  （同一 playthrough pattern=alt 下轮 1/2/3 chars 392/309/44，典故引用
+  正确，无复述 forbiddenOpeners）。
+- 把 **1.5B 降级为 Lite Mode 可选档位**，保留在 `getAllModelProfiles()`
+  里作为真·纯 CPU 老旧机器的兜底（`preferredMode: 'compatibility'` 时选用），
+  文档上标注"可能复述禁用开场 / mustIncludeFacts 不全"，用户自觉取舍。
+- 7B Pro 档维持通过 `getOptionalModelProfiles()` 暴露、默认不下载。
+- strictCoverage 语义保持"非 Pro 一律 strict"，1.5B / 3B 都走 strict 路径。
+
+配套同步：
+
+- `src/modeling/modelProfiles.ts` 三档 default/fallback/pro 重排并更新注释。
+- `tests/modelProfiles.test.ts`、`tests/runtimeBootstrap.test.ts`、
+  `tests/modelSetupPlanner.test.ts`、`tests/dialogueSmokeTest.test.ts`
+  断言同步到"3B 默认 / 1.5B fallback / 7B 可选"。
+- 全量 `pnpm test -- --run`：33 test files / 184 tests 绿。
+- 3B 默认档 playthrough 复跑通过（`test-results/playthroughs/playthrough-default-alt-2026-04-24T14-33-17-713Z.md`）。

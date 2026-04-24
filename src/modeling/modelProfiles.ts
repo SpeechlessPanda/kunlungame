@@ -9,32 +9,16 @@ export interface ModelProfile {
 }
 
 /**
- * 默认模型：Qwen2.5-1.5B-Instruct Q4_K_M（~1.12 GB）。
+ * 默认模型：Qwen2.5-3B-Instruct Q4_K_M（~2 GB）。
  * 选择依据：
- * - 纯 CPU 笔记本（i5/i7 级）可以做到 40–80 tok/s，200 字回复 ~3–5 秒，接近"即时对话"。
- * - 同系列 Tokenizer / ChatML 模板与 3B 完全一致，切换时 prompt 不用改。
- * - 中文能力足以覆盖当前剧情（神话 + 早期文明 + 对话追问），配合 sanitizer 与
- *   fingerprint 负样本，风格一致性够用。
- *
- * 如果用户有 >= 6GB VRAM 的独显或不介意等 10–20 秒/轮，可以切到下面的
- * "quality" 档位。3B 仍然比 1.5B 在史实细节上稳一些。
+ * - GPU 加速（RTX 30 系及以上）~8 秒/轮，流畅接近即时；纯 CPU 笔记本 30-60 秒/轮，
+ *   虽不如 1.5B 即时但仍可玩，且指令遵循（禁用首词 / fingerprint / mustIncludeFacts）
+ *   显著比 1.5B 稳，不会每一轮复述前一轮的开场句。
+ * - 实测 1.5B 虽然 CPU 下也能 ~5 秒/轮，但对负样本清单的遵循明显不足，
+ *   会频繁破防写出被禁词或重复前轮结构，质量不达标，因此把它从默认档移到可选档。
+ * - 同系列 ChatML 模板，与 1.5B/7B 共享 prompt 模板。
  */
 const defaultModelProfile: ModelProfile = {
-  id: 'qwen2.5-1.5b-instruct-q4km',
-  label: 'Instant Mode',
-  repository: 'Qwen/Qwen2.5-1.5B-Instruct-GGUF',
-  quantization: 'Q4_K_M',
-  files: ['qwen2.5-1.5b-instruct-q4_k_m.gguf'],
-  recommendedGpuVramGb: 0,
-  contextWindow: 32768
-}
-
-/**
- * 可选质量档：Qwen2.5-3B-Instruct Q4_K_M（~2 GB）。
- * GPU 加速（RTX 30 系及以上）~8 秒/轮；纯 CPU ~30–60 秒/轮，可接受但不"即时"。
- * 史实细节比 1.5B 更稳。
- */
-const fallbackModelProfile: ModelProfile = {
   id: 'qwen2.5-3b-instruct-q4km',
   label: 'Quality Mode',
   repository: 'Qwen/Qwen2.5-3B-Instruct-GGUF',
@@ -45,8 +29,25 @@ const fallbackModelProfile: ModelProfile = {
 }
 
 /**
+ * 兜底档：Qwen2.5-1.5B-Instruct Q4_K_M（~1.12 GB）。
+ * 真·纯 CPU 老旧机器才切到这里（~3-5 秒/轮），但需要接受：
+ * - 指令遵循较弱，偶尔会复述前轮的开场句或破掉被禁词；
+ * - 叙事密度显著更低，mustIncludeFacts 覆盖不齐；
+ * - 已启用最严格的 strictCoverage + repeatPenalty，但小模型上限就在这里。
+ */
+const fallbackModelProfile: ModelProfile = {
+  id: 'qwen2.5-1.5b-instruct-q4km',
+  label: 'Lite Mode',
+  repository: 'Qwen/Qwen2.5-1.5B-Instruct-GGUF',
+  quantization: 'Q4_K_M',
+  files: ['qwen2.5-1.5b-instruct-q4_k_m.gguf'],
+  recommendedGpuVramGb: 0,
+  contextWindow: 32768
+}
+
+/**
  * 可选 Pro 档：Qwen2.5-7B-Instruct Q4_K_M（分片，总 ~4.5 GB）。
- * 需要 >= 6GB VRAM GPU（Vulkan / CUDA）才能跑出 ~15–20 秒/轮的体验，纯 CPU
+ * 需要 >= 6GB VRAM GPU（Vulkan / CUDA）才能跑出 ~15-20 秒/轮的体验，纯 CPU
  * 需要 5+ 分钟/轮，不建议。开发机上可以用来采样高质量基准。
  */
 const proModelProfile: ModelProfile = {

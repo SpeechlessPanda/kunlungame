@@ -42,7 +42,7 @@ describe('runDialogueSmokeTest', () => {
             }
         )
 
-        expect(result.selectedProfileId).toBe('qwen2.5-1.5b-instruct-q4km')
+        expect(result.selectedProfileId).toBe('qwen2.5-3b-instruct-q4km')
         expect(result.currentNodeId).toBe('kunlun-threshold')
         expect(result.chunkCount).toBe(2)
         expect(result.combinedText).toBe('第一段。第二段。')

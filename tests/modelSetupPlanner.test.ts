@@ -16,8 +16,8 @@ describe('buildModelSetupPlan', () => {
         readManifest: async () => ({
           records: [
             {
-              profileId: 'qwen2.5-1.5b-instruct-q4km',
-              files: ['qwen2.5-1.5b-instruct-q4_k_m.gguf'],
+              profileId: 'qwen2.5-3b-instruct-q4km',
+              files: ['qwen2.5-3b-instruct-q4_k_m.gguf'],
               downloadedAt: '2026-04-23T12:00:00.000Z'
             }
           ]
@@ -28,7 +28,7 @@ describe('buildModelSetupPlan', () => {
 
     expect(result.shellAction).toBe('launch-ready')
     expect(result.autoDownload).toBe(false)
-    expect(result.selectedProfile.id).toBe('qwen2.5-1.5b-instruct-q4km')
+    expect(result.selectedProfile.id).toBe('qwen2.5-3b-instruct-q4km')
     expect(result.uiContract.channels.startDownload).toBe('model-download:start')
   })
 
@@ -74,7 +74,7 @@ describe('buildModelSetupPlan', () => {
 
     expect(result.shellAction).toBe('settings-download-required')
     expect(result.autoDownload).toBe(false)
-    expect(result.selectedProfile.id).toBe('qwen2.5-3b-instruct-q4km')
+    expect(result.selectedProfile.id).toBe('qwen2.5-1.5b-instruct-q4km')
   })
 })
 
