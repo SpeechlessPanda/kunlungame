@@ -260,7 +260,9 @@ describe('desktop runtime state save/load roundtrip', () => {
         ...nextState,
         currentNodeId: 'creation-myths',
         turnIndex: 2,
+        turnsInCurrentNode: 2,
         attitudeScore: 2,
+        isCompleted: true,
         readNodeIds: ['kunlun-threshold']
       }
       await saveDesktopRuntimeState(tempDir, advanced)
@@ -269,7 +271,9 @@ describe('desktop runtime state save/load roundtrip', () => {
       expect(reloaded.recoveryAction).toBe('loaded-existing')
       expect(reloaded.state.currentNodeId).toBe('creation-myths')
       expect(reloaded.state.turnIndex).toBe(2)
+      expect(reloaded.state.turnsInCurrentNode).toBe(2)
       expect(reloaded.state.attitudeScore).toBe(2)
+      expect(reloaded.state.isCompleted).toBe(true)
       expect(reloaded.state.readNodeIds).toEqual(['kunlun-threshold'])
     } finally {
       await rm(tempDir, { recursive: true, force: true })
@@ -298,9 +302,11 @@ describe('desktop runtime state save/load roundtrip', () => {
           saveVersion: 99 as unknown as 1,
           currentNodeId: 'x',
           turnIndex: -1,
+          turnsInCurrentNode: 0,
           attitudeScore: 9999,
           historySummary: '',
           readNodeIds: [],
+          isCompleted: false,
           settings: { bgmEnabled: true, preferredModelMode: 'default' }
         })
       ).rejects.toBeTruthy()

@@ -8,6 +8,7 @@ const main = async (): Promise<void> => {
   const outputDir = join(projectRoot, 'src', 'content', 'generated')
   const result = await compileKnowledgeSources({
     knowledgeSourceFile,
+    sourceReferencePath: 'docs/knowledge-base/cultural-knowledge.md',
     storyOutline: mainlineStoryOutline,
     outputDir
   })

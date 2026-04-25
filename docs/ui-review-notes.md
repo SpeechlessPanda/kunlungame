@@ -26,8 +26,8 @@
 - 仍需注意：当 `currentNode.nextNodeId === null` 时，`mainlineTurnRunner` 会传 `isEnding: true`，结局节点会改用 ENDING 池文案；下次审查建议覆盖到 `contemporary-return` 结局态截图。
 
 ## 04-next-turn · 推进到下一轮
-- 节点内多轮（`minTurns` 扩展）后推进时，对话框高度平滑，没有因为"文本瞬间变短"出现塌陷或跳动。
-- 新的 `turnsInCurrentNode` 逻辑在 UI 层不可见，但通过 `storyPromptBuilder` 的 `transitionHint` 被 AI 自然引出，截图里看起来是正常的"她又想起一件事"开场。
+- 当前 `minTurns` 已统一回退到 1；推进到下一节点时，对话框高度平滑，没有因为"文本瞬间变短"出现塌陷或跳动。
+- `turnsInCurrentNode` 合同仍保留给后续节点内多轮策略使用；当前 UI 主要通过 `transitionHint` 在节点切换时自然衔接下一段开场。
 - 建议后续：截图文件名没有体现"第几轮 / 哪个节点"，可把节点 id 和 turnIndex 印在右下角角标，方便审查。
 
 ## 05-settings · 设置面板
@@ -40,10 +40,14 @@
 ## 结论与下一步建议
 
 - 淡色调重构与对话框自适应高度在当前 5 张截图里视觉表现已达预期，没有发现需要立刻回滚的问题。
-- 本轮还对 e2e 套件做了"节点多轮"修正：`rendererShell.spec.ts` 里推进节点的两处断言（`choice-align` 点击 / 快捷键 `1`）已改为循环点击 `kunlun-threshold.minTurns` 次后再断言节点切换，确认 UI 在连续多轮输入下仍然稳定。
+- 后续 e2e 已随 2026-04-25 策略调整为 `minTurns = 1` 的推进断言；若再次启用节点内多轮，应恢复循环点击 `kunlun-threshold.minTurns` 次后再断言节点切换。
 - 勤务注记：`test-results/ui-review/*.png` 本轮并未被 Playwright 重写（文件 mtime 仍停在 2026/4/23）。下次有意要刷新截图时，需要手动删掉这个目录再跑 `pnpm playwright test tests/e2e/uiReviewScreenshots.spec.ts`，或者在 spec 里给 `page.screenshot({ path, ... })` 明确传入覆盖逻辑。
 - 建议接下来的 UI 迭代：
   1. 空态加上"按任意键开始"柔提示；
   2. 补一张窄屏（1366×768）与一张结局（`contemporary-return`）截图；
   3. 截图右下角加调试角标（节点 id + turnsInCurrentNode），让后续 review 能在不跑游戏的情况下定位"这是哪个节点的第几轮"；
   4. 当 UI 检测到当前运行的是 3B fallback 时，在 `BackgroundStage` 或状态栏加一条半透明提示：「轻量模型 · 叙事密度已压缩」，配合新加入的 `strictCoverage` prompt 模式一起告知玩家。
+
+## 2026-04-25 离线字体修正
+
+- 渲染入口已移除 Google Fonts 外链，改用 `tokens.css` 中的本机中文字体栈；这符合离线桌面定位，也避免 Playwright 在网络字体请求上随机卡住 `page.goto`。

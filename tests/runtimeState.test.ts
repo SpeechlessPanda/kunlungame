@@ -80,8 +80,7 @@ describe('applyPlayerChoice', () => {
   })
 
   it('advances through the real mainline without changing the fixed node order', () => {
-    // 2026-04 扩展版：节点允许多轮对话；kunlun-threshold.minTurns = 3，
-    // 因此前两轮挑战只增加节点内轮次，第三轮才真正推进到 creation-myths。
+    // 2026-04-25 回退：kunlun-threshold.minTurns = 1，一次选择即推进到 creation-myths。
     const thresholdMinTurns =
       mainlineStoryOutline.nodes.find((n) => n.id === 'kunlun-threshold')?.minTurns ?? 1
 
@@ -132,7 +131,7 @@ describe('applyPlayerChoice', () => {
 
     expect(atTerminal.isCompleted).toBe(false)
 
-    // 2026-04 扩展版：终节点也要满足 minTurns 才算完结，调用 minTurns 次 align 以推进到结局。
+    // 终节点也要满足 minTurns 才算完结；当前 minTurns = 1，但测试保留动态读取。
     const terminalMinTurns =
       mainlineStoryOutline.nodes.find((n) => n.id === 'contemporary-return')?.minTurns ?? 1
     let result = atTerminal as ReturnType<typeof applyPlayerChoice>

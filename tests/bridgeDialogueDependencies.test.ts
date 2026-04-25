@@ -48,9 +48,14 @@ describe('createBridgeDialogueDependenciesFactory', () => {
             chunkDelayMs: 0,
             sleep: async () => { }
         })
+        const ipcRuntimeState: RuntimeState = {
+            ...runtimeState,
+            turnsInCurrentNode: 2,
+            isCompleted: true
+        }
         const deps = factory({
             node,
-            runtimeState,
+            runtimeState: ipcRuntimeState,
             retrievedEntries: [],
             attitudeChoiceMode: 'align',
             recentTurns: ['前一回合摘要。']
@@ -82,6 +87,8 @@ describe('createBridgeDialogueDependenciesFactory', () => {
         expect(call.nodeId).toBe(node.id)
         expect(call.attitudeChoiceMode).toBe('align')
         expect(call.runtimeState.saveVersion).toBe(SAVE_VERSION)
+        expect(call.runtimeState.turnsInCurrentNode).toBe(2)
+        expect(call.runtimeState.isCompleted).toBe(true)
         expect(call.recentTurns).toEqual(['前一回合摘要。'])
     })
 

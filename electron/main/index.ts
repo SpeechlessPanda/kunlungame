@@ -177,9 +177,11 @@ export const loadDesktopRuntimeState = async (
       saveVersion: result.state.saveVersion,
       currentNodeId: result.state.currentNodeId,
       turnIndex: result.state.turnIndex,
+      turnsInCurrentNode: result.state.turnsInCurrentNode,
       attitudeScore: result.state.attitudeScore,
       historySummary: result.state.historySummary,
       readNodeIds: [...result.state.readNodeIds],
+      isCompleted: result.state.isCompleted,
       settings: {
         bgmEnabled: result.state.settings.bgmEnabled,
         preferredModelMode: result.state.settings.preferredModelMode

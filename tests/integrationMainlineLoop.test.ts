@@ -146,7 +146,7 @@ describe('Part 08 · mainline integration loop', () => {
       }
 
       // Part 04 · 应用玩家选择，推进主线并更新态度值与已读节点。
-      // 2026-04 扩展版：每个节点需要 minTurns 轮对话才会真正推进。
+      // 保留 minTurns 合同校验；当前 canonical 主线统一为 1 轮即推进。
       const before = runtimeState
       for (let i = 0; i < node.minTurns; i += 1) {
         runtimeState = applyPlayerChoice({
@@ -190,7 +190,7 @@ describe('Part 08 · mainline integration loop', () => {
   })
 
   it('rebuilds cultural-memory summary from readNodeIds on reload', async () => {
-    // 2026-04 扩展版：kunlun-threshold 需要 minTurns 轮才会推进，readNodeIds 只在翻页时追加。
+    // readNodeIds 只在满足当前节点 minTurns 并翻页时追加。
     const thresholdMinTurns =
       mainlineStoryOutline.nodes.find((n) => n.id === 'kunlun-threshold')?.minTurns ?? 1
     let stateAfterOneTurn = createDefaultRuntimeState(mainlineStoryOutline)

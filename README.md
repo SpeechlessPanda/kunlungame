@@ -23,7 +23,7 @@ Kunlungame 是一款面向 Windows 的本地桌面叙事游戏。题材围绕昆
 5. `pnpm test`                — Vitest 单元 / 集成测试
 6. `pnpm test:e2e`            — Playwright 渲染层黑盒烟雾
 7. `pnpm coverage`            — 覆盖率报告
-8. `pnpm knowledge:compile`   — 把 `md/knowledge/**/*.md` 编译为 `src/content/generated/knowledgeEntries.json`
+8. `pnpm knowledge:compile`   — 把 `docs/knowledge-base/cultural-knowledge.md` 与 canonical 主线编译为 `src/content/generated/knowledgeEntries.json` / `storyOutline.json`
 9. `pnpm models:download`     — 获取 Qwen2.5-3B (默认质量档) + 1.5B (可选纯 CPU Lite 兜底) GGUF 到 `runtime-cache/models/**`；7B Pro 档需手动下载
 10. `pnpm dialogue:smoke`     — 本地跑首节点端到端烟雾，验证 GGUF 路径 + 编排 + 流式
 11. `pnpm playthrough -- --pattern=alt --maxNodes=8` — 8 节点全链路重放，记录 per-node 滚动、attitudeScore、完整文本

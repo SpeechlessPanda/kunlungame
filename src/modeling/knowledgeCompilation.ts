@@ -18,6 +18,7 @@ export interface CompileKnowledgeDirectoryResult {
 
 export interface CompileKnowledgeSourcesInput {
   knowledgeSourceFile: string
+  sourceReferencePath?: string
   storyOutline: StoryOutline
   outputDir: string
 }
@@ -373,7 +374,10 @@ export const compileKnowledgeSources = async (
 ): Promise<CompileKnowledgeSourcesResult> => {
   const markdown = await readFile(input.knowledgeSourceFile, 'utf8')
   const storyOutline = parseStoryOutline(input.storyOutline)
-  const entries = parseCulturalKnowledgeMarkdown(markdown, input.knowledgeSourceFile)
+  const entries = parseCulturalKnowledgeMarkdown(
+    markdown,
+    input.sourceReferencePath ?? input.knowledgeSourceFile
+  )
 
   await mkdir(input.outputDir, {
     recursive: true

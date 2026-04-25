@@ -26,6 +26,7 @@
 1. `storyOutline.json` 直接来自 Part 02 的 canonical mainline outline。
 2. `knowledgeEntries.json` 目前按章节小节稳定生成，当前编译结果为 43 条知识条目。
 3. 每条 knowledge entry 都必须绑定至少一个 `storyNodeIds`，供运行时建立反剧透边界。
+4. 每条 knowledge entry 的 `source` 使用仓库相对引用（例如 `docs/knowledge-base/cultural-knowledge.md#昆仑山的神圣地位`），避免在 worktree、CI 或不同机器上生成绝对路径差异。
 
 ## 检索排序
 

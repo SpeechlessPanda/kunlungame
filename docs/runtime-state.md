@@ -9,10 +9,13 @@ Part 04 当前已经对齐到真实主线的状态闭环：状态对象可序列
 1. `saveVersion`
 2. `currentNodeId`
 3. `turnIndex`
-4. `attitudeScore`
-5. `historySummary`
-6. `readNodeIds`
-7. `settings.bgmEnabled`
+4. `turnsInCurrentNode`
+5. `attitudeScore`
+6. `historySummary`
+7. `readNodeIds`
+8. `isCompleted`
+9. `settings.bgmEnabled`
+10. `settings.preferredModelMode`
 
 其中 `saveVersion` 当前固定为 `1`，用于后续最小版本演进。
 
@@ -46,6 +49,12 @@ Part 04 当前已经对齐到真实主线的状态闭环：状态对象可序列
 3. 当存档文件损坏或结构非法时，仓储会重建默认状态并返回 `reset-corrupted`。
 4. 当存档结构合法但 `currentNodeId` 已不在当前 story outline 中时，仓储会直接抛出错误，不会静默清档。
 5. 当前仓储只负责单文件读写，不负责多槽位与迁移链。
+
+## 桌面 IPC 序列化规则
+
+1. `DesktopSerializedRuntimeState` 必须和 `RuntimeState` 的持久化字段保持一致。
+2. 渲染层保存状态、主进程加载状态、真实模型回合请求都必须透传 `turnsInCurrentNode` 与 `isCompleted`。
+3. 如果旧存档缺少新字段，`runtimeStateSchema` 仍负责用默认值补齐；补齐后的桌面快照不能再次丢字段。
 
 ## 当前验证范围
 

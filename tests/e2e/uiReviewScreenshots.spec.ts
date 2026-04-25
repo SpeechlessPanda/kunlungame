@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
+import { gotoRenderer } from './renderPage.js'
 
 /**
  * 可爱风 UI 目视审阅：跑一遍核心界面并截图到 test-results/ui-review/。
@@ -16,7 +17,7 @@ test.beforeAll(() => {
 
 test.describe('UI review screenshots · galgame 可爱风', () => {
     test('empty → dialog streaming → choices → ending loop', async ({ page }) => {
-        await page.goto('/src/renderer/index.html')
+        await gotoRenderer(page)
 
         // 1) 空态（首次进入）
         await expect(page.getByTestId('dialog-empty')).toBeVisible()
@@ -59,7 +60,7 @@ test.describe('UI review screenshots · galgame 可爱风', () => {
     })
 
     test('settings panel open state', async ({ page }) => {
-        await page.goto('/src/renderer/index.html')
+        await gotoRenderer(page)
         const settingsBtn = page.getByRole('button', { name: /设置/ }).first()
         if (await settingsBtn.isVisible().catch(() => false)) {
             await settingsBtn.click()

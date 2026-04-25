@@ -469,9 +469,11 @@ const serializeRuntimeState = (state: RuntimeState): DesktopSerializedRuntimeSta
     saveVersion: state.saveVersion,
     currentNodeId: state.currentNodeId,
     turnIndex: state.turnIndex,
+    turnsInCurrentNode: state.turnsInCurrentNode,
     attitudeScore: state.attitudeScore,
     historySummary: state.historySummary,
     readNodeIds: [...state.readNodeIds],
+    isCompleted: state.isCompleted,
     settings: {
         bgmEnabled: state.settings.bgmEnabled,
         preferredModelMode: state.settings.preferredModelMode

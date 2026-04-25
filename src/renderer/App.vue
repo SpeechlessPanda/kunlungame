@@ -177,9 +177,11 @@ const persistState = async (): Promise<void> => {
       saveVersion: runtimeState.value.saveVersion,
       currentNodeId: runtimeState.value.currentNodeId,
       turnIndex: runtimeState.value.turnIndex,
+      turnsInCurrentNode: runtimeState.value.turnsInCurrentNode,
       attitudeScore: runtimeState.value.attitudeScore,
       historySummary: runtimeState.value.historySummary,
       readNodeIds: [...runtimeState.value.readNodeIds],
+      isCompleted: runtimeState.value.isCompleted,
       settings: {
         bgmEnabled: runtimeState.value.settings.bgmEnabled,
         preferredModelMode: runtimeState.value.settings.preferredModelMode,

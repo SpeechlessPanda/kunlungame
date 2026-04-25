@@ -44,7 +44,7 @@
       "characterCueIds": [
         "guide.kunlun"
       ],
-      "minTurns": 3,
+      "minTurns": 1,
       "nextNodeId": "creation-myths"
     },
     {
@@ -92,7 +92,7 @@
       "characterCueIds": [
         "guide.kunlun"
       ],
-      "minTurns": 4,
+      "minTurns": 1,
       "nextNodeId": "civilization-roots"
     },
     {
@@ -140,7 +140,7 @@
       "characterCueIds": [
         "guide.kunlun"
       ],
-      "minTurns": 3,
+      "minTurns": 1,
       "nextNodeId": "order-and-thought"
     },
     {
@@ -187,7 +187,7 @@
       "characterCueIds": [
         "guide.kunlun"
       ],
-      "minTurns": 4,
+      "minTurns": 1,
       "nextNodeId": "empire-and-openness"
     },
     {
@@ -233,7 +233,7 @@
       "characterCueIds": [
         "guide.kunlun"
       ],
-      "minTurns": 4,
+      "minTurns": 1,
       "nextNodeId": "fusion-and-refinement"
     },
     {
@@ -279,7 +279,7 @@
       "characterCueIds": [
         "guide.kunlun"
       ],
-      "minTurns": 4,
+      "minTurns": 1,
       "nextNodeId": "rupture-and-guardianship"
     },
     {
@@ -324,7 +324,7 @@
       "characterCueIds": [
         "guide.kunlun"
       ],
-      "minTurns": 4,
+      "minTurns": 1,
       "nextNodeId": "contemporary-return"
     },
     {
@@ -362,7 +362,7 @@
       "characterCueIds": [
         "guide.kunlun"
       ],
-      "minTurns": 3,
+      "minTurns": 1,
       "nextNodeId": null
     }
   ]

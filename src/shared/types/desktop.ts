@@ -30,9 +30,11 @@ export interface DesktopSerializedRuntimeState {
   saveVersion: number
   currentNodeId: string
   turnIndex: number
+  turnsInCurrentNode: number
   attitudeScore: number
   historySummary: string
   readNodeIds: string[]
+  isCompleted: boolean
   settings: {
     bgmEnabled: boolean
     preferredModelMode: 'default' | 'compatibility' | 'pro'

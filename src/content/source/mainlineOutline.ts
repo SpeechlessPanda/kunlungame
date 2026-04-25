@@ -8,8 +8,7 @@ import type { StoryOutline } from '../../shared/contracts/contentContracts.js'
  *     让 AI 有足够的线索能展开 3~5 轮对话而不是把三句史实在一条长消息里说完就走。
  *  2. 每个节点加入 `transitionHint`：描述"从上一节点过来时，昆仑应该先说什么、看到什么、
  *     怎么把话题软着陆到这个节点"，用于 prompt builder 在节点首轮追加衔接语。
- *  3. 提高 `minTurns`，配合 `runtimeState.applyPlayerChoice` 里新加入的节点轮数累积逻辑，
- *     让同一节点可以反复展开 3~4 轮，而不是一轮就把玩家弹进下一时代。
+ *  3. 保留 `minTurns` 合同字段，但当前统一设为 1，确保 8 次选择可以稳定走完 8 节点主线。
  */
 export const mainlineStoryOutline: StoryOutline = {
   entryNodeId: 'kunlun-threshold',

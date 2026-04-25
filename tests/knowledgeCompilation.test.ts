@@ -114,6 +114,7 @@ describe('compileKnowledgeSources', () => {
 
     const result = await compileKnowledgeSources({
       knowledgeSourceFile,
+      sourceReferencePath: 'docs/knowledge-base/cultural-knowledge.md',
       storyOutline: mainlineStoryOutline,
       outputDir
     })
@@ -123,12 +124,14 @@ describe('compileKnowledgeSources', () => {
     ) as { entryNodeId: string }
     const writtenEntries = JSON.parse(
       await readFile(join(outputDir, 'knowledgeEntries.json'), 'utf8')
-    ) as Array<{ topic: string; storyNodeIds: string[] }>
+    ) as Array<{ topic: string; source: string; storyNodeIds: string[] }>
 
     expect(result.storyOutline.entryNodeId).toBe('kunlun-threshold')
     expect(writtenStoryOutline.entryNodeId).toBe('kunlun-threshold')
     expect(result.entries.some((entry) => entry.topic === 'myth-origin')).toBe(true)
     expect(result.entries.every((entry) => entry.storyNodeIds.length > 0)).toBe(true)
+    expect(writtenEntries.every((entry) => entry.source.startsWith('docs/knowledge-base/cultural-knowledge.md#'))).toBe(true)
+    expect(writtenEntries.every((entry) => !entry.source.includes(tempDir))).toBe(true)
     expect(writtenEntries.some((entry) => entry.topic === 'myth-origin')).toBe(true)
     expect(writtenEntries.every((entry) => entry.topic !== 'dialogue-samples')).toBe(true)
   })

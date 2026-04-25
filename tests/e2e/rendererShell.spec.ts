@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
+import { gotoRenderer } from './renderPage.js'
 
 test.describe('Kunlun Ballad UI shell', () => {
   test('renders the game shell with status bar, dialogue and start entry', async ({ page }) => {
-    await page.goto('/src/renderer/index.html')
+    await gotoRenderer(page)
 
     await expect(page.getByTestId('game-shell')).toBeVisible()
     await expect(page.getByTestId('status-node-title')).toContainText('昆仑初问')
@@ -11,7 +12,7 @@ test.describe('Kunlun Ballad UI shell', () => {
   })
 
   test('streams dialogue text after pressing start and enables choice buttons', async ({ page }) => {
-    await page.goto('/src/renderer/index.html')
+    await gotoRenderer(page)
     await page.getByTestId('start-button').click()
 
     await expect(page.getByTestId('dialog-text')).toBeVisible({ timeout: 5000 })
@@ -22,7 +23,7 @@ test.describe('Kunlun Ballad UI shell', () => {
   })
 
   test('changes node when advancing via the align choice', async ({ page }) => {
-    await page.goto('/src/renderer/index.html')
+    await gotoRenderer(page)
     await page.getByTestId('start-button').click()
     await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
 
@@ -35,7 +36,7 @@ test.describe('Kunlun Ballad UI shell', () => {
   })
 
   test('shows error state with retry entry when injected', async ({ page }) => {
-    await page.goto('/src/renderer/index.html')
+    await gotoRenderer(page)
     await page.getByTestId('start-button').click()
     await page.waitForFunction(
       () =>
@@ -56,7 +57,7 @@ test.describe('Kunlun Ballad UI shell', () => {
   })
 
   test('settings panel exposes a BGM toggle that stays safe without source', async ({ page }) => {
-    await page.goto('/src/renderer/index.html')
+    await gotoRenderer(page)
     await page.getByTestId('settings-open').click()
     const toggle = page.getByTestId('settings-bgm-toggle')
     await expect(toggle).toBeVisible()
@@ -65,7 +66,7 @@ test.describe('Kunlun Ballad UI shell', () => {
   })
 
   test('keyboard shortcut 1 picks the align option when choices are ready', async ({ page }) => {
-    await page.goto('/src/renderer/index.html')
+    await gotoRenderer(page)
     await page.getByTestId('start-button').click()
     await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
 
@@ -75,7 +76,7 @@ test.describe('Kunlun Ballad UI shell', () => {
   })
 
   test('Escape closes the settings panel and restores focus to the entry button', async ({ page }) => {
-    await page.goto('/src/renderer/index.html')
+    await gotoRenderer(page)
     const entry = page.getByTestId('settings-open')
     await entry.focus()
     await entry.press('Enter')
@@ -89,7 +90,7 @@ test.describe('Kunlun Ballad UI shell', () => {
 
   test('mobile viewport keeps dialog and tap-friendly choices (≥56px)', async ({ page }) => {
     await page.setViewportSize({ width: 400, height: 800 })
-    await page.goto('/src/renderer/index.html')
+    await gotoRenderer(page)
     await expect(page.getByTestId('game-shell')).toBeVisible()
     await expect(page.getByTestId('dialog-empty')).toBeVisible()
 
@@ -104,7 +105,7 @@ test.describe('Kunlun Ballad UI shell', () => {
 
   test('visual regression: mobile status bar stacks and choice buttons go single column', async ({ page }) => {
     await page.setViewportSize({ width: 400, height: 800 })
-    await page.goto('/src/renderer/index.html')
+    await gotoRenderer(page)
 
     const statusBar = page.locator('.status-bar')
     const statusFlex = await statusBar.evaluate((el) => getComputedStyle(el).flexDirection)
@@ -121,7 +122,7 @@ test.describe('Kunlun Ballad UI shell', () => {
 
   test('visual regression: desktop layout keeps status bar in row and choices two-column', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 })
-    await page.goto('/src/renderer/index.html')
+    await gotoRenderer(page)
 
     const statusBar = page.locator('.status-bar')
     const statusFlex = await statusBar.evaluate((el) => getComputedStyle(el).flexDirection)
@@ -137,7 +138,7 @@ test.describe('Kunlun Ballad UI shell', () => {
 
   test('reduced-motion: blinking cursor animation is disabled', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await page.goto('/src/renderer/index.html')
+    await gotoRenderer(page)
     await page.getByTestId('start-button').click()
 
     // 等流式开始但还没揭示完
@@ -151,7 +152,7 @@ test.describe('Kunlun Ballad UI shell', () => {
 
   test('performance: shell first paint and first dialogue chunk land under budgets', async ({ page }) => {
     const t0 = Date.now()
-    await page.goto('/src/renderer/index.html')
+    await gotoRenderer(page)
     await page.getByTestId('game-shell').waitFor({ state: 'visible', timeout: 5000 })
     const shellMs = Date.now() - t0
 
