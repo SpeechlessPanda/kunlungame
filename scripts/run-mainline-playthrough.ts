@@ -22,6 +22,7 @@ import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
  *   pnpm playthrough -- --maxNodes=3            # 只跑前 3 个节点
  *   pnpm playthrough -- --turnsPerNode=2        # 每节点跑 2 轮（默认按 minTurns + 1）
  *   KUNLUN_SMOKE_MODE=compatibility pnpm playthrough  # 强制 3B fallback
+ *   KUNLUN_SMOKE_MODE=pro pnpm playthrough            # 强制 7B Pro 档（需手动下 Q3_K_M 权重）
  */
 
 interface CliOptions {
@@ -59,8 +60,10 @@ const main = async (): Promise<void> => {
         : join(projectRoot, 'runtime-cache')
 
     const forcedMode = process.env['KUNLUN_SMOKE_MODE']
-    const preferredMode: 'default' | 'compatibility' =
-        forcedMode === 'compatibility' ? 'compatibility' : 'default'
+    const preferredMode: 'default' | 'compatibility' | 'pro' =
+        forcedMode === 'compatibility' ? 'compatibility'
+        : forcedMode === 'pro' ? 'pro'
+        : 'default'
 
     let state: RuntimeState = createDefaultRuntimeState(mainlineStoryOutline)
     const recentTurns: string[] = []

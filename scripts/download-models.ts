@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process'
 import { basename, join } from 'node:path'
 import { buildDownloadSources } from '../src/modeling/downloadSources.js'
 import { parseModelArtifactMetadata, verifyModelArtifactFile } from '../src/modeling/modelFileIntegrity.js'
-import { getAllModelProfiles } from '../src/modeling/modelProfiles.js'
+import { getAllModelProfiles, getOptionalModelProfiles, type ModelProfile } from '../src/modeling/modelProfiles.js'
 import { resolveModelStoragePaths } from '../src/modeling/modelPaths.js'
 import { readModelManifest, writeModelManifest } from '../src/modeling/modelManifest.js'
 import { runModelSmokeTest } from '../src/modeling/modelSmokeTest.js'
@@ -134,6 +134,7 @@ const smokeTestProfile = async (profileId: string, modelPath: string) => {
 
 const main = async (): Promise<void> => {
   const projectRoot = process.cwd()
+  const includePro = process.argv.slice(2).some((arg) => arg === '--include-pro' || arg === '--pro')
   const logDir = await ensureLogDir(projectRoot, 'model-downloads')
   const runStamp = buildLogStamp()
   const logFile = join(logDir, `model-download-${runStamp}.log`)
@@ -167,7 +168,15 @@ const main = async (): Promise<void> => {
   try {
     await lockHandle.writeFile(`${process.pid}\n`)
 
-    for (const profile of getAllModelProfiles()) {
+    const targetProfiles: ModelProfile[] = [
+      ...getAllModelProfiles(),
+      ...(includePro ? getOptionalModelProfiles() : [])
+    ]
+    if (includePro) {
+      await log('[download] --include-pro flag set: Pro 7B Q3_K_M will be fetched after default+lite.')
+    }
+
+    for (const profile of targetProfiles) {
       const targetDir = join(storage.modelsDir, profile.id)
       await mkdir(targetDir, { recursive: true })
 
