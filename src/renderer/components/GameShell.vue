@@ -19,6 +19,7 @@ import DialogPanel from "./DialogPanel.vue";
 import ChoicePanel from "./ChoicePanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import BgmPlayer from "./BgmPlayer.vue";
+import type { ProfileDownloadStatus } from "./SettingsPanel.types.js";
 
 interface Character {
   id: string;
@@ -46,7 +47,7 @@ interface Props {
     string,
     "ready" | "partial" | "missing" | "unknown"
   >;
-  downloadStatus?: import("./SettingsPanel.vue").ProfileDownloadStatus | null;
+  downloadStatus?: ProfileDownloadStatus | null;
 }
 
 interface Emits {

@@ -16,6 +16,7 @@ import {
   getAllKnownModelProfiles,
 } from "../modeling/modelProfiles.js";
 import type { StoryNode } from "../shared/contracts/contentContracts.js";
+import type { ProfileDownloadStatus } from "./components/SettingsPanel.types.js";
 import type {
   DesktopBridge,
   DesktopProfileDownloadProgressEvent,
@@ -80,9 +81,7 @@ const isFallbackModel = computed(
 const profileAvailability = ref<
   Record<string, "ready" | "partial" | "missing" | "unknown">
 >({});
-const downloadStatus = ref<
-  import("./components/SettingsPanel.vue").ProfileDownloadStatus | null
->(null);
+const downloadStatus = ref<ProfileDownloadStatus | null>(null);
 
 const refreshProfileAvailability = async (
   profileId?: string,

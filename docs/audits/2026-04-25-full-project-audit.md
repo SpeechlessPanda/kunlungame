@@ -25,6 +25,7 @@
    - `src/renderer/App.vue` (~494 LOC)
    - `src/renderer/components/SettingsPanel.vue` (~495 LOC)
    - `src/renderer/adapters/rendererDialogueDependencies.ts` (~542 LOC)
+  - 2026-04-25 进展：`SettingsPanel.vue` 已拆成弹窗壳、音频区、模型区、下载进度区；父文件降至约 158 LOC。
 
 2. 背景表现逻辑分散在 resolver、component、assets manifest，抽象层次可再收敛。
    - 涉及：`src/presentation/assetSlotResolver.ts`、`src/renderer/components/BackgroundStage.vue`、`src/renderer/assets/manifest.ts`
@@ -52,6 +53,7 @@
   - 建议：
     - `SettingsPanel.vue` 拆为：`SettingsAudioSection`、`SettingsModelSection`、`SettingsDownloadProgress`。
     - `App.vue` 拆出 profile download/comms composable。
+  - 进展：`SettingsPanel.vue` 拆分已完成，现有 DOM 测试保持通过。
 
 ### 2.3 测试覆盖与测试策略
 
@@ -99,6 +101,7 @@
 ### P2（建议下一轮）
 
 1. 拆分大组件（App/SettingsPanel）。
+  - 2026-04-25 进展：`SettingsPanel` 已拆分；`App.vue` 仍待抽 profile download / desktop bridge composable。
 2. 增加 UI 视觉质量 e2e 断言（a11y + snapshot）。
 
 ## 4. 双 Subagent 循环结果
