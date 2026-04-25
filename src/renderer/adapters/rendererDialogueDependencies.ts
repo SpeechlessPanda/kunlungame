@@ -6,10 +6,10 @@ import type { KnowledgeEntry, StoryNode } from '../../shared/contracts/contentCo
 import type {
     DesktopBridge,
     DesktopMainlineTurnRequest,
-    DesktopMainlineTurnResult,
-    DesktopSerializedRuntimeState
+    DesktopMainlineTurnResult
 } from '../../shared/types/desktop.js'
 import type { PlayerAttitudeChoice, RuntimeState } from '../../runtime/runtimeState.js'
+import { serializeRuntimeStateForDesktop } from '../../runtime/runtimeStateFacade.js'
 
 /**
  * Renderer 侧 `DialogueDependencies` 适配层。
@@ -465,21 +465,6 @@ export const createDefaultDialogueDependenciesFactory = (
 
 // --- Real bridge-backed dependencies -----------------------------------
 
-const serializeRuntimeState = (state: RuntimeState): DesktopSerializedRuntimeState => ({
-    saveVersion: state.saveVersion,
-    currentNodeId: state.currentNodeId,
-    turnIndex: state.turnIndex,
-    turnsInCurrentNode: state.turnsInCurrentNode,
-    attitudeScore: state.attitudeScore,
-    historySummary: state.historySummary,
-    readNodeIds: [...state.readNodeIds],
-    isCompleted: state.isCompleted,
-    settings: {
-        bgmEnabled: state.settings.bgmEnabled,
-        preferredModelMode: state.settings.preferredModelMode
-    }
-})
-
 export interface BridgeDialogueDependenciesFactoryOptions {
     /** 同 mock 工厂：chunk 之间的补充延迟，默认 60ms，让真实回包也有逐字节奏。 */
     chunkDelayMs?: number
@@ -515,7 +500,7 @@ export const createBridgeDialogueDependenciesFactory = (
                 const request: DesktopMainlineTurnRequest = {
                     nodeId: node.id,
                     attitudeChoiceMode,
-                    runtimeState: serializeRuntimeState(runtimeState),
+                    runtimeState: serializeRuntimeStateForDesktop(runtimeState),
                     recentTurns: [...recentTurns]
                 }
                 pending = bridge.runMainlineTurn(request).then((result) => {

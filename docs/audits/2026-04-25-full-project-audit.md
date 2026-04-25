@@ -13,6 +13,7 @@
 1. 运行时状态持久化职责分散，跨层耦合偏高。
    - 涉及：`src/runtime/runtimeState.ts`、`src/runtime/saveRepository.ts`、`src/renderer/App.vue`、`electron/main/index.ts`
    - 风险：renderer/electron/runtime 对同一状态模型各自变更时易出现不一致。
+  - 2026-04-25 进展：已抽出 `runtimeStateFacade`，renderer 保存、真实回合请求、electron 加载/保存统一复用桌面 IPC 序列化/解析入口。
 
 2. 下载链路在脚本与应用路径存在策略重复。
    - 涉及：`src/modeling/profileDownloader.ts`、`scripts/download-models.ts`
@@ -41,6 +42,7 @@
 
 - **high**：状态持久化与序列化分散在多层。
   - 建议：抽出单一 RuntimeStateFacade（renderer 仅调用 facade，electron 仅实现接口）。
+  - 进展：已完成桌面 IPC 状态形状收敛，后续若引入多槽位/迁移链再扩展 facade。
 - **medium**：下载策略双实现。
   - 建议：`scripts/download-models.ts` 复用 `profileDownloader` 能力，避免重复重试/校验逻辑。
 
@@ -90,6 +92,7 @@
 ### P1（建议下一轮）
 
 1. 抽 RuntimeStateFacade，收敛状态序列化职责。
+  - 2026-04-25 进展：已抽出 `runtimeStateFacade`，新增 `runtimeStateFacade.test.ts` 锁住字段完整性与旧 payload 默认值补齐。
 2. `scripts/download-models.ts` 复用 `profileDownloader`。
   - 2026-04-25 进展：已抽出 `modelDownloadWorkflow`，CLI 脚本复用 `downloadProfileWeights`，仅保留批量 profile、锁文件与 smoke repair 编排。
 

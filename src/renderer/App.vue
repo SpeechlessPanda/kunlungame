@@ -9,6 +9,7 @@ import {
   type PlayerAttitudeChoice,
   type RuntimeState,
 } from "../runtime/runtimeState.js";
+import { serializeRuntimeStateForDesktop } from "../runtime/runtimeStateFacade.js";
 import { mainlineStoryOutline } from "../content/source/mainlineOutline.js";
 import {
   getProModelProfile,
@@ -173,20 +174,7 @@ const persistState = async (): Promise<void> => {
     return;
   }
   try {
-    await bridge.saveRuntimeState({
-      saveVersion: runtimeState.value.saveVersion,
-      currentNodeId: runtimeState.value.currentNodeId,
-      turnIndex: runtimeState.value.turnIndex,
-      turnsInCurrentNode: runtimeState.value.turnsInCurrentNode,
-      attitudeScore: runtimeState.value.attitudeScore,
-      historySummary: runtimeState.value.historySummary,
-      readNodeIds: [...runtimeState.value.readNodeIds],
-      isCompleted: runtimeState.value.isCompleted,
-      settings: {
-        bgmEnabled: runtimeState.value.settings.bgmEnabled,
-        preferredModelMode: runtimeState.value.settings.preferredModelMode,
-      },
-    });
+    await bridge.saveRuntimeState(serializeRuntimeStateForDesktop(runtimeState.value));
   } catch (error) {
     console.error("[app] saveRuntimeState failed", error);
   }

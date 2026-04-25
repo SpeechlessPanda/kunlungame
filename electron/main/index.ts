@@ -22,7 +22,10 @@ import {
   type ProfileDownloadProgressEvent,
   type ProfileDownloaderDependencies
 } from '../../src/modeling/profileDownloader.js'
-import { runtimeStateSchema } from '../../src/runtime/runtimeState.js'
+import {
+  createDesktopRuntimeStateSnapshot,
+  parseDesktopRuntimeState
+} from '../../src/runtime/runtimeStateFacade.js'
 import { loadRuntimeState, saveRuntimeState } from '../../src/runtime/saveRepository.js'
 import { mainlineStoryOutline } from '../../src/content/source/mainlineOutline.js'
 
@@ -121,7 +124,7 @@ export const runDesktopMainlineTurn = async (
   startupInput: DesktopStartupInput,
   request: DesktopMainlineTurnRequest
 ): Promise<DesktopMainlineTurnResult> => {
-  const parsedRuntimeState = runtimeStateSchema.parse(request.runtimeState)
+  const parsedRuntimeState = parseDesktopRuntimeState(request.runtimeState)
   // 用存档里持久化的用户偏好覆写 startupInput.preferredMode，
   // 这样 Settings 面板一旦切换档位，下一轮就会加载对应的模型。
   const effectiveStartupInput: DesktopStartupInput = {
@@ -172,30 +175,14 @@ export const loadDesktopRuntimeState = async (
     saveFilePath: resolveRuntimeSaveFilePath(appDataDir)
   })
 
-  return {
-    state: {
-      saveVersion: result.state.saveVersion,
-      currentNodeId: result.state.currentNodeId,
-      turnIndex: result.state.turnIndex,
-      turnsInCurrentNode: result.state.turnsInCurrentNode,
-      attitudeScore: result.state.attitudeScore,
-      historySummary: result.state.historySummary,
-      readNodeIds: [...result.state.readNodeIds],
-      isCompleted: result.state.isCompleted,
-      settings: {
-        bgmEnabled: result.state.settings.bgmEnabled,
-        preferredModelMode: result.state.settings.preferredModelMode
-      }
-    },
-    recoveryAction: result.recoveryAction
-  }
+  return createDesktopRuntimeStateSnapshot(result.state, result.recoveryAction)
 }
 
 export const saveDesktopRuntimeState = async (
   appDataDir: string,
   state: DesktopSerializedRuntimeState
 ): Promise<void> => {
-  const validated = runtimeStateSchema.parse(state)
+  const validated = parseDesktopRuntimeState(state)
   await saveRuntimeState({
     saveFilePath: resolveRuntimeSaveFilePath(appDataDir),
     state: validated

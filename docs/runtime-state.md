@@ -53,12 +53,13 @@ Part 04 当前已经对齐到真实主线的状态闭环：状态对象可序列
 ## 桌面 IPC 序列化规则
 
 1. `DesktopSerializedRuntimeState` 必须和 `RuntimeState` 的持久化字段保持一致。
-2. 渲染层保存状态、主进程加载状态、真实模型回合请求都必须透传 `turnsInCurrentNode` 与 `isCompleted`。
-3. 如果旧存档缺少新字段，`runtimeStateSchema` 仍负责用默认值补齐；补齐后的桌面快照不能再次丢字段。
+2. `src/runtime/runtimeStateFacade.ts` 是桌面 IPC 状态形状的唯一序列化/解析入口；渲染层保存状态、主进程加载状态、真实模型回合请求都必须通过这个 facade。
+3. 渲染层保存状态、主进程加载状态、真实模型回合请求都必须透传 `turnsInCurrentNode` 与 `isCompleted`。
+4. 如果旧存档缺少新字段，`runtimeStateSchema` 仍负责用默认值补齐；补齐后的桌面快照不能再次丢字段。
 
 ## 当前验证范围
 
 1. `pnpm vitest run tests/runtimeState.test.ts`
-2. `pnpm test -- tests/desktopShell.test.ts tests/knowledgeCompilation.test.ts`
+2. `pnpm test -- tests/runtimeStateFacade.test.ts tests/desktopShell.test.ts tests/knowledgeCompilation.test.ts`
 3. `pnpm test:e2e`
 4. `pnpm build`
