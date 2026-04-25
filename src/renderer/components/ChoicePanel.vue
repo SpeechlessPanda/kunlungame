@@ -136,6 +136,29 @@ const statusMessage = computed(() => {
     box-shadow var(--motion-fast) var(--ease-standard),
     background var(--motion-fast) var(--ease-standard);
   touch-action: manipulation;
+  position: relative;
+  overflow: hidden;
+}
+
+.choice-panel__button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      220px 80px at 16% 0%,
+      rgba(255, 255, 255, 0.35),
+      transparent 70%
+    ),
+    repeating-linear-gradient(
+      -30deg,
+      rgba(255, 255, 255, 0.12) 0,
+      rgba(255, 255, 255, 0.12) 2px,
+      transparent 2px,
+      transparent 10px
+    );
+  opacity: 0.45;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -151,7 +174,7 @@ const statusMessage = computed(() => {
 
 .choice-panel__button:hover,
 .choice-panel__button:focus-visible {
-  transform: translateY(-2px) scale(1.01);
+  transform: translateY(-3px) scale(1.015);
   box-shadow: var(--shadow-pop);
 }
 
@@ -216,6 +239,13 @@ const statusMessage = computed(() => {
   }
 }
 
+@media (max-width: 768px) and (min-width: 641px) {
+  .choice-panel__buttons {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+}
+
 @media (max-width: 640px) {
   .choice-panel {
     min-height: auto;
@@ -225,6 +255,12 @@ const statusMessage = computed(() => {
     min-height: var(--tap-target-choice);
     padding: var(--space-3) var(--space-4);
     gap: var(--space-1);
+  }
+}
+
+@media (max-width: 360px) {
+  .choice-panel__label {
+    font-size: var(--font-size-md);
   }
 }
 </style>

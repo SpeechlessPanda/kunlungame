@@ -7,6 +7,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const sceneKey = computed(() => props.presentation.slot.slotId);
 
 const gradientStyle = computed(() => {
   switch (props.presentation.paletteToken) {
@@ -43,28 +44,33 @@ const modeLabel = computed(() => {
     role="img"
     :aria-label="`背景模式：${modeLabel}。${presentation.placeholderText}`"
   >
-    <img
-      v-if="presentation.hasRealAsset && presentation.slot.assetPath"
-      class="background-stage__image"
-      :src="presentation.slot.assetPath"
-      :alt="presentation.placeholderText"
-    />
-    <div
-      v-else
-      class="background-stage__placeholder"
-      :style="{ background: gradientStyle }"
-    >
-      <div class="background-stage__hint">
-        <p class="background-stage__text" data-testid="background-hint">
-          {{ presentation.placeholderText }}
-        </p>
+    <Transition name="stage-fade" mode="out-in">
+      <div class="background-stage__frame" :key="sceneKey">
+        <img
+          v-if="presentation.hasRealAsset && presentation.slot.assetPath"
+          class="background-stage__image"
+          :src="presentation.slot.assetPath"
+          :alt="presentation.placeholderText"
+        />
+        <div
+          v-else
+          class="background-stage__placeholder"
+          :style="{ background: gradientStyle }"
+        >
+          <div class="background-stage__hint">
+            <p class="background-stage__text" data-testid="background-hint">
+              {{ presentation.placeholderText }}
+            </p>
+          </div>
+        </div>
       </div>
-    </div>
+    </Transition>
     <div class="background-stage__mode-overlay">
       <span class="background-stage__mode" data-testid="background-mode-label">
         {{ modeLabel }}
       </span>
     </div>
+    <div class="background-stage__petal-haze" aria-hidden="true" />
     <div class="background-stage__vignette" aria-hidden="true" />
   </div>
 </template>
@@ -77,6 +83,24 @@ const modeLabel = computed(() => {
   overflow: hidden;
   isolation: isolate;
   transition: opacity var(--motion-slow) var(--ease-standard);
+}
+
+.background-stage__frame {
+  position: absolute;
+  inset: 0;
+}
+
+.stage-fade-enter-active,
+.stage-fade-leave-active {
+  transition:
+    opacity var(--motion-slow) var(--ease-standard),
+    transform var(--motion-slow) var(--ease-standard);
+}
+
+.stage-fade-enter-from,
+.stage-fade-leave-to {
+  opacity: 0;
+  transform: scale(1.02);
 }
 
 /* 可爱风统一调：无论节点配的原始背景多冷多深，这里叠一层粉紫奶油的暖纱，
@@ -146,8 +170,43 @@ const modeLabel = computed(() => {
   border-radius: var(--radius-pill);
   font-size: var(--font-size-sm);
   color: var(--color-foreground);
-  background: rgba(255, 250, 247, 0.78);
+  background: rgba(255, 250, 247, 0.84);
   backdrop-filter: blur(6px);
+}
+
+.background-stage__petal-haze {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      3px 3px at 12% 20%,
+      rgba(255, 231, 239, 0.56),
+      transparent 60%
+    ),
+    radial-gradient(
+      2px 2px at 30% 68%,
+      rgba(255, 232, 224, 0.46),
+      transparent 60%
+    ),
+    radial-gradient(
+      4px 4px at 82% 26%,
+      rgba(254, 219, 234, 0.52),
+      transparent 60%
+    );
+  opacity: 0.65;
+}
+
+.background-stage[data-mode="fictional"] .background-stage__petal-haze {
+  opacity: 0.75;
+}
+
+.background-stage[data-mode="composite"] .background-stage__petal-haze {
+  opacity: 0.48;
+}
+
+.background-stage[data-mode="photographic"] .background-stage__petal-haze {
+  opacity: 0.22;
 }
 
 .background-stage__text {

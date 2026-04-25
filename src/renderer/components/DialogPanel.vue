@@ -311,7 +311,7 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
     background var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard),
     transform var(--motion-fast) var(--ease-bouncy);
-  min-height: 36px;
+  min-height: 44px;
 }
 
 .dialog-panel__retry:hover,

@@ -1,8 +1,9 @@
-import { access } from 'node:fs/promises'
+import { access, writeFile } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { basename, join } from 'node:path'
 import { runDialogueSmokeTest } from '../src/modeling/dialogueSmokeTest.js'
 import { buildRuntimeBootstrapPlan, type RuntimeBootstrapInput } from '../src/modeling/runtimeBootstrap.js'
+import { buildLogStamp, ensureLogDir } from './logPaths.js'
 
 const fileExists = async (filePath: string): Promise<boolean> => {
     try {
@@ -79,6 +80,11 @@ const main = async (): Promise<void> => {
 
     const input = await resolveExecutableSmokeInput(projectRoot, appDataDir)
     const result = await runDialogueSmokeTest(input)
+    const logDir = await ensureLogDir(projectRoot, 'dialogue-smoke')
+    const stamp = buildLogStamp()
+    const logFile = join(logDir, `dialogue-smoke-${stamp}.json`)
+    await writeFile(logFile, JSON.stringify(result, null, 2), 'utf8')
+    console.log(`[smoke] log written to: ${logFile}`)
     console.log(JSON.stringify(result, null, 2))
 }
 

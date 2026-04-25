@@ -155,6 +155,23 @@ const downloadByteSummary = computed<string | null>(() => {
   }
   return null;
 });
+
+const phaseLabelMap: Record<NonNullable<ProfileDownloadStatus["phase"]>, string> = {
+  "starting": "准备中",
+  "fetching-metadata": "读取元信息",
+  "downloading": "下载中",
+  "verifying": "校验中",
+  "file-done": "分片完成",
+  "manifest-updated": "更新清单",
+  "completed": "已完成",
+  "failed": "失败",
+};
+
+const downloadPhaseLabel = computed<string>(() => {
+  const phase = props.downloadStatus?.phase;
+  if (phase == null) return "";
+  return phaseLabelMap[phase] ?? phase;
+});
 </script>
 
 <template>
@@ -216,6 +233,8 @@ const downloadByteSummary = computed<string | null>(() => {
             :value="volumePercent"
             class="settings-panel__range"
             data-testid="settings-volume"
+            aria-label="背景音乐音量"
+            :aria-valuetext="`当前音量 ${volumePercent}%`"
             :disabled="!bgm.enabled"
             @input="onVolumeInput"
           />
@@ -298,7 +317,7 @@ const downloadByteSummary = computed<string | null>(() => {
                     ? `(${downloadStatus.fileIndex}/${downloadStatus.totalFiles})`
                     : ""
                 }}
-                {{ downloadStatus?.message ?? "正在下载…" }}
+                {{ downloadPhaseLabel }} {{ downloadStatus?.message ?? "正在下载…" }}
               </span>
               <span
                 v-if="downloadByteSummary"
@@ -319,8 +338,8 @@ const downloadByteSummary = computed<string | null>(() => {
 .settings-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 16, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(71, 31, 49, 0.42);
+  backdrop-filter: blur(8px);
   z-index: var(--z-overlay);
   display: grid;
   place-items: center;
@@ -329,8 +348,13 @@ const downloadByteSummary = computed<string | null>(() => {
 
 .settings-panel {
   width: min(420px, 100%);
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 251, 247, 0.96) 0%,
+      rgba(255, 247, 241, 0.94) 100%
+    );
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-surface);
   padding: var(--space-5);
@@ -348,6 +372,7 @@ const downloadByteSummary = computed<string | null>(() => {
   margin: 0;
   font-family: var(--font-serif);
   font-size: var(--font-size-xl);
+  letter-spacing: 0.08em;
 }
 
 .settings-panel__close {
@@ -399,7 +424,7 @@ const downloadByteSummary = computed<string | null>(() => {
 
 .settings-panel__model-option {
   text-align: left;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.62);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-3);
@@ -415,13 +440,13 @@ const downloadByteSummary = computed<string | null>(() => {
 
 .settings-panel__model-option:hover,
 .settings-panel__model-option:focus-visible {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.84);
   border-color: var(--color-border-strong);
 }
 
 .settings-panel__model-option[aria-checked="true"] {
   border-color: var(--color-accent);
-  background: rgba(217, 119, 6, 0.08);
+  background: rgba(236, 125, 157, 0.16);
 }
 
 .settings-panel__model-row {
@@ -470,12 +495,13 @@ const downloadByteSummary = computed<string | null>(() => {
 
 .settings-panel__model-download {
   font-size: var(--font-size-xs);
-  padding: 4px 10px;
+  padding: 6px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
   color: var(--color-foreground);
   cursor: pointer;
+  min-height: 44px;
 }
 
 .settings-panel__model-download:hover {
@@ -486,10 +512,20 @@ const downloadByteSummary = computed<string | null>(() => {
   margin-top: var(--space-2);
   font-size: var(--font-size-xs);
   color: var(--color-foreground-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .settings-panel__model-progress-phase {
   display: inline-block;
+}
+
+.settings-panel__model-progress-bytes {
+  display: inline-block;
+  font-family: var(--font-sans);
+  color: var(--color-accent-strong);
+  letter-spacing: 0.04em;
 }
 
 .settings-panel__row {

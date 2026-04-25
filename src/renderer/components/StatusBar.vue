@@ -91,11 +91,20 @@ const attitudeLabel = computed(() => {
   padding-top: calc(var(--space-4) + var(--safe-top));
   padding-left: max(var(--space-6), var(--safe-left));
   padding-right: max(var(--space-6), var(--safe-right));
-  background: linear-gradient(
-    180deg,
-    rgba(9, 14, 28, 0.85) 0%,
-    rgba(9, 14, 28, 0) 100%
-  );
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 250, 247, 0.86) 0%,
+      rgba(255, 250, 247, 0.36) 72%,
+      rgba(255, 250, 247, 0) 100%
+    ),
+    repeating-linear-gradient(
+      135deg,
+      rgba(235, 201, 170, 0.08) 0,
+      rgba(235, 201, 170, 0.08) 8px,
+      rgba(255, 250, 247, 0) 8px,
+      rgba(255, 250, 247, 0) 16px
+    );
 }
 
 @media (max-width: 640px) {
@@ -122,9 +131,9 @@ const attitudeLabel = computed(() => {
   display: block;
   font-size: var(--font-size-xs);
   letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--color-foreground-dim);
+  color: var(--color-foreground-muted);
   margin-bottom: var(--space-1);
+  font-family: var(--font-sans);
 }
 
 .status-bar__title {
@@ -133,6 +142,7 @@ const attitudeLabel = computed(() => {
   font-size: var(--font-size-xl);
   letter-spacing: 0.08em;
   color: var(--color-foreground);
+  text-wrap: balance;
 }
 
 .status-bar__tone {
@@ -163,7 +173,7 @@ const attitudeLabel = computed(() => {
   display: block;
   font-size: var(--font-size-xs);
   letter-spacing: 0.18em;
-  color: var(--color-foreground-dim);
+  color: var(--color-foreground-muted);
   margin-bottom: var(--space-1);
 }
 
@@ -183,7 +193,7 @@ const attitudeLabel = computed(() => {
   position: relative;
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(211, 134, 166, 0.18);
   overflow: hidden;
 }
 
@@ -207,7 +217,7 @@ const attitudeLabel = computed(() => {
   bottom: -2px;
   left: calc(50% - 1px);
   width: 2px;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(108, 67, 87, 0.3);
 }
 
 .status-bar__attitude-label {

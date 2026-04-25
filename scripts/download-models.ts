@@ -1,4 +1,4 @@
-import { mkdir, open, rm } from 'node:fs/promises'
+import { appendFile, mkdir, open, rm } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { basename, join } from 'node:path'
 import { buildDownloadSources } from '../src/modeling/downloadSources.js'
@@ -7,6 +7,7 @@ import { getAllModelProfiles } from '../src/modeling/modelProfiles.js'
 import { resolveModelStoragePaths } from '../src/modeling/modelPaths.js'
 import { readModelManifest, writeModelManifest } from '../src/modeling/modelManifest.js'
 import { runModelSmokeTest } from '../src/modeling/modelSmokeTest.js'
+import { buildLogStamp, ensureLogDir } from './logPaths.js'
 
 const DOWNLOAD_LOCK_FILE = '.download.lock'
 const PROFILE_SMOKE_TEST_REPAIR_ATTEMPTS = 2
@@ -133,6 +134,17 @@ const smokeTestProfile = async (profileId: string, modelPath: string) => {
 
 const main = async (): Promise<void> => {
   const projectRoot = process.cwd()
+  const logDir = await ensureLogDir(projectRoot, 'model-downloads')
+  const runStamp = buildLogStamp()
+  const logFile = join(logDir, `model-download-${runStamp}.log`)
+  const log = async (message: string): Promise<void> => {
+    const line = `[${new Date().toISOString()}] ${message}\n`
+    await appendFile(logFile, line, 'utf8')
+    console.log(message)
+  }
+
+  await log(`[download] run started; log file: ${logFile}`)
+
   const appDataDir = process.env['APPDATA'] ? join(process.env['APPDATA'], 'Kunlungame') : join(projectRoot, 'runtime-cache')
   const storage = resolveModelStoragePaths({
     isPackaged: false,
@@ -165,7 +177,7 @@ const main = async (): Promise<void> => {
       for (let attempt = 1; attempt <= PROFILE_SMOKE_TEST_REPAIR_ATTEMPTS; attempt += 1) {
         for (const fileName of profile.files) {
           const filePath = join(targetDir, basename(fileName))
-          console.log(`Downloading ${profile.id}: ${fileName}`)
+          await log(`Downloading ${profile.id}: ${fileName}`)
           await downloadWithFallbacks(profile.repository, fileName, filePath)
         }
 
@@ -177,7 +189,7 @@ const main = async (): Promise<void> => {
           break
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
-          console.warn(`Smoke test failed for ${profile.id} on attempt ${attempt}: ${message}`)
+          await log(`Smoke test failed for ${profile.id} on attempt ${attempt}: ${message}`)
 
           if (attempt >= PROFILE_SMOKE_TEST_REPAIR_ATTEMPTS) {
             throw new Error(`Model smoke test failed for ${profile.id}: ${message}`)
@@ -201,7 +213,8 @@ const main = async (): Promise<void> => {
     }
 
     await writeModelManifest(storage.manifestFile, manifest)
-    console.log(`Model manifest written to ${storage.manifestFile}`)
+    await log(`Model manifest written to ${storage.manifestFile}`)
+    await log('[download] run completed successfully')
   } finally {
     await lockHandle.close()
     await rm(lockFile, { force: true })

@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runMainlineTurn, type MainlineAttitudeChoice } from '../src/modeling/mainlineTurnRunner.js'
+import { buildLogStamp, ensureLogDir } from './logPaths.js'
 import {
     ATTITUDE_MAX,
     ATTITUDE_MIN,
@@ -65,9 +66,8 @@ const main = async (): Promise<void> => {
     const recentTurns: string[] = []
     const log: string[] = []
 
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const logDir = join(projectRoot, 'test-results', 'playthroughs')
-    await mkdir(logDir, { recursive: true })
+    const stamp = buildLogStamp()
+    const logDir = await ensureLogDir(projectRoot, 'playthroughs')
     const logFile = join(logDir, `playthrough-${preferredMode}-${opts.pattern}-${stamp}.md`)
 
     log.push(`# Playthrough · ${preferredMode} · ${opts.pattern} · ${stamp}`)

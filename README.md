@@ -28,6 +28,15 @@ Kunlungame 是一款面向 Windows 的本地桌面叙事游戏。题材围绕昆
 10. `pnpm dialogue:smoke`     — 本地跑首节点端到端烟雾，验证 GGUF 路径 + 编排 + 流式
 11. `pnpm playthrough -- --pattern=alt --maxNodes=8` — 8 节点全链路重放，记录 per-node 滚动、attitudeScore、完整文本
 
+## 统一日志目录
+
+- 运行时和脚本生成日志统一写入项目根目录 `logs/`。
+- 当前已接入：
+  - `pnpm dialogue:smoke` -> `logs/dialogue-smoke/*.json`
+  - `pnpm playthrough ...` -> `logs/playthroughs/*.md`
+  - `pnpm models:download` -> `logs/model-downloads/*.log`
+- 历史输出目录 `test-results/playthroughs` 不再作为脚本默认目标。
+
 ## 模型权重获取两条路径
 
 - **命令行（开发态）**：`pnpm models:download` 批量拉默认 + Lite 档。
