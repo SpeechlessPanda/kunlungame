@@ -80,8 +80,8 @@
 1. 已有双模型清单。
 2. 已有开发态与打包态模型缓存路径解析。
 3. 已有分层上下文构造器。
-4. 已有模型下载脚本与清单写入逻辑，Windows 侧统一使用 `curl.exe` 顺序下载并支持断点续传，不再依赖 BITS 或 `Invoke-WebRequest` 回退链。
-5. 下载脚本现在会在文件下载后执行完整性校验，优先使用远端 `content-length` 与 `x-linked-etag` 做大小和 SHA256 校验。
+4. 已有模型下载脚本与清单写入逻辑；CLI 与应用内下载都复用 `src/modeling/profileDownloader.ts` 的 fetch streaming 下载、断点续传、镜像切换与字节级进度能力。
+5. 共享下载链路会在文件下载后执行完整性校验，优先使用远端 `content-length` 与 `x-linked-etag` 做大小和 SHA256 校验。
 6. 每个模型 profile 下载完成后会自动执行一次本地冒烟测试；若失败，会清理该 profile 文件并自动重下一次后再测。
 7. 清单记录已扩展为可写入 `verifiedAt` 与 `smokeTestedAt` 时间戳，供后续用户端设置页或诊断页消费。
 8. 已有 runtime bootstrap plan，可供后续 Electron 启动阶段直接消费。
@@ -106,6 +106,7 @@
 4. 若主下载源失败，应自动切换镜像重试。
 5. 若完整性校验失败，应删除坏文件并重新下载，不能把校验失败的文件写入 manifest。
 6. 若模型冒烟测试失败，应把该 profile 视为不可用并触发一次自动修复重下；若仍失败，则向上层报告明确错误而不是静默通过。
+7. CLI 下载脚本只保留批量 profile、锁文件与 smoke repair 编排；下载、校验、manifest 写入策略不得再在脚本里另起一套实现。
 
 ## 桌面壳与设置页接口保留
 

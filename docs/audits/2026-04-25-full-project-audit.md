@@ -91,6 +91,7 @@
 
 1. 抽 RuntimeStateFacade，收敛状态序列化职责。
 2. `scripts/download-models.ts` 复用 `profileDownloader`。
+  - 2026-04-25 进展：已抽出 `modelDownloadWorkflow`，CLI 脚本复用 `downloadProfileWeights`，仅保留批量 profile、锁文件与 smoke repair 编排。
 
 ### P2（建议下一轮）
 
