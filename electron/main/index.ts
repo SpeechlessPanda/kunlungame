@@ -81,7 +81,10 @@ export const createMainWindowOptions = (preloadPath: string): MainWindowOptions 
     preload: preloadPath,
     contextIsolation: true,
     nodeIntegration: false,
-    sandbox: false
+    // 安全基线：启用 sandbox。preload 仅使用 electron 模块（contextBridge / ipcRenderer），
+    // 不依赖 fs/path 等 Node API，因此对 sandbox 兼容。任何需要文件/进程权限的能力
+    // 都必须通过主进程 IPC 暴露，而非在渲染层直连。
+    sandbox: true
   }
 })
 

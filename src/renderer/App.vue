@@ -161,10 +161,7 @@ const dialogueSession = createDialogueSession({
 });
 
 const getBridge = (): DesktopBridge | null => {
-  return (
-    (window as unknown as { kunlunDesktop?: DesktopBridge }).kunlunDesktop ??
-    null
-  );
+  return window.kunlunDesktop ?? null;
 };
 
 const persistState = async (): Promise<void> => {
@@ -190,9 +187,19 @@ const restoreFromBridge = async (): Promise<void> => {
     refreshBgm(
       runtimeState.value.settings.bgmEnabled ? bgm.enable() : bgm.disable(),
     );
+    // 存档损坏时向用户明示：避免恢复默认存档后“为什么进度丢了”的错感。
+    if (snapshot.recoveryAction === "reset-corrupted") {
+      saveRecoveryNotice.value =
+        "上次存档文件无法读取，已重置为默认状态。原始文件已被覆写。";
+    }
   } catch (error) {
     console.error("[app] loadRuntimeState failed", error);
   }
+};
+
+const saveRecoveryNotice = ref<string | null>(null);
+const dismissSaveRecoveryNotice = (): void => {
+  saveRecoveryNotice.value = null;
 };
 
 const runTurn = (): void => {
@@ -313,8 +320,7 @@ const aiSource = ref<"real" | "mock">("mock");
 let unsubscribeDownloadProgress: (() => void) | null = null;
 // 环境探测：在真实 Electron 桌面壳里自动切到真模型；浏览器预览仍走 mock。
 const detectBridgeAvailable = (): boolean => {
-  const bridge = (window as unknown as { kunlunDesktop?: DesktopBridge })
-    .kunlunDesktop;
+  const bridge = window.kunlunDesktop;
   return bridge != null && typeof bridge.runMainlineTurn === "function";
 };
 
@@ -344,8 +350,7 @@ const applyDependenciesFactory = (): void => {
   }
   // 真实本地模型：通过桌面 bridge IPC 把每一轮对话派发到主进程，
   // 让 node-llama-cpp 加载 GGUF 并跑完一轮后回传 chunks + options。
-  const bridge = (window as unknown as { kunlunDesktop?: DesktopBridge })
-    .kunlunDesktop;
+  const bridge = window.kunlunDesktop;
   if (bridge == null || typeof bridge.runMainlineTurn !== "function") {
     const unavailableFactory: DialogueDependenciesFactory = () => ({
       streamText: async function* () {
@@ -404,7 +409,7 @@ const exposeDebug = (): void => {
       }));
     },
   };
-  (window as unknown as { __kunlunDebug?: KunlunDebug }).__kunlunDebug = debug;
+  (window as Window & { __kunlunDebug?: KunlunDebug }).__kunlunDebug = debug;
 };
 
 onMounted(() => {
@@ -560,6 +565,23 @@ const onQuitFromEnding = (): void => {
     @restart="onRestartFromEnding"
     @quit="onQuitFromEnding"
   />
+  <div
+    v-if="saveRecoveryNotice"
+    class="save-recovery-notice"
+    role="status"
+    aria-live="polite"
+    data-testid="save-recovery-notice"
+  >
+    <span>{{ saveRecoveryNotice }}</span>
+    <button
+      type="button"
+      class="save-recovery-notice__dismiss"
+      data-testid="save-recovery-notice-dismiss"
+      @click="dismissSaveRecoveryNotice"
+    >
+      收下
+    </button>
+  </div>
 </template>
 
 <style scoped>
@@ -611,5 +633,43 @@ const onQuitFromEnding = (): void => {
   background: rgba(120, 53, 15, 0.78);
   color: #fef3c7;
   border: 1px solid rgba(253, 230, 138, 0.55);
+}
+
+.save-recovery-notice {
+  position: fixed;
+  left: 50%;
+  top: 16px;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  display: flex;
+  gap: var(--space-3, 12px);
+  align-items: center;
+  max-width: min(640px, 92vw);
+  padding: 10px 14px;
+  border-radius: var(--radius-md, 8px);
+  background: rgba(120, 53, 15, 0.92);
+  color: #fef3c7;
+  border: 1px solid rgba(253, 230, 138, 0.55);
+  font-family: var(--font-sans, system-ui);
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.save-recovery-notice__dismiss {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid rgba(253, 230, 138, 0.55);
+  color: inherit;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.save-recovery-notice__dismiss:hover,
+.save-recovery-notice__dismiss:focus-visible {
+  background: rgba(253, 230, 138, 0.12);
 }
 </style>

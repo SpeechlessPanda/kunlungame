@@ -26,7 +26,7 @@ describe('createMainWindowOptions', () => {
     expect(result.webPreferences?.preload).toBe('D:/project/kunlungame/dist-electron/preload/index.js')
     expect(result.webPreferences?.contextIsolation).toBe(true)
     expect(result.webPreferences?.nodeIntegration).toBe(false)
-    expect(result.webPreferences?.sandbox).toBe(false)
+    expect(result.webPreferences?.sandbox).toBe(true)
   })
 })
 
