@@ -168,3 +168,41 @@ P0 启用 sandbox 后，preload 不能再 `require('zod')`（externalizeDepsPlug
 
 - `pnpm typecheck` -> exit 0
 - `pnpm test --run` -> 38 files / 218 tests 全绿
+
+## 8. 2026-04-25 下载链路真实缺陷修复（improve/unify-download-entry 分支）
+
+审计原本将"统一下载入口"列为 P1，但复核发现 `modelDownloadWorkflow` 已经基本覆盖该项；真正遗留的是两处隐蔽 bug：
+
+### 8.1 IPC 下载并发竞态（修复）
+
+`electron/main/index.ts#runDesktopProfileDownload` 旧逻辑：
+
+```ts
+if (activeDesktopDownloads.has(profileId)) return { ... already-running }
+const deps = await buildDependencies()  // ← await 间隙，守卫不再原子
+activeDesktopDownloads.add(profileId)
+```
+
+两个并发 IPC 调用会双双通过 `has()` 检查，并在 await 期间同时进入下载链路，造成同一档位被并发写入相同目录。
+
+修复：把 `add` 立刻提到 `has` 检查之后；`buildDependencies` 自身失败也清理 set。新增回归用例 `tests/desktopShell.test.ts#serializes concurrent invocations on the same profile via the active-set guard`，通过故意挂起 `buildDependencies` 的 Promise 复现旧 race，断言 `downloadFile` 只被调用一次、第二个请求收到 `already-running`。
+
+### 8.2 CLI 锁清理掩盖真实错误（修复）
+
+`scripts/download-models.ts` 旧逻辑：
+
+```ts
+} finally {
+  await lockHandle.close()
+  await rm(lockFile, { force: true })
+}
+```
+
+如果 try 块里下载抛错，再让 `close()` 或 `rm()` 失败，新错误会**覆盖原始下载错误**的 stack（async/await 的 finally 行为），导致 CI 日志里只看到锁清理错误而非真正的下载失败原因。
+
+修复：把两个清理调用各自包在 try/catch，把次级清理错误降级为 console.error，保留原始下载错误的传播。
+
+### 8.3 验证
+
+- `pnpm typecheck` -> exit 0
+- `pnpm test --run` -> 38 files / 219 tests 全绿（新增 1 个并发竞态回归用例）

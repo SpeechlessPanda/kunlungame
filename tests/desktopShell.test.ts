@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, normalize } from 'node:path'
 import { tmpdir } from 'node:os'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createDesktopBridge } from '../electron/preload/index.js'
 import {
   buildDesktopStartupInput,
@@ -401,6 +401,60 @@ describe('runDesktopProfileDownload', () => {
       )
       expect(result.ok).toBe(true)
       expect(progressEvents.some((event) => event.phase === 'completed')).toBe(true)
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  it('serializes concurrent invocations on the same profile via the active-set guard', async () => {
+    // 回归：在 check 与 add 之间夹一个 await（buildDependencies）会让两个并发请求都能通过守卫并真正并发下载。
+    // 修复后：第二个请求必须以 reason: 'already-running' 返回，且 downloadFile 只被调用一次。
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlun-dl-'))
+    try {
+      const downloadFile = vi.fn().mockResolvedValue(undefined)
+      let releaseBuildDeps: (() => void) | null = null
+      const buildDeps = vi.fn().mockImplementation(() => {
+        return new Promise((resolve) => {
+          // 故意挂起 buildDependencies，模拟 check→add 之间存在的 await 间隔。
+          releaseBuildDeps = (): void =>
+            resolve({
+              fetchArtifactMetadata: async () => ({ contentLength: null, sha256: null }),
+              downloadFile,
+              verifyFile: async () => ({ ok: true, sizeMatches: true, hashMatches: null }),
+              removeFile: async () => { },
+              ensureDirectory: async () => { },
+              readManifest: async () => ({ records: [] }),
+              writeManifest: async () => { }
+            })
+        })
+      })
+
+      const profileId = getProModelProfile().id
+      const inputArgs = { isPackaged: false, projectRoot: tempDir, appDataDir: tempDir }
+      const noOp = (): void => { }
+
+      // 同步发起两个调用，互相只差一个微任务。
+      const first = runDesktopProfileDownload(inputArgs, profileId, noOp, {
+        buildDependencies: buildDeps
+      })
+      const second = runDesktopProfileDownload(inputArgs, profileId, noOp, {
+        buildDependencies: buildDeps
+      })
+
+      // 在 first 还在 buildDeps 内 await 时，second 必须立即被守卫拒绝。
+      const secondResult = await second
+      expect(secondResult.ok).toBe(false)
+      if (!secondResult.ok) {
+        expect(secondResult.reason).toBe('already-running')
+      }
+
+      // 释放 first 的 buildDeps，让它跑完。
+      expect(releaseBuildDeps).not.toBeNull()
+      releaseBuildDeps!()
+      const firstResult = await first
+      expect(firstResult.ok).toBe(true)
+      // downloadFile 只在 first 中被调用一次，second 已被守卫拦截。
+      expect(downloadFile).toHaveBeenCalledTimes(1)
     } finally {
       await rm(tempDir, { recursive: true, force: true })
     }
