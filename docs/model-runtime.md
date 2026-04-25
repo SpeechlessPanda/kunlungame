@@ -118,3 +118,5 @@
 5. UI 需要覆盖以下阶段：`checking`、`queued`、`downloading`、`switching-to-mirror`、`completed`、`failed`。
 6. 失败态需要直接展示恢复动作：重试下载、切换镜像、打开网络帮助；默认模式下还应允许切换兼容模式。
 7. 当前最小桌面壳已暴露 `desktop:ping` 与 `desktop:get-startup-snapshot` IPC，并在预加载层以白名单 `window.kunlunDesktop` 形式提供给渲染层。
+8. 自 2026-04-25 起预加载桥以同步 `require('electron')` 注册，避免渲染层 `onMounted` 在 `await import('electron')` 之前抢先读取 `window.kunlunDesktop` 而被永久锁在 mock；同时 `kunlunDesktop.quitApp()` 已经接到 `desktop:quit-app` 主进程 handler，供主线结尾的"退出游戏"按钮使用。
+9. 渲染层在右下角持久显示 `本地 AI 连接中` / `预览脚本模式` 的小标识（`data-testid="ai-source-chip"`），用于在 `pnpm dev` 中肉眼确认当前一轮对话是否真的走了本地 GGUF 流式接口而非演示脚本。
