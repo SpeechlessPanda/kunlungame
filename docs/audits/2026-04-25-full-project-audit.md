@@ -140,3 +140,31 @@
 
 - `pnpm typecheck` -> exit 0
 - `pnpm test --run` -> 37 files / 206 tests 全绿（与 README 旧记录的 35/200 存在轻度漂移；本次保留 README 不变以避免与历史审计快照不一致，待下次发布审计统一刷新）
+
+## 7. 2026-04-25 IPC 边界运行时校验（improve/ipc-runtime-validation 分支）
+
+### 7.1 背景
+
+P0 启用 sandbox 后，preload 不能再 `require('zod')`（externalizeDepsPlugin 让 zod 走运行时 require）。但 IPC 类型断言无运行时验证仍是 P1 风险：主进程未来如果改字段、漏字段、误返回 null，渲染层只会在使用点上崩溃，难以归因。
+
+### 7.2 设计选择
+
+- **Schema 单一真相源**：`src/shared/types/desktop.schemas.ts` 用 Zod 描述全部 IPC 返回值结构。
+- **校验放在渲染层**：新建 `src/renderer/lib/desktopBridgeClient.ts` 暴露 `wrapDesktopBridgeWithValidation(raw)`，在每个 invoke 返回点上做 `schema.parse`。preload 保持轻量，不引入新依赖、不影响沙箱兼容性。
+- **失败语义**：抛出 `IpcContractError`（携带 `channel` + `cause`），调用方按既有 catch 逻辑处理；UI 失败态文案保持。
+- **进度事件容错**：`onProfileDownloadProgress` 内置 try/catch + 丢弃 + warn，畸形进度事件不会中断下载链路。
+
+### 7.3 落点
+
+- `src/renderer/App.vue#getBridge`：现在返回校验包裹后的 bridge；`runMainlineTurn` 经由 `getBridge()` 拿到再交给 `createBridgeDialogueDependenciesFactory`，整条对话路径都受保护。
+- `tests/desktopBridgeClient.test.ts`（新增 12 个用例）：覆盖正常透传、缺字段、值越界、未知 reason、非法 recoveryAction、ping 类型不符、畸形 progress 容错、`IpcContractError` 元数据。
+
+### 7.4 与 desktop.ts 类型契约的同步策略
+
+短期：schema 与 `desktop.ts` 类型并存，依靠测试中"合法样本能 parse 通过"间接锁定一致性。
+后续：若 contract 变更频繁，可改用 `z.infer` 派生 `desktop.ts` 的类型，进一步消除漂移。
+
+### 7.5 验证
+
+- `pnpm typecheck` -> exit 0
+- `pnpm test --run` -> 38 files / 218 tests 全绿

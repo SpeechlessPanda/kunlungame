@@ -25,6 +25,7 @@ import {
   createBgmController,
   type BgmControllerState,
 } from "../presentation/bgmController.js";
+import { wrapDesktopBridgeWithValidation } from "./lib/desktopBridgeClient.js";
 import GameShell from "./components/GameShell.vue";
 import EndingOverlay from "./components/EndingOverlay.vue";
 import {
@@ -161,7 +162,8 @@ const dialogueSession = createDialogueSession({
 });
 
 const getBridge = (): DesktopBridge | null => {
-  return window.kunlunDesktop ?? null;
+  const raw = window.kunlunDesktop;
+  return raw ? wrapDesktopBridgeWithValidation(raw) : null;
 };
 
 const persistState = async (): Promise<void> => {
@@ -350,7 +352,9 @@ const applyDependenciesFactory = (): void => {
   }
   // 真实本地模型：通过桌面 bridge IPC 把每一轮对话派发到主进程，
   // 让 node-llama-cpp 加载 GGUF 并跑完一轮后回传 chunks + options。
-  const bridge = window.kunlunDesktop;
+  // 走 getBridge() 拿到经 Zod 校验包裹的 bridge，runMainlineTurn 的返回值会
+  // 在抵达 dialogueSession 前先做结构校验，防止主进程实现漂移引发 UI 崩溃。
+  const bridge = getBridge();
   if (bridge == null || typeof bridge.runMainlineTurn !== "function") {
     const unavailableFactory: DialogueDependenciesFactory = () => ({
       streamText: async function* () {
