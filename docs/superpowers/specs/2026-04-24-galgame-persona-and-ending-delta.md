@@ -159,7 +159,7 @@ tag、跨轮复读、短语保留、空行折叠 6 条。与主要 runner 组合
   `recommendedGpuVramGb: 0`，纯 CPU 目标 ~3-5 秒/轮。
 - **Quality Mode（兜底升级）**：`qwen2.5-3b-instruct-q4km`，单文件 ~2GB，
   `recommendedGpuVramGb: 4`。原"Compatibility Mode"重命名。
-- **Pro Mode（可选）**：`qwen2.5-7b-instruct-q4km` 分片 ~4.5GB，
+- **Pro Mode（可选）**：`qwen2.5-7b-instruct-q3km` 单文件 ~3.81GB，
   `recommendedGpuVramGb: 8`，只对有独显的玩家开放。
 - `getAllModelProfiles()` 只返回 Instant + Quality；Pro 通过
   `getOptionalModelProfiles()` 暴露，`pnpm models:download` 默认不拉 Pro。

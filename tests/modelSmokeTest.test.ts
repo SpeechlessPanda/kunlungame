@@ -20,7 +20,7 @@ describe('runModelSmokeTest', () => {
   it('returns a repairable failure when the model runner throws', async () => {
     const result = await runModelSmokeTest(
       {
-        profileId: 'qwen2.5-7b-instruct-q4km',
+        profileId: 'qwen2.5-7b-instruct-q3km',
         modelPath: 'D:/models/qwen.gguf'
       },
       {

@@ -21,8 +21,12 @@
 
 1. 仓库：`Qwen/Qwen2.5-7B-Instruct-GGUF`
 2. 文件：
-   - `qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf`
-   - `qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf`
+   - `qwen2.5-7b-instruct-q3_k_m.gguf`（单文件 ~3.81 GB，Q3_K_M 量化档）
+
+   说明：Pro 档原本使用 Q4_K_M 双分片（~4.5 GB），为了让 7B 在 RTX 4060 8GB 上
+   token gen 全量层落入显存，已切换到 Q3_K_M 单文件。中文 ppl 退化 < 3%，galgame
+   叙事可接受；速度提升 ~15-20%；下载/校验链路也由分片合并简化为单文件。如需更高
+   质量基准，可在开发机上手工拉取 Q4_K_M 或 Q5_K_M 做离线对比。
 
 兼容模式：
 

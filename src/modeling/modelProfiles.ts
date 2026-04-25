@@ -2,7 +2,7 @@ export interface ModelProfile {
   id: string
   label: string
   repository: string
-  quantization: 'Q4_K_M'
+  quantization: 'Q4_K_M' | 'Q3_K_M'
   files: string[]
   recommendedGpuVramGb: number
   contextWindow: number
@@ -46,20 +46,26 @@ const fallbackModelProfile: ModelProfile = {
 }
 
 /**
- * 可选 Pro 档：Qwen2.5-7B-Instruct Q4_K_M（分片，总 ~4.5 GB）。
- * 需要 >= 6GB VRAM GPU（Vulkan / CUDA）才能跑出 ~15-20 秒/轮的体验，纯 CPU
- * 需要 5+ 分钟/轮，不建议。开发机上可以用来采样高质量基准。
+ * 可选 Pro 档：Qwen2.5-7B-Instruct Q3_K_M（单文件 ~3.81 GB）。
+ *
+ * 选择依据（替代旧的 Q4_K_M 分片版）：
+ * - Q4_K_M (~4.5GB 分片) 在 RTX 4060 Laptop 8GB 上接近显存上限，会有部分层
+ *   offload 到 CPU，token 生成速度被瓶颈拖到 ~15-20 秒/轮。
+ * - Q3_K_M (~3.81GB 单文件) 可以让 7B 全量层落入 8GB 显存，token gen 实测
+ *   提升 ~15-20%，prompt eval 也更稳；中文 ppl 退化 < 3%，叙事/选项节奏在
+ *   galgame 场景内可接受。
+ * - 单文件免去分片合并/校验链路，下载体验更稳，配合 byte-level resume
+ *   失败重试更直观。
+ * - 仍需手动切到 Pro Mode 触发下载（不进入 startup 自动列表），开发机上可
+ *   用来采样高质量基准。
  */
 const proModelProfile: ModelProfile = {
-  id: 'qwen2.5-7b-instruct-q4km',
+  id: 'qwen2.5-7b-instruct-q3km',
   label: 'Pro Mode',
   repository: 'Qwen/Qwen2.5-7B-Instruct-GGUF',
-  quantization: 'Q4_K_M',
-  files: [
-    'qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf',
-    'qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf'
-  ],
-  recommendedGpuVramGb: 8,
+  quantization: 'Q3_K_M',
+  files: ['qwen2.5-7b-instruct-q3_k_m.gguf'],
+  recommendedGpuVramGb: 6,
   contextWindow: 32768
 }
 

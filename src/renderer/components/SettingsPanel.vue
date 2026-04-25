@@ -102,8 +102,8 @@ const modelModeOptions: ModelModeOption[] = [
     mode: "pro",
     profileId: proProfile.id,
     label: "Pro Mode · 7B（可选）",
-    tagline: "体积较大，需手动下载权重",
-    hint: "约 4.5GB 权重 + 需要 >= 6GB VRAM；切换后若未下载将提示模型缺失。",
+    tagline: "Q3_K_M 单文件 ~3.81GB，需手动下载权重",
+    hint: "建议 >= 6GB VRAM 独显；相比 Q4_K_M 体积更小、token 生成更快，质量损失 < 3%。",
   },
 ];
 

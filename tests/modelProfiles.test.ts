@@ -27,16 +27,14 @@ describe('model profiles', () => {
     expect(profile.recommendedGpuVramGb).toBe(0)
   })
 
-  it('returns the pro-mode qwen 7b profile with split q4_k_m files', () => {
+  it('returns the pro-mode qwen 7b profile as a single q3_k_m file', () => {
     const profile = getProModelProfile()
 
-    expect(profile.id).toBe('qwen2.5-7b-instruct-q4km')
+    expect(profile.id).toBe('qwen2.5-7b-instruct-q3km')
     expect(profile.label).toBe('Pro Mode')
-    expect(profile.files).toEqual([
-      'qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf',
-      'qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf'
-    ])
-    expect(profile.recommendedGpuVramGb).toBe(8)
+    expect(profile.quantization).toBe('Q3_K_M')
+    expect(profile.files).toEqual(['qwen2.5-7b-instruct-q3_k_m.gguf'])
+    expect(profile.recommendedGpuVramGb).toBe(6)
   })
 
   it('auto-downloads the default 3B and fallback 1.5B profiles, keeping 7B opt-in', () => {
@@ -46,6 +44,6 @@ describe('model profiles', () => {
       'qwen2.5-1.5b-instruct-q4km'
     ])
     const optional = getOptionalModelProfiles()
-    expect(optional.map((p) => p.id)).toEqual(['qwen2.5-7b-instruct-q4km'])
+    expect(optional.map((p) => p.id)).toEqual(['qwen2.5-7b-instruct-q3km'])
   })
 })

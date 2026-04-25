@@ -31,7 +31,7 @@ describe('modelManifest', () => {
     const manifest = {
       records: [
         {
-          profileId: 'qwen2.5-7b-instruct-q4km',
+          profileId: 'qwen2.5-7b-instruct-q3km',
           files: ['part-1.gguf', 'part-2.gguf'],
           downloadedAt: '2026-04-23T12:00:00.000Z'
         }

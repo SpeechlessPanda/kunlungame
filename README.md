@@ -74,7 +74,7 @@ pnpm dev
 
 ## 仍需交付的素材
 
-1. 真正的 GGUF 权重（默认 `qwen2.5-3b-instruct-q4_k_m.gguf` ~2GB，可选 1.5B Lite ~1.12GB 纯 CPU 兜底，可选 7B Pro ~4.5GB 需独显）。
+1. 真正的 GGUF 权重（默认 `qwen2.5-3b-instruct-q4_k_m.gguf` ~2GB，可选 1.5B Lite ~1.12GB 纯 CPU 兜底，可选 7B Pro `qwen2.5-7b-instruct-q3_k_m.gguf` ~3.81GB 需独显）。
 2. 8 节点的正式背景（神话节点偏虚构意象，历史节点偏实景照片，过渡节点走组合策略）。
 3. 人物立绘 / 剪影、转场 BGM 与 SFX。
 4. 当素材齐备后，按 `docs/superpowers/specs/2026-04-23-part-07-visual-presentation-and-asset-slot-spec.md` 的槽位落位即可。
