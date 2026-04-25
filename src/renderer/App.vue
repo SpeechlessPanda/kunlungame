@@ -24,6 +24,7 @@ import {
   type BgmControllerState,
 } from "../presentation/bgmController.js";
 import GameShell from "./components/GameShell.vue";
+import EndingOverlay from "./components/EndingOverlay.vue";
 import {
   createTurnController,
   type ChoiceModel,
@@ -232,9 +233,9 @@ const beginMainline = (): void => {
 
 const onChoose = (choice: ChoiceModel): void => {
   attitudeChoiceMode.value = choice.id;
-  // 升华轮：两个选项都作为"再走一次旅程"的入口，不再继续推进节点。
+  // 升华轮：主线已经完成后不再让选项推动任何状态 ——
+  // 玩家看到的是 EndingOverlay，底层选择被忽略，避免"在最后一轮死循环"。
   if (runtimeState.value.isCompleted) {
-    beginMainline();
     return;
   }
   recentTurns.value = [...recentTurns.value, turn.view.value.fullText].slice(
@@ -315,12 +316,30 @@ interface KunlunDebug {
 }
 
 const useMockStreamFlag = ref(true);
+// 推荐给 UI 指示器读的 "当前一轮对话源头"：【real · 桌面本地模型】或【mock · 预览脚本】。
+// 玩家凭这个 chip 就能在 pnpm dev 里一眼判断输出是否真的走了本地 AI。
+const aiSource = ref<"real" | "mock">("mock");
 let unsubscribeDownloadProgress: (() => void) | null = null;
 // 环境探测：在真实 Electron 桌面壳里自动切到真模型；浏览器预览仍走 mock。
 const detectBridgeAvailable = (): boolean => {
   const bridge = (window as unknown as { kunlunDesktop?: DesktopBridge })
     .kunlunDesktop;
   return bridge != null && typeof bridge.runMainlineTurn === "function";
+};
+
+// 预加载 preload 与渲染进程存在微小竞态：某些环境下 kunlunDesktop 会在
+// onMounted 之后几十毫秒才被注入。这里连续重试几次，避免被永久锁在 mock。
+const waitForDesktopBridge = async (
+  attempts: number = 8,
+  intervalMs: number = 80,
+): Promise<boolean> => {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (detectBridgeAvailable()) {
+      return true;
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
+  }
+  return detectBridgeAvailable();
 };
 
 const applyDependenciesFactory = (): void => {
@@ -384,6 +403,7 @@ const exposeDebug = (): void => {
     },
     useMockStream(enabled: boolean) {
       useMockStreamFlag.value = enabled;
+      aiSource.value = enabled ? "mock" : "real";
       applyDependenciesFactory();
     },
     getLastOptions() {
@@ -398,8 +418,12 @@ const exposeDebug = (): void => {
 
 onMounted(() => {
   // 桌面壳里默认接入真实本地模型；浏览器/开发预览下仍走 mock 流。
-  useMockStreamFlag.value = !detectBridgeAvailable();
-  applyDependenciesFactory();
+  // 使用 waitForDesktopBridge 避免 preload 微延迟导致被锁在 mock。
+  void waitForDesktopBridge().then((available) => {
+    useMockStreamFlag.value = !available;
+    aiSource.value = available ? "real" : "mock";
+    applyDependenciesFactory();
+  });
   exposeDebug();
   void restoreFromBridge();
   const bridge = getBridge();
@@ -458,6 +482,32 @@ const showStartButton = computed(
     turn.view.value.snapshot.state === "idle" &&
     turn.view.value.fullText.length === 0,
 );
+
+const endingOpen = computed(
+  () =>
+    runtimeState.value.isCompleted &&
+    turn.view.value.snapshot.state === "awaiting-choice",
+);
+
+const visitedNodeTitles = computed<string[]>(() => {
+  return runtimeState.value.readNodeIds
+    .map((id) => findNode(id)?.title ?? null)
+    .filter((title): title is string => title != null);
+});
+
+const onRestartFromEnding = (): void => {
+  beginMainline();
+};
+
+const onQuitFromEnding = (): void => {
+  const bridge = getBridge();
+  if (bridge != null && typeof bridge.quitApp === "function") {
+    void bridge.quitApp();
+    return;
+  }
+  // 浏览器/预览环境下退出表现为重启主线。
+  beginMainline();
+};
 </script>
 
 <template>
@@ -499,6 +549,26 @@ const showStartButton = computed(
   >
     进入昆仑
   </button>
+  <div
+    class="ai-source-chip"
+    :class="`ai-source-chip--${aiSource}`"
+    data-testid="ai-source-chip"
+    :title="
+      aiSource === 'real'
+        ? '当前一轮对话由桌面本地模型生成（本地 GGUF）。'
+        : '当前一轮对话是预览脚本输出，未调用本地 AI。'
+    "
+  >
+    {{ aiSource === "real" ? "本地 AI 连接中" : "预览脚本模式" }}
+  </div>
+  <EndingOverlay
+    :open="endingOpen"
+    :attitude-score="attitudeScore"
+    :visited-node-titles="visitedNodeTitles"
+    :can-quit="aiSource === 'real'"
+    @restart="onRestartFromEnding"
+    @quit="onQuitFromEnding"
+  />
 </template>
 
 <style scoped>
@@ -523,5 +593,32 @@ const showStartButton = computed(
 .start-button:hover,
 .start-button:focus-visible {
   background: rgba(217, 119, 6, 0.24);
+}
+
+.ai-source-chip {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: var(--z-toast);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  font-family: var(--font-sans, system-ui);
+  pointer-events: none;
+  user-select: none;
+  backdrop-filter: blur(6px);
+}
+
+.ai-source-chip--real {
+  background: rgba(22, 101, 52, 0.78);
+  color: #ecfdf5;
+  border: 1px solid rgba(187, 247, 208, 0.55);
+}
+
+.ai-source-chip--mock {
+  background: rgba(120, 53, 15, 0.78);
+  color: #fef3c7;
+  border: 1px solid rgba(253, 230, 138, 0.55);
 }
 </style>

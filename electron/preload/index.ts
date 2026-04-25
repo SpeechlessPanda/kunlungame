@@ -18,6 +18,9 @@ export interface IpcRendererLike {
 }
 
 export const createDesktopBridge = (renderer: IpcRendererLike): DesktopBridge => ({
+  async quitApp(): Promise<void> {
+    await renderer.invoke('desktop:quit-app')
+  },
   async ping(): Promise<string> {
     return await renderer.invoke('desktop:ping') as string
   },
@@ -53,12 +56,26 @@ export const createDesktopBridge = (renderer: IpcRendererLike): DesktopBridge =>
   }
 })
 
-const registerDesktopBridge = async (): Promise<void> => {
-  const { contextBridge, ipcRenderer } = await import('electron')
-  const desktopBridge = createDesktopBridge(ipcRenderer)
-  contextBridge.exposeInMainWorld('kunlunDesktop', desktopBridge)
+/**
+ * Synchronously expose the desktop bridge to the renderer.
+ *
+ * Earlier this was done via `await import('electron')`, which created a race:
+ * the renderer's `onMounted` could detect `kunlunDesktop` as `undefined` and
+ * permanently fall back to mock dependencies, so `pnpm dev` would never run
+ * the real local model. Loading `electron` synchronously via `require` (the
+ * preload bundle is CommonJS) guarantees the bridge exists before the page
+ * script evaluates.
+ */
+const registerDesktopBridge = (): void => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const electronModule = require('electron') as {
+    contextBridge: { exposeInMainWorld: (key: string, value: unknown) => void }
+    ipcRenderer: IpcRendererLike
+  }
+  const desktopBridge = createDesktopBridge(electronModule.ipcRenderer)
+  electronModule.contextBridge.exposeInMainWorld('kunlunDesktop', desktopBridge)
 }
 
 if (process.env['VITEST'] !== 'true') {
-  void registerDesktopBridge()
+  registerDesktopBridge()
 }

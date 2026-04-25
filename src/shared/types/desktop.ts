@@ -75,6 +75,8 @@ export interface DesktopBridge {
   getProfileAvailability(profileId: string): Promise<DesktopProfileAvailability>
   downloadProfile(profileId: string): Promise<DesktopDownloadProfileResult>
   onProfileDownloadProgress(handler: (event: DesktopProfileDownloadProgressEvent) => void): () => void
+  /** Quit the desktop shell entirely (used by the ending overlay's "退出游戏"). */
+  quitApp(): Promise<void>
 }
 
 export interface DesktopProfileAvailability {

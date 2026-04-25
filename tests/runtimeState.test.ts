@@ -104,7 +104,10 @@ describe('applyPlayerChoice', () => {
 
     expect(result.currentNodeId).toBe('creation-myths')
     expect(result.turnIndex).toBe(thresholdMinTurns)
-    expect(result.attitudeScore).toBe(-3)
+    // 态度值在每轮 challenge 时 -1，并由 [-3, 3] 钳制；
+    // 用 thresholdMinTurns 表达预期，避免 minTurns 后续再被调时反复改测试。
+    const expectedAttitude = Math.max(-3, -thresholdMinTurns)
+    expect(result.attitudeScore).toBe(expectedAttitude)
     expect(result.readNodeIds).toEqual(['kunlun-threshold'])
     expect(result.historySummary).toContain('昆仑初问')
     expect(result.historySummary).toContain('已修复')

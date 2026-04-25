@@ -26,15 +26,9 @@ test.describe('Kunlun Ballad UI shell', () => {
     await page.getByTestId('start-button').click()
     await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
 
-    // 2026-04 扩展版：kunlun-threshold.minTurns = 3，需要连续三次 align 才推进。
-    // 中间每次点击后等待下一轮 choices 重新可点击。
-    for (let i = 0; i < 3; i += 1) {
-      await page.getByTestId('choice-align').click()
-      if (i < 2) {
-        await expect(page.getByTestId('status-node-title')).toContainText('昆仑初问')
-        await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
-      }
-    }
+    // 2026-04-25 重构：kunlun-threshold.minTurns 回调到 1，
+    // 一次 align 点击应该直接推进到 creation-myths。
+    await page.getByTestId('choice-align').click()
     // canonical mainline: kunlun-threshold (fictional) → creation-myths (fictional)
     await expect(page.getByTestId('status-node-title')).toContainText('神话开天', { timeout: 15000 })
     await expect(page.getByTestId('background-mode-label')).toHaveText('虚构意象')
@@ -75,13 +69,8 @@ test.describe('Kunlun Ballad UI shell', () => {
     await page.getByTestId('start-button').click()
     await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
 
-    // 2026-04 扩展版：kunlun-threshold.minTurns = 3，需要三次快捷键才推进到下一节点。
-    for (let i = 0; i < 3; i += 1) {
-      await page.keyboard.press('1')
-      if (i < 2) {
-        await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
-      }
-    }
+    // 2026-04-25 重构：minTurns = 1，一次快捷键即可推进到下一节点。
+    await page.keyboard.press('1')
     await expect(page.getByTestId('status-node-title')).toContainText('神话开天', { timeout: 15000 })
   })
 

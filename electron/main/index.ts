@@ -297,6 +297,10 @@ const bootstrapDesktopShell = async (): Promise<void> => {
   const rendererEntryPath = resolveRendererEntryPath(currentDir)
 
   ipcMain.handle('desktop:ping', async () => 'pong')
+  ipcMain.handle('desktop:quit-app', async () => {
+    // 用在结尾页"退出游戏"按钮：让用户主动结束本次旅程，对应 mainlineOutline 的最终节点。
+    app.quit()
+  })
   ipcMain.handle('desktop:get-startup-snapshot', async () => {
     return await buildDesktopStartupSnapshot(buildDesktopStartupInput({
       isPackaged: app.isPackaged,

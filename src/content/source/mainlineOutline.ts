@@ -46,7 +46,10 @@ export const mainlineStoryOutline: StoryOutline = {
       toneHint: '亲切邀请，但保留史诗感与开场庄严。',
       transitionHint: '序章——昆仑第一次和你打招呼，用一阵风带着盐湖、雪线和古羊皮的气味，让你抬头看那座被云海切成两半的山。',
       characterCueIds: ['guide.kunlun'],
-      minTurns: 3,
+      // 2026-04-25：把 minTurns 统一回退到 1，让每一次玩家选择都立刻推进到下一节点，
+      // 避免在同一节点上反复跑相似 prompt 给玩家造成"两轮之间在死循环"的错觉，
+      // 也让 8 节点主线一定能在 8 次选择后到达升华结局。
+      minTurns: 1,
       nextNodeId: 'creation-myths'
     },
     {
@@ -81,7 +84,7 @@ export const mainlineStoryOutline: StoryOutline = {
       toneHint: '生动讲述，但避免神怪堆砌。',
       transitionHint: '从昆仑的天柱转向更远古的混沌——昆仑指着云海下方裂开的一线天，让你听"世界是怎么被撑开的"。',
       characterCueIds: ['guide.kunlun'],
-      minTurns: 4,
+      minTurns: 1,
       nextNodeId: 'civilization-roots'
     },
     {
@@ -115,7 +118,7 @@ export const mainlineStoryOutline: StoryOutline = {
       toneHint: '把抽象身份讲得贴近当代人的自我认同。',
       transitionHint: '神话说到"人被造出来"之后，昆仑自然把话头引向"那这群人又是怎么开始把自己叫作‘我们’的"。',
       characterCueIds: ['guide.kunlun'],
-      minTurns: 3,
+      minTurns: 1,
       nextNodeId: 'order-and-thought'
     },
     {
@@ -148,7 +151,7 @@ export const mainlineStoryOutline: StoryOutline = {
       toneHint: '理性清楚，但保留思想碰撞的张力。',
       transitionHint: '讲完"共同身份"之后，昆仑把视线压低到祭坛与竹简，问：人多了以后怎么不打架？——把话题自然带进礼乐与诸子。',
       characterCueIds: ['guide.kunlun'],
-      minTurns: 4,
+      minTurns: 1,
       nextNodeId: 'empire-and-openness'
     },
     {
@@ -180,7 +183,7 @@ export const mainlineStoryOutline: StoryOutline = {
       toneHint: '大开大合，但避免口号化赞叹。',
       transitionHint: '诸子互相拉扯的时代结束后，昆仑把地图缓缓摊开：万里长城、一条从长安出发的商队——把话引到"文明如何被收拢成一个帝国又同时保持开放"。',
       characterCueIds: ['guide.kunlun'],
-      minTurns: 4,
+      minTurns: 1,
       nextNodeId: 'fusion-and-refinement'
     },
     {
@@ -208,7 +211,7 @@ export const mainlineStoryOutline: StoryOutline = {
       toneHint: '细腻、灵动，允许更强的审美描写。',
       transitionHint: '帝国打开大门之后，文明没有停下，昆仑转身指一盏宋灯与一本刚抄好的词集——把话题软着陆到"更细的日常 + 更远的海"。',
       characterCueIds: ['guide.kunlun'],
-      minTurns: 4,
+      minTurns: 1,
       nextNodeId: 'rupture-and-guardianship'
     },
     {
@@ -236,7 +239,7 @@ export const mainlineStoryOutline: StoryOutline = {
       toneHint: '克制、清醒，不消费苦难。',
       transitionHint: '讲完"精致反复重写"之后，昆仑收起声音，带你走近一叠旧报和被包好的木匣——把话题引到"然后就是断裂，以及在断裂里有人把文脉托过去"。',
       characterCueIds: ['guide.kunlun'],
-      minTurns: 4,
+      minTurns: 1,
       nextNodeId: 'contemporary-return'
     },
     {
@@ -264,7 +267,7 @@ export const mainlineStoryOutline: StoryOutline = {
       toneHint: '回收前文，温暖但不空泛。',
       transitionHint: '从守护者的身影转身回现代——昆仑把手放在你身边的一块屏幕/一本再版典籍上，问："那这一切，和今天的你有什么关系？"',
       characterCueIds: ['guide.kunlun'],
-      minTurns: 3,
+      minTurns: 1,
       nextNodeId: null
     }
   ]
