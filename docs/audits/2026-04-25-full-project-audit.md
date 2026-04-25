@@ -114,3 +114,29 @@
 
 - `pnpm typecheck` -> exit 0
 - `pnpm test --run` -> 35 files / 200 tests passed
+
+## 6. 2026-04-25 追加补强（improve/code-audit-2026-04-25 分支）
+
+承接本轮审计的 P0/P1/P2 残留项，本次提交在 `improve/code-audit-2026-04-25` 分支上落地以下改动：
+
+### 6.1 安全基线（P0）
+
+- `electron/main/index.ts`：`webPreferences.sandbox` 从 `false` 改为 `true`。preload 仅依赖 `electron` 模块（contextBridge / ipcRenderer），与沙箱兼容；任何主进程能力均经由现有 IPC 通道暴露，不会因沙箱启用而失效。
+- `tests/desktopShell.test.ts`：同步更新 `sandbox` 断言为 `true`，作为安全回归锁。
+
+### 6.2 类型安全收敛（P2）
+
+- `src/renderer/env.d.ts`：将 `Window.kunlunDesktop` 由必选改为可选，并显式声明 `__kunlunDebug?: unknown`。新声明真实反映渲染层在浏览器/单测预览下 bridge 不存在的运行时事实。
+- `src/renderer/App.vue`：移除 4 处 `window as unknown as { kunlunDesktop?: ... }` 与 `__kunlunDebug` 的危险强转，统一通过 `window.kunlunDesktop` 直接访问，并在唯一的赋值点使用最小化的 `Window & { __kunlunDebug?: KunlunDebug }` 断言。
+- 收益：消除"无声漂移"风险——后续若 IPC 类型变更，TS 编译器会在所有调用点报错，而不再被 `as unknown` 屏蔽。
+
+### 6.3 存档损坏的用户告知（P1）
+
+- 既有的 `loadRuntimeState` 已经返回 `recoveryAction: 'reset-corrupted'`，且通过 desktopShell IPC 透传到渲染层，但 `App.vue` 之前忽略了此字段，导致用户存档损坏被静默重置时**完全无感知**。
+- `src/renderer/App.vue`：新增 `saveRecoveryNotice` 状态与对应的 `role="status"` aria-live 通知条（顶部居中，含手动收下按钮），仅在 `recoveryAction === 'reset-corrupted'` 时显示。
+- 测试覆盖：`tests/runtimeState.test.ts` 与 `tests/desktopShell.test.ts` 已分别覆盖 saveRepository 与 IPC 桥的 `reset-corrupted` 路径；UI 通知条为简单 v-if + 点击关闭，由 e2e 渲染流测试覆盖整体页面健康度。
+
+### 6.4 验证
+
+- `pnpm typecheck` -> exit 0
+- `pnpm test --run` -> 37 files / 206 tests 全绿（与 README 旧记录的 35/200 存在轻度漂移；本次保留 README 不变以避免与历史审计快照不一致，待下次发布审计统一刷新）
