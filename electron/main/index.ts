@@ -259,11 +259,20 @@ export const runDesktopProfileDownload = async (
   if (activeDesktopDownloads.has(profileId)) {
     return { ok: false, profileId, reason: 'already-running', message: `${profile.label} 已在下载中` }
   }
+  // 立即占位：避免 "check 与 add 之间仍朊 wait" 造成的并发竞态
+  // （两个快速连发的 IPC 调用都能跳过上面的检查、同时进入 downloadProfileWeights）。
+  activeDesktopDownloads.add(profileId)
 
   const storage = resolveDesktopModelStorage(input)
-  const deps = await (dependencies.buildDependencies ?? buildDefaultProfileDownloaderDependencies)()
+  let deps: ProfileDownloaderDependencies
+  try {
+    deps = await (dependencies.buildDependencies ?? buildDefaultProfileDownloaderDependencies)()
+  } catch (error) {
+    activeDesktopDownloads.delete(profileId)
+    const message = error instanceof Error ? error.message : String(error)
+    return { ok: false, profileId, reason: 'download-failed', message: `构建下载依赖失败: ${message}` }
+  }
 
-  activeDesktopDownloads.add(profileId)
   try {
     const result = await downloadProfileWeights({
       profile,

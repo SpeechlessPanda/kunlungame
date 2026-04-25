@@ -72,8 +72,18 @@ const main = async (): Promise<void> => {
 
     await log('[download] run completed successfully')
   } finally {
-    await lockHandle.close()
-    await rm(lockFile, { force: true })
+    // 清理锁文件失败不应掩盖上面的下载错误：如果 try 块招了下载错，
+    // close()/rm() 再招错会覆盖原始错误堆栈，让“为什么下载失败”变不可诊。
+    try {
+      await lockHandle.close()
+    } catch (closeError) {
+      console.error('[download] lock file handle close failed (suppressed):', closeError)
+    }
+    try {
+      await rm(lockFile, { force: true })
+    } catch (rmError) {
+      console.error('[download] lock file remove failed (suppressed):', rmError)
+    }
   }
 }
 
