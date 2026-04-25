@@ -12,6 +12,8 @@ These instructions apply to all future Copilot sessions in this repository.
 6. Before executing any implementation task, inspect the current working tree and decide which existing changes must be preserved, which should stay out of scope, and whether a cleanup or snapshot is required first.
 7. For multi-step implementation work, create and use a git worktree before making execution changes. Prefer a project-local `.worktrees/` directory that is ignored by git. If the current workspace is dirty, first preserve the in-scope changes on an appropriate preparation branch or commit, then create the execution worktree from that prepared state.
 8. After the worktree implementation has been verified, merge the worktree branch back to the intended target branch and remove the worktree. Do not leave stale worktrees behind at the end of the session.
+9. At the end of every session, the working tree must contain zero uncommitted files. Every change is either committed (and pushed per rule 1) or explicitly deleted; nothing may be left dangling as "modified" or "untracked".
+10. At the end of every session, audit `git worktree list` and remove any worktree that is no longer needed. Do not leave obsolete worktrees behind across sessions.
 
 ## 2. Documentation Sync Rule
 
