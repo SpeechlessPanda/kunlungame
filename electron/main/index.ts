@@ -40,7 +40,7 @@ export interface MainWindowOptions {
   }
 }
 
-export interface DesktopStartupInput extends Omit<BuildModelSetupPlanInput, 'entryPoint'> {}
+export interface DesktopStartupInput extends Omit<BuildModelSetupPlanInput, 'entryPoint'> { }
 
 export interface DesktopStartupDependencies {
   buildSetupPlan: (input: BuildModelSetupPlanInput) => Promise<Awaited<ReturnType<typeof buildModelSetupPlan>>>

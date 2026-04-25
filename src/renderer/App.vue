@@ -79,7 +79,9 @@ const isFallbackModel = computed(
 const profileAvailability = ref<
   Record<string, "ready" | "partial" | "missing" | "unknown">
 >({});
-const downloadStatus = ref<import("./components/SettingsPanel.vue").ProfileDownloadStatus | null>(null);
+const downloadStatus = ref<
+  import("./components/SettingsPanel.vue").ProfileDownloadStatus | null
+>(null);
 
 const refreshProfileAvailability = async (
   profileId?: string,

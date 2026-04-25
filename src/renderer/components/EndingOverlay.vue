@@ -195,13 +195,12 @@ onBeforeUnmount(() => {
 .ending-overlay__veil {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(
-      circle at 50% 35%,
-      rgba(255, 235, 196, 0.55) 0%,
-      rgba(60, 40, 25, 0.92) 70%,
-      rgba(20, 14, 8, 0.98) 100%
-    );
+  background: radial-gradient(
+    circle at 50% 35%,
+    rgba(255, 235, 196, 0.55) 0%,
+    rgba(60, 40, 25, 0.92) 70%,
+    rgba(20, 14, 8, 0.98) 100%
+  );
   animation: endingVeilIn 1200ms ease-out forwards;
 }
 

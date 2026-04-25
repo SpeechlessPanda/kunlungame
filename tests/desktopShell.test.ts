@@ -351,16 +351,16 @@ describe('runDesktopProfileDownload', () => {
       const result = await runDesktopProfileDownload(
         { isPackaged: false, projectRoot: tempDir, appDataDir: tempDir },
         'nope',
-        () => {},
+        () => { },
         {
           buildDependencies: async () => ({
             fetchArtifactMetadata: async () => null,
-            downloadFile: async () => {},
+            downloadFile: async () => { },
             verifyFile: async () => ({ ok: true, sizeMatches: true, hashMatches: null }),
-            removeFile: async () => {},
-            ensureDirectory: async () => {},
+            removeFile: async () => { },
+            ensureDirectory: async () => { },
             readManifest: async () => ({ records: [] }),
-            writeManifest: async () => {}
+            writeManifest: async () => { }
           })
         }
       )
@@ -384,12 +384,12 @@ describe('runDesktopProfileDownload', () => {
         {
           buildDependencies: async () => ({
             fetchArtifactMetadata: async () => ({ contentLength: null, sha256: null }),
-            downloadFile: async () => {},
+            downloadFile: async () => { },
             verifyFile: async () => ({ ok: true, sizeMatches: true, hashMatches: null }),
-            removeFile: async () => {},
-            ensureDirectory: async () => {},
+            removeFile: async () => { },
+            ensureDirectory: async () => { },
             readManifest: async () => ({ records: [] }),
-            writeManifest: async () => {}
+            writeManifest: async () => { }
           })
         }
       )
