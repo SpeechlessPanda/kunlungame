@@ -11,9 +11,9 @@ These instructions apply to all future Copilot sessions in this repository.
 5. If changes are blocked from being pushed because of authentication, network, or remote problems, report the exact blocker and keep the local commit in place.
 6. Before executing any implementation task, inspect the current working tree and decide which existing changes must be preserved, which should stay out of scope, and whether a cleanup or snapshot is required first.
 7. For multi-step implementation work, create and use a git worktree before making execution changes. Prefer a project-local `.worktrees/` directory that is ignored by git. If the current workspace is dirty, first preserve the in-scope changes on an appropriate preparation branch or commit, then create the execution worktree from that prepared state.
-8. After the worktree implementation has been verified, merge the worktree branch back to the intended target branch and remove the worktree. Do not leave stale worktrees behind at the end of the session.
+8. After the worktree implementation has been verified, merge the worktree branch back to the intended target branch and remove the worktree. Any worktree whose changes have already been committed and is no longer useful must be deleted promptly.
 9. At the end of every session, the working tree must contain zero uncommitted files. Every change is either committed (and pushed per rule 1) or explicitly deleted; nothing may be left dangling as "modified" or "untracked".
-10. At the end of every session, audit `git worktree list` and remove any worktree that is no longer needed. Do not leave obsolete worktrees behind across sessions.
+10. At the end of every session, audit `git worktree list` and remove any worktree that is no longer needed. Do not leave obsolete or already-committed worktrees behind across sessions.
 
 ## 2. Documentation Sync Rule
 
@@ -23,7 +23,7 @@ These instructions apply to all future Copilot sessions in this repository.
 4. If a release-facing behavior changes, update release notes or delivery notes before release.
 5. When implementing against project specs, update the relevant spec file as progress is made. Mark what has been completed, what is intentionally deferred, and what is currently blocked.
 6. If some work cannot be completed yet because required assets, story content, UI implementation, or external constraints are missing, record that explicitly in the relevant spec instead of leaving the gap implicit.
-7. After spec files or plan documents have served their purpose, merge them into the surviving canonical document or delete them promptly if they are no longer useful. Do not leave obsolete or one-off spec/plan files lingering without an owner.
+7. After spec files, plan documents, or other project documents have been completed or are no longer useful, archive them in the appropriate canonical location or delete them promptly. Do not leave obsolete or one-off documents lingering without an owner.
 
 ## 3. Reusable Knowledge And Project Skills
 
@@ -73,7 +73,7 @@ The audit record should clearly list what was checked, what passed, what failed,
 ## 7. Working With User Changes
 
 1. If the repository contains changes not created by the current session, treat them as intentional user changes unless there is clear evidence otherwise.
-2. You may build on top of those changes and modify them when needed for the task.
+2. You may build on top of those changes and modify them without asking for confirmation when needed for the task.
 3. Do not revert or discard such changes without explicit approval.
 
 ## 8. Conversation Continuation Rule
@@ -94,3 +94,9 @@ The audit record should clearly list what was checked, what passed, what failed,
 3. Mythic or symbolic nodes should prefer fictional imagery.
 4. Historically grounded cultural nodes should prefer real photography or photo-led composites.
 5. Transitional nodes should intentionally bridge the two modes instead of switching art arbitrarily.
+
+## 10. Log File Management
+
+1. Log-type files must be managed under a unified folder structure instead of being scattered across the repository.
+2. Use the existing `logs/` directory as the default home for runtime logs, smoke logs, diagnostic logs, and temporary investigation logs unless a more specific existing log directory is clearly required.
+3. Organize logs by purpose or workflow in subdirectories, and remove or archive logs that are no longer useful.
