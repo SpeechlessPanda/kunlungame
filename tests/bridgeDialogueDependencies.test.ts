@@ -34,7 +34,9 @@ const buildStreamingBridge = (
     streamMainlineTurn: ReturnType<typeof vi.fn>
 } => ({
     runMainlineTurn: vi.fn(),
-    streamMainlineTurn: vi.fn().mockReturnValue(events)
+    streamMainlineTurn: vi.fn(async (_request, onEvent) => {
+        for await (const event of events) onEvent(event)
+    })
 })
 
 describe('createBridgeDialogueDependenciesFactory', () => {

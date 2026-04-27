@@ -79,7 +79,7 @@ export interface DesktopBridge {
   getStartupSnapshot(): Promise<DesktopStartupSnapshot>
   runDialogueSmoke(): Promise<DesktopDialogueSmokeResult>
   runMainlineTurn(request: DesktopMainlineTurnRequest): Promise<DesktopMainlineTurnResult>
-  streamMainlineTurn?(request: DesktopMainlineTurnRequest): AsyncIterable<DesktopMainlineTurnStreamEvent>
+  streamMainlineTurn?(request: DesktopMainlineTurnRequest, onEvent: (event: DesktopMainlineTurnStreamEvent) => void): Promise<void>
   loadRuntimeState(): Promise<DesktopRuntimeStateSnapshot>
   saveRuntimeState(state: DesktopSerializedRuntimeState): Promise<void>
   getProfileAvailability(profileId: string): Promise<DesktopProfileAvailability>

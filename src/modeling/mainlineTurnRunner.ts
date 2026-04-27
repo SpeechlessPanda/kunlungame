@@ -139,6 +139,9 @@ const createSafeChunkEmitter = (input: {
     onChunk?: (text: string) => void
 }) => {
     let pending = ''
+    const maxBufferedChars = 8
+
+    const takePrefix = (text: string, count: number): string => Array.from(text).slice(0, count).join('')
 
     const emitCleaned = (text: string): void => {
         const cleaned = sanitizeMainlineReply(text, {
@@ -150,11 +153,14 @@ const createSafeChunkEmitter = (input: {
 
     const push = (text: string): void => {
         pending += text
-        const matches = pending.match(/[^。！？?!\n]+[。！？?!]|\n+/gu) ?? []
-        const consumed = matches.join('')
-        if (consumed.length === 0) return
-        for (const chunk of matches) emitCleaned(chunk)
-        pending = pending.slice(consumed.length)
+        while (pending.length > 0) {
+            const sentenceMatch = pending.match(/^[\s\S]*?[。！？?!\n]/u)
+            const nextChunk = sentenceMatch?.[0]
+                ?? (Array.from(pending).length >= maxBufferedChars ? takePrefix(pending, maxBufferedChars) : null)
+            if (nextChunk == null) return
+            emitCleaned(nextChunk)
+            pending = pending.slice(nextChunk.length)
+        }
     }
 
     const flush = (): void => {

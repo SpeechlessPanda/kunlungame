@@ -207,7 +207,13 @@ button {
   button,
   [role="switch"],
   [role="dialog"] {
-    forced-color-adjust: none;
     border-color: CanvasText;
+  }
+  @supports (forced-color-adjust: none) {
+    button,
+    [role="switch"],
+    [role="dialog"] {
+      forced-color-adjust: none;
+    }
   }
 }

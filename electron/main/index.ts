@@ -60,6 +60,10 @@ export const resolveRendererEntryPath = (currentDir: string): string => {
   return join(currentDir, '../renderer/index.html')
 }
 
+export const resolvePreloadEntryPath = (currentDir: string): string => {
+  return join(currentDir, '../preload/index.cjs')
+}
+
 export const buildDesktopStartupInput = (input: {
   isPackaged: boolean
   projectRoot: string
@@ -298,7 +302,7 @@ const bootstrapDesktopShell = async (): Promise<void> => {
 
   const currentFilePath = fileURLToPath(import.meta.url)
   const currentDir = dirname(currentFilePath)
-  const preloadPath = join(currentDir, '../preload/index.js')
+  const preloadPath = resolvePreloadEntryPath(currentDir)
   const rendererEntryPath = resolveRendererEntryPath(currentDir)
 
   ipcMain.handle('desktop:ping', async () => 'pong')

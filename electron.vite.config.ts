@@ -14,7 +14,9 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       lib: {
-        entry: 'electron/preload/index.ts'
+        entry: 'electron/preload/index.ts',
+        formats: ['cjs'],
+        fileName: () => 'index.js'
       }
     }
   },

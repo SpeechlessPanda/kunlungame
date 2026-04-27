@@ -9,6 +9,7 @@ import {
   buildDesktopStartupSnapshot,
   createMainWindowOptions,
   logDesktopShellBootstrapFailure,
+  resolvePreloadEntryPath,
   resolveRendererEntryPath,
   resolveRuntimeSaveFilePath,
   loadDesktopRuntimeState,
@@ -16,17 +17,26 @@ import {
 } from '../electron/main/index.js'
 import { createDefaultRuntimeState } from '../src/runtime/runtimeState.js'
 import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
+import type { DesktopMainlineTurnStreamEvent } from '../src/shared/types/desktop.js'
 
 describe('createMainWindowOptions', () => {
   it('creates a secure preload-only BrowserWindow configuration', () => {
-    const result = createMainWindowOptions('D:/project/kunlungame/dist-electron/preload/index.js')
+    const result = createMainWindowOptions('D:/project/kunlungame/out/preload/index.cjs')
 
     expect(result.width).toBe(1440)
     expect(result.height).toBe(900)
-    expect(result.webPreferences?.preload).toBe('D:/project/kunlungame/dist-electron/preload/index.js')
+    expect(result.webPreferences?.preload).toBe('D:/project/kunlungame/out/preload/index.cjs')
     expect(result.webPreferences?.contextIsolation).toBe(true)
     expect(result.webPreferences?.nodeIntegration).toBe(false)
     expect(result.webPreferences?.sandbox).toBe(true)
+  })
+})
+
+describe('resolvePreloadEntryPath', () => {
+  it('points production startup to the sandbox-compatible CommonJS preload output', () => {
+    const result = resolvePreloadEntryPath('D:/project/kunlungame/out/main')
+
+    expect(normalize(result)).toBe(normalize(join('D:/project/kunlungame/out', 'preload', 'index.cjs')))
   })
 })
 
@@ -144,15 +154,13 @@ describe('createDesktopBridge', () => {
       }
     })
 
-    const events = []
-    for await (const event of bridge.streamMainlineTurn!({
+    const events: DesktopMainlineTurnStreamEvent[] = []
+    await bridge.streamMainlineTurn!({
       nodeId: 'kunlun-threshold',
       attitudeChoiceMode: 'align',
       runtimeState: createDefaultRuntimeState(mainlineStoryOutline),
       recentTurns: []
-    })) {
-      events.push(event)
-    }
+    }, (event) => events.push(event))
 
     expect(events.map((event) => event.type)).toEqual(['chunk', 'result'])
     expect(removedChannel).toMatch(/^desktop:mainline-turn-stream:/)

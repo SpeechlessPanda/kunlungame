@@ -121,6 +121,25 @@ describe('useDialogueSession', () => {
         expect(controller.view.value.snapshot.state).toBe('awaiting-choice')
     })
 
+    it('starts reveal scheduling as soon as the first chunk arrives', async () => {
+        const scheduleReveal = vi.fn()
+        const deps: DialogueDependencies = {
+            streamText: async function* () {
+                yield '第一段正在流入。'
+            },
+            generateOptions: async () => [
+                { semantic: 'align', label: '继续。' },
+                { semantic: 'challenge', label: '追问。' }
+            ]
+        }
+        const session = createDialogueSession({ dependenciesFactory: () => deps, scheduleReveal })
+        const controller = createTurnController()
+
+        await session.runTurn({ node, runtimeState, retrievedEntries: [], attitudeChoiceMode: 'align', recentTurns: [] }, controller)
+
+        expect(scheduleReveal).toHaveBeenCalledTimes(1)
+    })
+
     it('cancels an in-flight turn so later events are ignored by the controller', async () => {
         let resume!: () => void
         const gate = new Promise<void>((resolve) => {

@@ -6,6 +6,7 @@ import {
 import type {
   DesktopBridge,
   DesktopDownloadProfileResult,
+  DesktopMainlineTurnStreamEvent,
   DesktopMainlineTurnResult,
   DesktopProfileAvailability,
   DesktopRuntimeStateSnapshot,
@@ -133,24 +134,23 @@ describe('wrapDesktopBridgeWithValidation', () => {
     })
 
     it('合法 streamMainlineTurn 事件逐个透传', async () => {
-      async function* streamEvents() {
-        yield { type: 'chunk' as const, text: '第一句。' }
-        yield { type: 'reset' as const }
-        yield { type: 'result' as const, result: buildValidTurnResultSuccess() }
-      }
       const bridge = wrapDesktopBridgeWithValidation(
-        buildRawBridge({ streamMainlineTurn: vi.fn().mockReturnValue(streamEvents()) })
+        buildRawBridge({
+          streamMainlineTurn: vi.fn(async (_request, onEvent) => {
+            onEvent({ type: 'chunk', text: '第一句。' })
+            onEvent({ type: 'reset' })
+            onEvent({ type: 'result', result: buildValidTurnResultSuccess() })
+          })
+        })
       )
 
-      const events = []
-      for await (const event of bridge.streamMainlineTurn!({
+      const events: DesktopMainlineTurnStreamEvent[] = []
+      await bridge.streamMainlineTurn!({
         nodeId: 'kunlun-threshold',
         attitudeChoiceMode: 'align',
         runtimeState: buildValidRuntimeStateSnapshot().state,
         recentTurns: []
-      })) {
-        events.push(event)
-      }
+      }, (event) => events.push(event))
 
       expect(events.map((event) => event.type)).toEqual(['chunk', 'reset', 'result'])
     })
@@ -210,33 +210,32 @@ describe('wrapDesktopBridgeWithValidation', () => {
     })
 
     it('streamMainlineTurn 畸形事件 → 抛 IpcContractError', async () => {
-      async function* streamEvents() {
-        yield { type: 'chunk', text: 42 }
-      }
       const bridge = wrapDesktopBridgeWithValidation(
-        buildRawBridge({ streamMainlineTurn: vi.fn().mockReturnValue(streamEvents()) as never })
+        buildRawBridge({
+          streamMainlineTurn: vi.fn(async (_request, onEvent) => {
+            onEvent({ type: 'chunk', text: 42 } as never)
+          }) as never
+        })
       )
 
-      await expect(async () => {
-        for await (const _event of bridge.streamMainlineTurn!({
+      await expect(
+        bridge.streamMainlineTurn!({
           nodeId: 'kunlun-threshold',
           attitudeChoiceMode: 'align',
           runtimeState: buildValidRuntimeStateSnapshot().state,
           recentTurns: []
-        })) {
-          // exhaust iterator
-        }
-      }).rejects.toBeInstanceOf(IpcContractError)
+        }, () => { })
+      ).rejects.toBeInstanceOf(IpcContractError)
     })
 
-    it('streamMainlineTurn 缺失 → 抛 IpcContractError', () => {
+    it('streamMainlineTurn 缺失 → 抛 IpcContractError', async () => {
       const bridge = wrapDesktopBridgeWithValidation(buildRawBridge({ streamMainlineTurn: undefined }))
-      expect(() => bridge.streamMainlineTurn!({
+      await expect(bridge.streamMainlineTurn!({
         nodeId: 'kunlun-threshold',
         attitudeChoiceMode: 'align',
         runtimeState: buildValidRuntimeStateSnapshot().state,
         recentTurns: []
-      })).toThrow(IpcContractError)
+      }, () => { })).rejects.toBeInstanceOf(IpcContractError)
     })
 
     it('loadRuntimeState recoveryAction 非法值 → 抛 IpcContractError', async () => {

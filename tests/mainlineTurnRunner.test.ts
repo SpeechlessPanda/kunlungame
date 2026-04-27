@@ -295,6 +295,39 @@ describe('runMainlineTurn', () => {
         expect(result.chunks.join('')).toBe(result.combinedText)
     })
 
+    it('emits long model text through stream callbacks in incremental chunks', async () => {
+        const runtimeState = createDefaultRuntimeState(mainlineStoryOutline)
+        const streamed: string[] = []
+        const result = await runMainlineTurn(
+            {
+                ...bootstrapInput,
+                nodeId: 'kunlun-threshold',
+                attitudeChoiceMode: 'align',
+                runtimeState,
+                recentTurns: []
+            },
+            {
+                checkFileExists: async () => true,
+                readKnowledgeEntries: async () => [],
+                createDialogueDependencies: () => ({
+                    streamText: async function* () {
+                        yield '昆仑在古人心中是世界中心也是天柱想象的起点'
+                        yield '，它把山川地理和天帝都城的神话连在一起。'
+                    },
+                    generateOptions: async () => [
+                        { semantic: 'align' as const, label: '继续听。' },
+                        { semantic: 'challenge' as const, label: '先追问。' }
+                    ]
+                })
+            },
+            { onChunk: (text) => streamed.push(text) }
+        )
+
+        expect(result.ok).toBe(true)
+        expect(streamed.length).toBeGreaterThan(2)
+        expect(streamed.join('')).toContain('昆仑在古人心中')
+    })
+
     it('repairs short low-coverage model output with a second AI pass', async () => {
         const runtimeState = createDefaultRuntimeState(mainlineStoryOutline)
         let streamCalls = 0

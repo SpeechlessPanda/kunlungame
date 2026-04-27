@@ -520,24 +520,26 @@ export const createBridgeDialogueDependenciesFactory = (
                     recentTurns: [...recentTurns]
                 }
                 if (bridge.streamMainlineTurn != null) {
-                    pending = (async () => {
-                        for await (const event of bridge.streamMainlineTurn!(request)) {
+                    pending = new Promise<DesktopMainlineTurnResult>((resolve, reject) => {
+                        void bridge.streamMainlineTurn!(request, (event) => {
                             if (event.type === 'chunk') {
                                 enqueueText(event.text)
-                                continue
+                                return
                             }
                             if (event.type === 'reset') {
                                 enqueueText({ type: 'reset' })
-                                continue
+                                return
                             }
                             if (event.type === 'error') {
-                                throw new Error(`[bridge] stream: ${event.message}`)
+                                reject(new Error(`[bridge] stream: ${event.message}`))
+                                return
                             }
                             cachedResult = event.result
-                            return event.result
-                        }
-                        throw new Error('[bridge] stream ended without a result event')
-                    })()
+                            resolve(event.result)
+                        }).catch((error: unknown) => {
+                            reject(error)
+                        })
+                    })
                         .catch((error: unknown) => {
                             textError = error
                             throw error

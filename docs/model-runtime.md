@@ -82,9 +82,9 @@ Pro 可选档：
 
 主线对话在桌面模式下优先使用 `streamMainlineTurn()`，把 Node 侧 `node-llama-cpp` token/chunk 通过请求专属 IPC 通道实时送到渲染层。
 
-1. 预加载层为每轮生成 `desktop:mainline-turn-stream:<requestId>` 通道，并暴露 `AsyncIterable<DesktopMainlineTurnStreamEvent>`。
+1. 预加载层为每轮生成 `desktop:mainline-turn-stream:<requestId>` 通道，并通过 callback 把 `DesktopMainlineTurnStreamEvent` 逐个送入渲染层；不要跨 `contextBridge` 返回 `AsyncIterable`，因为带 `Symbol.asyncIterator` 的对象不能被 Electron structured clone。
 2. 主进程执行 `desktop:stream-mainline-turn` 时，把模型 chunk 立即发送为 `{ type: 'chunk', text }`，不等待整轮结束。
-3. 渲染层 bridge client 逐个校验事件 schema；adapter 优先消费流式接口，缺失时才回退到旧的 `runMainlineTurn()` 批量结果。
+3. 渲染层 bridge client 逐个校验事件 schema；adapter 在渲染进程内把 callback 事件包装成队列供 orchestrator 消费，缺失流式接口时才回退到旧的 `runMainlineTurn()` 批量结果。
 4. 质量修复回合被接受时，主进程先发送 `{ type: 'reset' }`，再发送修复后的 chunk，避免 UI 保留被废弃的短答。
 5. 最终结果仍以 `{ type: 'result', result }` 到达，供选项、profile、fallback 状态和持久化摘要使用。
 
@@ -119,8 +119,9 @@ Pro 可选档：
 3. 当前下载链路需要在用户端保留主源失败后自动切镜像的恢复路径，这在本地修复过程中已经被实际触发验证。
 4. 当前仓库已对白盒验证本地流式对话适配器，确认 chunk 可按顺序转发，且仅在首个 chunk 发出前失败时执行自动重试，避免半途重放导致重复文本。
 5. 当前仓库已对白盒验证桌面 IPC 流式链路，确认 preload 请求通道、renderer adapter、schema guard 与 session reset 都能按事件顺序工作。
-6. 渲染层右下角会显示 `本地 AI · Quality Mode · 3B`、`本地 AI · Lite Mode · 1.5B`、`本地 AI · Pro Mode · 7B` 或 `预览脚本模式`，用于区分真实 GGUF 路径与浏览器/Playwright mock 路径。
-7. 2026-04-27 真实 smoke 已确认默认运行 `qwen2.5-3b-instruct-q4km`、`fallbackUsed = false`；短答会触发质量修复回合，最终输出覆盖《山海经》、世界中心/天柱、樊桐/玄圃/阆风、西王母等当前节点知识点。
+6. 2026-04-27 真实 Electron UAT 已确认构建版显示 `本地 AI · Quality Mode`，DOM 文本在选项出现前持续增长：首个可见字符约 6.56s，选项约 15.17s，最终文本 373 字。
+7. 渲染层右下角会显示 `本地 AI · Quality Mode · 3B`、`本地 AI · Lite Mode · 1.5B`、`本地 AI · Pro Mode · 7B` 或 `预览脚本模式`，用于区分真实 GGUF 路径与浏览器/Playwright mock 路径。
+8. 2026-04-27 真实 smoke 已确认默认运行 `qwen2.5-3b-instruct-q4km`、`fallbackUsed = false`；短答会触发质量修复回合，最终输出覆盖《山海经》、世界中心/天柱、樊桐/玄圃/阆风、西王母等当前节点知识点。
 
 ## 下载执行约束
 
@@ -143,5 +144,5 @@ Pro 可选档：
 5. UI 需要覆盖以下阶段：`checking`、`queued`、`downloading`、`switching-to-mirror`、`completed`、`failed`。
 6. 失败态需要直接展示恢复动作：重试下载、切换镜像、打开网络帮助；默认模式下还应允许切换兼容模式。
 7. 当前最小桌面壳已暴露 `desktop:ping` 与 `desktop:get-startup-snapshot` IPC，并在预加载层以白名单 `window.kunlunDesktop` 形式提供给渲染层。
-8. 自 2026-04-25 起预加载桥以同步 `require('electron')` 注册，避免渲染层 `onMounted` 在 `await import('electron')` 之前抢先读取 `window.kunlunDesktop` 而被永久锁在 mock；同时 `kunlunDesktop.quitApp()` 已经接到 `desktop:quit-app` 主进程 handler，供主线结尾的"退出游戏"按钮使用。
+8. 自 2026-04-25 起预加载桥以同步 `require('electron')` 注册，避免渲染层 `onMounted` 在 `await import('electron')` 之前抢先读取 `window.kunlunDesktop` 而被永久锁在 mock；构建版 preload 必须打成 sandbox 兼容的 CommonJS 产物 `out/preload/index.cjs`，否则 bridge 不会注入；同时 `kunlunDesktop.quitApp()` 已经接到 `desktop:quit-app` 主进程 handler，供主线结尾的"退出游戏"按钮使用。
 9. 渲染层在右下角持久显示 `本地 AI · Quality Mode · 3B`、`本地 AI · Lite Mode · 1.5B`、`本地 AI · Pro Mode · 7B` 或 `预览脚本模式` 的小标识（`data-testid="ai-source-chip"`），用于在 `pnpm dev` 中肉眼确认当前一轮对话是否真的走了本地 GGUF 流式接口而非演示脚本。

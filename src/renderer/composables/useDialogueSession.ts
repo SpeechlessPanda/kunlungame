@@ -45,8 +45,8 @@ export interface DialogueSessionTurnInput {
 
 export interface DialogueSessionOptions {
     dependenciesFactory: DialogueDependenciesFactory
-    /** 流结束后启动的逐字刷新节奏；注入便于测试。 */
-    scheduleReveal?: (controller: TurnController) => void
+    /** 首个 chunk 到达后启动的逐字刷新节奏；注入便于测试。 */
+    scheduleReveal?: (controller: TurnController) => void | (() => void)
 }
 
 export interface DialogueSession {
@@ -66,14 +66,15 @@ const mapOptionsToChoiceModels = (options: DialogueOption[]): ChoiceModel[] => {
     return options.map((option) => ({ id: option.semantic, label: option.label }))
 }
 
-const defaultScheduleReveal = (controller: TurnController): void => {
+const defaultScheduleReveal = (controller: TurnController): () => void => {
     const handle = setInterval(() => {
         controller.revealNext(2)
         const view = controller.view.value
-        if (!view.isRevealing && view.snapshot.state === 'streaming') {
+        if (view.snapshot.state !== 'streaming' && view.snapshot.state !== 'loading') {
             clearInterval(handle)
         }
     }, 60)
+    return () => clearInterval(handle)
 }
 
 export const createDialogueSession = (
@@ -119,6 +120,18 @@ export const createDialogueSession = (
             })
 
             let streamEnded = false
+            let stopReveal: (() => void) | null = null
+
+            const ensureRevealScheduled = (): void => {
+                if (stopReveal != null) return
+                const maybeStop = scheduleReveal(controller)
+                stopReveal = typeof maybeStop === 'function' ? maybeStop : () => { }
+            }
+
+            const stopRevealNow = (): void => {
+                stopReveal?.()
+                stopReveal = null
+            }
 
             try {
                 for await (const event of orchestrateDialogue(dependencies, orchestratorInput)) {
@@ -128,18 +141,19 @@ export const createDialogueSession = (
 
                     switch (event.type) {
                         case 'reset':
+                            stopRevealNow()
                             controller.dispatch({ type: 'reset' })
                             controller.dispatch({ type: 'request-start' })
                             streamEnded = false
                             break
                         case 'chunk':
                             controller.appendText(event.text)
+                            ensureRevealScheduled()
                             break
                         case 'options':
                             if (!streamEnded) {
                                 controller.endStream()
                                 streamEnded = true
-                                scheduleReveal(controller)
                             }
                             controller.skipReveal()
                             lastOptions.value = [...event.options]
@@ -149,10 +163,10 @@ export const createDialogueSession = (
                             if (!streamEnded) {
                                 controller.endStream()
                                 streamEnded = true
-                                scheduleReveal(controller)
                             }
                             break
                         case 'error':
+                            stopRevealNow()
                             controller.dispatch({ type: 'error', message: event.message })
                             return
                     }
@@ -161,6 +175,7 @@ export const createDialogueSession = (
                 if (!isStillCurrent()) {
                     return
                 }
+                stopRevealNow()
                 const message =
                     error instanceof Error ? error.message : '对话流出现未知错误。'
                 controller.dispatch({ type: 'error', message })

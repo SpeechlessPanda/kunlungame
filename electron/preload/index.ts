@@ -20,55 +20,54 @@ export interface IpcRendererLike {
 
 const createRequestId = (): string => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 
-const createIpcEventStream = <T>(input: {
+const streamIpcEvents = <T>(input: {
   renderer: IpcRendererLike
   channel: string
+  onEvent: (event: T) => void
   start: () => Promise<unknown>
   isTerminal: (event: T) => boolean
-}): AsyncIterable<T> => {
-  return {
-    async *[Symbol.asyncIterator]() {
-      const queue: T[] = []
-      let done = false
-      let wake: (() => void) | null = null
-
-      const notify = (): void => {
-        const resolver = wake
-        wake = null
-        resolver?.()
-      }
-
-      const listener = (_event: unknown, payload: unknown): void => {
-        const next = payload as T
-        queue.push(next)
-        if (input.isTerminal(next)) done = true
-        notify()
-      }
-
-      input.renderer.on?.(input.channel, listener as (event: unknown, ...args: unknown[]) => void)
-      const startPromise = input.start().catch((error: unknown) => {
-        queue.push({ type: 'error', message: error instanceof Error ? error.message : String(error) } as T)
-        done = true
-        notify()
-      })
-
-      try {
-        while (!done || queue.length > 0) {
-          if (queue.length === 0) {
-            await new Promise<void>((resolve) => {
-              wake = resolve
-            })
-          }
-          while (queue.length > 0) {
-            yield queue.shift()!
-          }
-        }
-        await startPromise
-      } finally {
-        input.renderer.removeListener?.(input.channel, listener as (event: unknown, ...args: unknown[]) => void)
-      }
+}): Promise<void> => {
+  return new Promise<void>((resolve, reject) => {
+    let settled = false
+    const cleanup = (): void => {
+      input.renderer.removeListener?.(input.channel, listener as (event: unknown, ...args: unknown[]) => void)
     }
-  }
+
+    const settle = (callback: () => void): void => {
+      if (settled) return
+      settled = true
+      cleanup()
+      callback()
+    }
+
+    const listener = (_event: unknown, payload: unknown): void => {
+      const next = payload as T
+      try {
+        input.onEvent(next)
+      } catch (error) {
+        settle(() => reject(error))
+        return
+      }
+      if (input.isTerminal(next)) settle(resolve)
+    }
+
+    if (input.renderer.on == null || input.renderer.removeListener == null) {
+      reject(new Error('ipcRenderer event subscription is unavailable'))
+      return
+    }
+
+    input.renderer.on(input.channel, listener as (event: unknown, ...args: unknown[]) => void)
+    void input.start().catch((error: unknown) => {
+      const streamError = { type: 'error', message: error instanceof Error ? error.message : String(error) } as T
+      try {
+        input.onEvent(streamError)
+      } catch (callbackError) {
+        settle(() => reject(callbackError))
+        return
+      }
+      settle(() => reject(error))
+    })
+  })
 }
 
 export const createDesktopBridge = (renderer: IpcRendererLike): DesktopBridge => ({
@@ -87,12 +86,16 @@ export const createDesktopBridge = (renderer: IpcRendererLike): DesktopBridge =>
   async runMainlineTurn(request: DesktopMainlineTurnRequest): Promise<DesktopMainlineTurnResult> {
     return await renderer.invoke('desktop:run-mainline-turn', request) as DesktopMainlineTurnResult
   },
-  streamMainlineTurn(request: DesktopMainlineTurnRequest): AsyncIterable<DesktopMainlineTurnStreamEvent> {
+  async streamMainlineTurn(
+    request: DesktopMainlineTurnRequest,
+    onEvent: (event: DesktopMainlineTurnStreamEvent) => void
+  ): Promise<void> {
     const requestId = createRequestId()
     const channel = `desktop:mainline-turn-stream:${requestId}`
-    return createIpcEventStream<DesktopMainlineTurnStreamEvent>({
+    await streamIpcEvents<DesktopMainlineTurnStreamEvent>({
       renderer,
       channel,
+      onEvent,
       start: async () => await renderer.invoke('desktop:stream-mainline-turn', requestId, request),
       isTerminal: (event) => event.type === 'result' || event.type === 'error'
     })
