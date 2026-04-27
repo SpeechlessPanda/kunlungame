@@ -67,14 +67,26 @@ Pro 可选档：
 1. `chunk`：流式文本片段。
 2. `options`：两个动态中文选项，分别映射 `align` 与 `challenge`。
 3. `complete`：本轮输出正常结束。
-4. `error`：本轮输出失败，并带 `retryable` 标记。
+4. `reset`：当前草稿被质量修复回合替换，UI 必须清空已显示文本并继续接收后续 `chunk`。
+5. `error`：本轮输出失败，并带 `retryable` 标记。
 
 事件顺序约束：
 
 1. 文本片段先于选项事件。
-2. 选项事件晚于所有 `chunk`。
-3. 成功路径最后必须是 `complete`。
-4. 失败路径不得伪装成 `complete`。
+2. 如果触发质量修复，`reset` 晚于首答 `chunk`、早于修复后的 `chunk`。
+3. 选项事件晚于最终保留的所有 `chunk`。
+4. 成功路径最后必须是 `complete`。
+5. 失败路径不得伪装成 `complete`。
+
+## 桌面 IPC 流式链路
+
+主线对话在桌面模式下优先使用 `streamMainlineTurn()`，把 Node 侧 `node-llama-cpp` token/chunk 通过请求专属 IPC 通道实时送到渲染层。
+
+1. 预加载层为每轮生成 `desktop:mainline-turn-stream:<requestId>` 通道，并暴露 `AsyncIterable<DesktopMainlineTurnStreamEvent>`。
+2. 主进程执行 `desktop:stream-mainline-turn` 时，把模型 chunk 立即发送为 `{ type: 'chunk', text }`，不等待整轮结束。
+3. 渲染层 bridge client 逐个校验事件 schema；adapter 优先消费流式接口，缺失时才回退到旧的 `runMainlineTurn()` 批量结果。
+4. 质量修复回合被接受时，主进程先发送 `{ type: 'reset' }`，再发送修复后的 chunk，避免 UI 保留被废弃的短答。
+5. 最终结果仍以 `{ type: 'result', result }` 到达，供选项、profile、fallback 状态和持久化摘要使用。
 
 ## 打包适配要求
 
@@ -98,6 +110,7 @@ Pro 可选档：
 10. 已有 `src/modeling/storyPromptBuilder.ts` 与 `src/modeling/dialogueOrchestrator.ts`，可为后续真实模型流式接入提供稳定的 prompt 和事件边界。
 11. 已有 `src/modeling/localDialogueDependencies.ts`，可把 `node-llama-cpp` 封装为可注入的本地流式依赖，并在首个文本 chunk 发出前失败时执行一次受控自动重试。
 12. 已有 `desktop:run-dialogue-smoke` bridge 与 `pnpm dialogue:smoke` 命令，可触发主线首节点、知识检索、prompt builder、orchestrator 和本地 llama adapter 的单轮联调。
+13. 已有 `desktop:stream-mainline-turn` bridge，可把主进程生成中的文本 chunk 实时推入 UI；旧 `desktop:run-mainline-turn` 保留为兼容回退。
 
 ## 当前已验证状态
 
@@ -105,8 +118,9 @@ Pro 可选档：
 2. 当前工作机的 `runtime-cache/models` 下已存在 1.5B、3B、7B 三档 GGUF 文件，可用于真实本地联调。
 3. 当前下载链路需要在用户端保留主源失败后自动切镜像的恢复路径，这在本地修复过程中已经被实际触发验证。
 4. 当前仓库已对白盒验证本地流式对话适配器，确认 chunk 可按顺序转发，且仅在首个 chunk 发出前失败时执行自动重试，避免半途重放导致重复文本。
-5. 渲染层右下角会显示 `本地 AI · Quality Mode · 3B`、`本地 AI · Lite Mode · 1.5B`、`本地 AI · Pro Mode · 7B` 或 `预览脚本模式`，用于区分真实 GGUF 路径与浏览器/Playwright mock 路径。
-6. 2026-04-27 真实 smoke 已确认默认运行 `qwen2.5-3b-instruct-q4km`、`fallbackUsed = false`；短答会触发质量修复回合，最终输出覆盖《山海经》、世界中心/天柱、樊桐/玄圃/阆风、西王母等当前节点知识点。
+5. 当前仓库已对白盒验证桌面 IPC 流式链路，确认 preload 请求通道、renderer adapter、schema guard 与 session reset 都能按事件顺序工作。
+6. 渲染层右下角会显示 `本地 AI · Quality Mode · 3B`、`本地 AI · Lite Mode · 1.5B`、`本地 AI · Pro Mode · 7B` 或 `预览脚本模式`，用于区分真实 GGUF 路径与浏览器/Playwright mock 路径。
+7. 2026-04-27 真实 smoke 已确认默认运行 `qwen2.5-3b-instruct-q4km`、`fallbackUsed = false`；短答会触发质量修复回合，最终输出覆盖《山海经》、世界中心/天柱、樊桐/玄圃/阆风、西王母等当前节点知识点。
 
 ## 下载执行约束
 

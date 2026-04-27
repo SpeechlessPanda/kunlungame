@@ -127,6 +127,11 @@ export const createDialogueSession = (
                     }
 
                     switch (event.type) {
+                        case 'reset':
+                            controller.dispatch({ type: 'reset' })
+                            controller.dispatch({ type: 'request-start' })
+                            streamEnded = false
+                            break
                         case 'chunk':
                             controller.appendText(event.text)
                             break

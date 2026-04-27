@@ -7,8 +7,11 @@ export interface DialogueOption {
   label: string
 }
 
+export type DialogueTextStreamItem = string | { type: 'reset' }
+
 export type DialogueEvent =
   | { type: 'chunk'; text: string }
+  | { type: 'reset' }
   | { type: 'options'; options: DialogueOption[] }
   | { type: 'complete' }
   | { type: 'error'; message: string; retryable: boolean }
@@ -24,7 +27,7 @@ export interface DialogueOrchestratorInput {
 }
 
 export interface DialogueDependencies {
-  streamText: (prompt: ReturnType<typeof buildStoryPrompt>) => AsyncIterable<string>
+  streamText: (prompt: ReturnType<typeof buildStoryPrompt>) => AsyncIterable<DialogueTextStreamItem>
   generateOptions: (input: {
     currentNode: StoryNode
     semantics: PlayerAttitudeChoice[]
@@ -38,10 +41,14 @@ export async function* orchestrateDialogue(
   try {
     const prompt = buildStoryPrompt(input)
 
-    for await (const text of dependencies.streamText(prompt)) {
+    for await (const item of dependencies.streamText(prompt)) {
+      if (typeof item !== 'string') {
+        yield { type: 'reset' }
+        continue
+      }
       yield {
         type: 'chunk',
-        text
+        text: item
       }
     }
 

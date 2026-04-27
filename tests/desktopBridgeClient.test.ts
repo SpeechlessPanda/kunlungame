@@ -132,6 +132,29 @@ describe('wrapDesktopBridgeWithValidation', () => {
       }
     })
 
+    it('合法 streamMainlineTurn 事件逐个透传', async () => {
+      async function* streamEvents() {
+        yield { type: 'chunk' as const, text: '第一句。' }
+        yield { type: 'reset' as const }
+        yield { type: 'result' as const, result: buildValidTurnResultSuccess() }
+      }
+      const bridge = wrapDesktopBridgeWithValidation(
+        buildRawBridge({ streamMainlineTurn: vi.fn().mockReturnValue(streamEvents()) })
+      )
+
+      const events = []
+      for await (const event of bridge.streamMainlineTurn!({
+        nodeId: 'kunlun-threshold',
+        attitudeChoiceMode: 'align',
+        runtimeState: buildValidRuntimeStateSnapshot().state,
+        recentTurns: []
+      })) {
+        events.push(event)
+      }
+
+      expect(events.map((event) => event.type)).toEqual(['chunk', 'reset', 'result'])
+    })
+
     it('saveRuntimeState 不做返回值校验，不抛错', async () => {
       const bridge = wrapDesktopBridgeWithValidation(buildRawBridge())
       await expect(
@@ -184,6 +207,36 @@ describe('wrapDesktopBridgeWithValidation', () => {
           recentTurns: []
         })
       ).rejects.toBeInstanceOf(IpcContractError)
+    })
+
+    it('streamMainlineTurn 畸形事件 → 抛 IpcContractError', async () => {
+      async function* streamEvents() {
+        yield { type: 'chunk', text: 42 }
+      }
+      const bridge = wrapDesktopBridgeWithValidation(
+        buildRawBridge({ streamMainlineTurn: vi.fn().mockReturnValue(streamEvents()) as never })
+      )
+
+      await expect(async () => {
+        for await (const _event of bridge.streamMainlineTurn!({
+          nodeId: 'kunlun-threshold',
+          attitudeChoiceMode: 'align',
+          runtimeState: buildValidRuntimeStateSnapshot().state,
+          recentTurns: []
+        })) {
+          // exhaust iterator
+        }
+      }).rejects.toBeInstanceOf(IpcContractError)
+    })
+
+    it('streamMainlineTurn 缺失 → 抛 IpcContractError', () => {
+      const bridge = wrapDesktopBridgeWithValidation(buildRawBridge({ streamMainlineTurn: undefined }))
+      expect(() => bridge.streamMainlineTurn!({
+        nodeId: 'kunlun-threshold',
+        attitudeChoiceMode: 'align',
+        runtimeState: buildValidRuntimeStateSnapshot().state,
+        recentTurns: []
+      })).toThrow(IpcContractError)
     })
 
     it('loadRuntimeState recoveryAction 非法值 → 抛 IpcContractError', async () => {

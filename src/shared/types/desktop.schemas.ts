@@ -93,6 +93,13 @@ export const desktopMainlineTurnResultSchema = z.discriminatedUnion('ok', [
   desktopMainlineTurnFailureSchema
 ])
 
+export const desktopMainlineTurnStreamEventSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('chunk'), text: z.string() }),
+  z.object({ type: z.literal('reset') }),
+  z.object({ type: z.literal('result'), result: desktopMainlineTurnResultSchema }),
+  z.object({ type: z.literal('error'), message: z.string() })
+])
+
 export const desktopProfileAvailabilitySchema = z.object({
   profileId: z.string(),
   status: z.enum(['ready', 'partial', 'missing']),

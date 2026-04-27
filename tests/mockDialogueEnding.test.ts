@@ -1,17 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { buildMockDialogueDependencies } from '../src/renderer/adapters/rendererDialogueDependencies.js'
 import { minimalStoryOutline } from '../src/shared/contracts/contentContracts.js'
+import type { DialogueTextStreamItem } from '../src/modeling/dialogueOrchestrator.js'
 
 const node = minimalStoryOutline.nodes[0]!
 
 const emptyPrompt = { system: '', user: '' }
 
 const collect = async (
-    iter: AsyncIterable<string>
+    iter: AsyncIterable<DialogueTextStreamItem>
 ): Promise<string[]> => {
     const chunks: string[] = []
     for await (const chunk of iter) {
-        chunks.push(chunk)
+        if (typeof chunk === 'string') chunks.push(chunk)
     }
     return chunks
 }

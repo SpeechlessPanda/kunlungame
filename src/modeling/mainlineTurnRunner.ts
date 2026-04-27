@@ -24,11 +24,9 @@ import { assessReplyQuality, buildCoverageRepairPrompt } from './replyQuality.js
  *
  * `runMainlineTurn` 是 `runDialogueSmokeTest` 的一般化版本：不再写死节点和默认状态，
  * 而是接受渲染层传入的当前节点 id、运行时状态、态度倾向与最近摘要，
- * 在主进程里用真正的 `localDialogueDependencies` 把一轮对话跑完，
- * 然后把收集到的所有 chunk 和两个选项一次性交还给渲染层。
- *
- * 之所以一次性返回而不是流式，是因为当前 Electron IPC 桥只需要支持
- * 单次 invoke/reply；渲染层可以在收到 chunks 后自己再做逐字呈现。
+ * 在主进程里用真正的 `localDialogueDependencies` 把一轮对话跑完。
+ * Electron 桌面桥会通过可选 stream callbacks 把正在生成的 chunk 实时送到渲染层；
+ * 函数最终仍返回完整结果，供选项、存档摘要和兼容回退链路使用。
  *
  * 如果模型文件不存在或加载失败，函数不会 throw，而是返回 `{ ok: false, reason }`，
  * 让 UI 可以清晰降级，不至于静默卡死。
@@ -42,6 +40,11 @@ export interface MainlineTurnInput extends RuntimeBootstrapInput {
     runtimeState: RuntimeState
     recentTurns: string[]
     retrievalLimit?: number
+}
+
+export interface MainlineTurnStreamCallbacks {
+    onChunk?: (text: string) => void
+    onReset?: () => void
 }
 
 export type MainlineTurnSuccess = {
@@ -130,15 +133,42 @@ const splitCleanedReplyIntoChunks = (text: string): string[] => {
         .filter((chunk) => chunk.trim().length > 0)
 }
 
-const collectStreamText = async (stream: AsyncIterable<string>): Promise<string[]> => {
-    const chunks: string[] = []
-    for await (const text of stream) chunks.push(text)
-    return chunks
+const createSafeChunkEmitter = (input: {
+    forbiddenTerms: string[]
+    recentTurns: string[]
+    onChunk?: (text: string) => void
+}) => {
+    let pending = ''
+
+    const emitCleaned = (text: string): void => {
+        const cleaned = sanitizeMainlineReply(text, {
+            recentTurns: input.recentTurns,
+            forbiddenTerms: input.forbiddenTerms
+        })
+        if (cleaned.length > 0) input.onChunk?.(cleaned)
+    }
+
+    const push = (text: string): void => {
+        pending += text
+        const matches = pending.match(/[^。！？?!\n]+[。！？?!]|\n+/gu) ?? []
+        const consumed = matches.join('')
+        if (consumed.length === 0) return
+        for (const chunk of matches) emitCleaned(chunk)
+        pending = pending.slice(consumed.length)
+    }
+
+    const flush = (): void => {
+        if (pending.trim().length > 0) emitCleaned(pending)
+        pending = ''
+    }
+
+    return { push, flush }
 }
 
 export const runMainlineTurn = async (
     input: MainlineTurnInput,
-    overrides: Partial<MainlineTurnDependencies> = {}
+    overrides: Partial<MainlineTurnDependencies> = {},
+    stream: MainlineTurnStreamCallbacks = {}
 ): Promise<MainlineTurnResult> => {
     const deps: MainlineTurnDependencies = { ...defaultDependencies, ...overrides }
 
@@ -193,6 +223,12 @@ export const runMainlineTurn = async (
     const chunks: string[] = []
     let options: DialogueOption[] = []
     let completed = false
+    const forbiddenTerms = collectForbiddenProperNouns(currentNode)
+    const liveEmitter = createSafeChunkEmitter({
+        forbiddenTerms,
+        recentTurns: input.recentTurns,
+        onChunk: stream.onChunk
+    })
 
     try {
         for await (const event of orchestrateDialogue(dialogueDependencies, {
@@ -206,6 +242,7 @@ export const runMainlineTurn = async (
         })) {
             if (event.type === 'chunk') {
                 chunks.push(event.text)
+                liveEmitter.push(event.text)
                 continue
             }
             if (event.type === 'options') {
@@ -214,6 +251,12 @@ export const runMainlineTurn = async (
             }
             if (event.type === 'complete') {
                 completed = true
+                continue
+            }
+            if (event.type === 'reset') {
+                chunks.splice(0, chunks.length)
+                liveEmitter.flush()
+                stream.onReset?.()
                 continue
             }
             // event.type === 'error'
@@ -232,8 +275,8 @@ export const runMainlineTurn = async (
             modelPath: selectedModel.modelPath
         }
     }
+    liveEmitter.flush()
 
-    const forbiddenTerms = collectForbiddenProperNouns(currentNode)
     const rawCombined = chunks.join('')
     let combinedText = sanitizeMainlineReply(rawCombined, {
         recentTurns: input.recentTurns,
@@ -249,13 +292,25 @@ export const runMainlineTurn = async (
             forbiddenTerms,
             reasons: quality.reasons
         })
-        const repairRawChunks = await collectStreamText(dialogueDependencies.streamText(repairPrompt))
+        const repairEmitter = createSafeChunkEmitter({
+            forbiddenTerms,
+            recentTurns: input.recentTurns,
+            onChunk: stream.onChunk
+        })
+        const repairRawChunks: string[] = []
+        for await (const item of dialogueDependencies.streamText(repairPrompt)) {
+            if (typeof item !== 'string') continue
+            repairRawChunks.push(item)
+        }
         const repairText = sanitizeMainlineReply(repairRawChunks.join(''), {
             recentTurns: input.recentTurns,
             forbiddenTerms
         })
         const repairQuality = assessReplyQuality({ text: repairText, currentNode })
         if (repairText.length > combinedText.length && repairQuality.reasons.length <= quality.reasons.length) {
+            stream.onReset?.()
+            for (const chunk of repairRawChunks) repairEmitter.push(chunk)
+            repairEmitter.flush()
             combinedText = repairText
             cleanedChunks = splitCleanedReplyIntoChunks(repairText)
         }

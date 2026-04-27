@@ -96,7 +96,7 @@ describe('createDesktopBridge', () => {
     })
 
     expect(Object.keys(bridge).sort()).toEqual(
-      ['downloadProfile', 'getProfileAvailability', 'getStartupSnapshot', 'loadRuntimeState', 'onProfileDownloadProgress', 'ping', 'quitApp', 'runDialogueSmoke', 'runMainlineTurn', 'saveRuntimeState']
+      ['downloadProfile', 'getProfileAvailability', 'getStartupSnapshot', 'loadRuntimeState', 'onProfileDownloadProgress', 'ping', 'quitApp', 'runDialogueSmoke', 'runMainlineTurn', 'saveRuntimeState', 'streamMainlineTurn']
     )
     await expect(bridge.ping()).resolves.toBe('pong')
     await expect(bridge.getStartupSnapshot()).resolves.toMatchObject({
@@ -110,6 +110,52 @@ describe('createDesktopBridge', () => {
       chunkCount: 2,
       completed: true
     })
+  })
+
+  it('streams mainline turn events through a request-scoped IPC channel', async () => {
+    const listeners = new Map<string, (event: unknown, payload: unknown) => void>()
+    let removedChannel: string | null = null
+    const bridge = createDesktopBridge({
+      invoke: async (channel: string, requestId: unknown) => {
+        if (channel !== 'desktop:stream-mainline-turn') throw new Error(`Unexpected channel: ${channel}`)
+        const streamChannel = `desktop:mainline-turn-stream:${String(requestId)}`
+        listeners.get(streamChannel)?.({}, { type: 'chunk', text: '第一句。' })
+        listeners.get(streamChannel)?.({}, {
+          type: 'result',
+          result: {
+            ok: true,
+            selectedProfileId: 'qwen2.5-3b-instruct-q4km',
+            modelPath: '/tmp/model.gguf',
+            currentNodeId: 'kunlun-threshold',
+            fallbackUsed: false,
+            chunks: ['第一句。'],
+            combinedText: '第一句。',
+            options: [],
+            completed: true
+          }
+        })
+        return undefined
+      },
+      on: (channel, listener) => {
+        listeners.set(channel, listener)
+      },
+      removeListener: (channel) => {
+        removedChannel = channel
+      }
+    })
+
+    const events = []
+    for await (const event of bridge.streamMainlineTurn!({
+      nodeId: 'kunlun-threshold',
+      attitudeChoiceMode: 'align',
+      runtimeState: createDefaultRuntimeState(mainlineStoryOutline),
+      recentTurns: []
+    })) {
+      events.push(event)
+    }
+
+    expect(events.map((event) => event.type)).toEqual(['chunk', 'result'])
+    expect(removedChannel).toMatch(/^desktop:mainline-turn-stream:/)
   })
 })
 

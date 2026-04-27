@@ -11,11 +11,13 @@
 import type {
   DesktopBridge,
   DesktopMainlineTurnRequest,
+  DesktopMainlineTurnStreamEvent,
   DesktopProfileDownloadProgressEvent
 } from '../../shared/types/desktop.js'
 import {
   desktopDialogueSmokeResultSchema,
   desktopDownloadProfileResultSchema,
+  desktopMainlineTurnStreamEventSchema,
   desktopMainlineTurnResultSchema,
   desktopProfileAvailabilitySchema,
   desktopProfileDownloadProgressEventSchema,
@@ -70,6 +72,18 @@ export const wrapDesktopBridgeWithValidation = (raw: DesktopBridge): DesktopBrid
   async runMainlineTurn(request: DesktopMainlineTurnRequest) {
     const result = await raw.runMainlineTurn(request)
     return parseOrThrow('desktop:run-mainline-turn', desktopMainlineTurnResultSchema, result)
+  },
+  streamMainlineTurn(request: DesktopMainlineTurnRequest): AsyncIterable<DesktopMainlineTurnStreamEvent> {
+    if (raw.streamMainlineTurn == null) {
+      throw new IpcContractError('desktop:stream-mainline-turn', new TypeError('streamMainlineTurn is not available'))
+    }
+    return {
+      async *[Symbol.asyncIterator]() {
+        for await (const event of raw.streamMainlineTurn!(request)) {
+          yield parseOrThrow('desktop:stream-mainline-turn', desktopMainlineTurnStreamEventSchema, event)
+        }
+      }
+    }
   },
   async loadRuntimeState() {
     const result = await raw.loadRuntimeState()

@@ -68,11 +68,18 @@ export type DesktopMainlineTurnResult =
     modelPath?: string
   }
 
+export type DesktopMainlineTurnStreamEvent =
+  | { type: 'chunk'; text: string }
+  | { type: 'reset' }
+  | { type: 'result'; result: DesktopMainlineTurnResult }
+  | { type: 'error'; message: string }
+
 export interface DesktopBridge {
   ping(): Promise<string>
   getStartupSnapshot(): Promise<DesktopStartupSnapshot>
   runDialogueSmoke(): Promise<DesktopDialogueSmokeResult>
   runMainlineTurn(request: DesktopMainlineTurnRequest): Promise<DesktopMainlineTurnResult>
+  streamMainlineTurn?(request: DesktopMainlineTurnRequest): AsyncIterable<DesktopMainlineTurnStreamEvent>
   loadRuntimeState(): Promise<DesktopRuntimeStateSnapshot>
   saveRuntimeState(state: DesktopSerializedRuntimeState): Promise<void>
   getProfileAvailability(profileId: string): Promise<DesktopProfileAvailability>

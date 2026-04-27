@@ -27,6 +27,16 @@ const buildBridge = (result: DesktopMainlineTurnResult): Pick<DesktopBridge, 'ru
     return { runMainlineTurn: vi.fn().mockResolvedValue(result) }
 }
 
+const buildStreamingBridge = (
+    events: AsyncIterable<import('../src/shared/types/desktop.js').DesktopMainlineTurnStreamEvent>
+): Pick<DesktopBridge, 'runMainlineTurn' | 'streamMainlineTurn'> & {
+    runMainlineTurn: ReturnType<typeof vi.fn>
+    streamMainlineTurn: ReturnType<typeof vi.fn>
+} => ({
+    runMainlineTurn: vi.fn(),
+    streamMainlineTurn: vi.fn().mockReturnValue(events)
+})
+
 describe('createBridgeDialogueDependenciesFactory', () => {
     it('streams chunks and returns ordered align/challenge options via a single IPC call', async () => {
         const bridge = buildBridge({
@@ -69,7 +79,7 @@ describe('createBridgeDialogueDependenciesFactory', () => {
             attitudeChoiceMode: 'align',
             recentTurns: []
         } as never)) {
-            streamed.push(chunk)
+            if (typeof chunk === 'string') streamed.push(chunk)
         }
         expect(streamed).toEqual(['段落一。', '段落二。'])
 
@@ -116,5 +126,82 @@ describe('createBridgeDialogueDependenciesFactory', () => {
                 void _chunk
             }
         }).rejects.toThrow(/model-missing/)
+    })
+
+    it('uses streamMainlineTurn when available and yields chunks before options are requested', async () => {
+        async function* events() {
+            yield { type: 'chunk' as const, text: '实时第一句。' }
+            yield { type: 'chunk' as const, text: '实时第二句。' }
+            yield {
+                type: 'result' as const,
+                result: {
+                    ok: true as const,
+                    selectedProfileId: 'qwen2.5-3b-instruct-q4km',
+                    modelPath: '/fake/path/model.gguf',
+                    currentNodeId: node.id,
+                    fallbackUsed: false,
+                    chunks: ['实时第一句。', '实时第二句。'],
+                    combinedText: '实时第一句。实时第二句。',
+                    options: [
+                        { semantic: 'align' as const, label: '顺着听。' },
+                        { semantic: 'challenge' as const, label: '先追问。' }
+                    ],
+                    completed: true
+                }
+            }
+        }
+
+        const bridge = buildStreamingBridge(events())
+        const factory = createBridgeDialogueDependenciesFactory(bridge, {
+            chunkDelayMs: 0,
+            sleep: async () => { }
+        })
+        const deps = factory({
+            node,
+            runtimeState,
+            retrievedEntries: [],
+            attitudeChoiceMode: 'align',
+            recentTurns: []
+        })
+
+        const streamed: string[] = []
+        for await (const item of deps.streamText({} as never)) {
+            if (typeof item === 'string') streamed.push(item)
+        }
+        expect(streamed).toEqual(['实时第一句。', '实时第二句。'])
+        expect(bridge.streamMainlineTurn).toHaveBeenCalledTimes(1)
+        expect(bridge.runMainlineTurn).not.toHaveBeenCalled()
+
+        const options = await deps.generateOptions({ semantics: ['align', 'challenge'] } as never)
+        expect(options.map((option) => option.label)).toEqual(['顺着听。', '先追问。'])
+    })
+
+    it('passes reset events through to the dialogue session layer', async () => {
+        async function* events() {
+            yield { type: 'chunk' as const, text: '短答。' }
+            yield { type: 'reset' as const }
+            yield { type: 'chunk' as const, text: '修复后的正文。' }
+            yield {
+                type: 'result' as const,
+                result: {
+                    ok: true as const,
+                    selectedProfileId: 'qwen2.5-3b-instruct-q4km',
+                    modelPath: '/fake/path/model.gguf',
+                    currentNodeId: node.id,
+                    fallbackUsed: false,
+                    chunks: ['修复后的正文。'],
+                    combinedText: '修复后的正文。',
+                    options: [],
+                    completed: true
+                }
+            }
+        }
+        const bridge = buildStreamingBridge(events())
+        const factory = createBridgeDialogueDependenciesFactory(bridge, { chunkDelayMs: 0, sleep: async () => { } })
+        const deps = factory({ node, runtimeState, retrievedEntries: [], attitudeChoiceMode: 'align', recentTurns: [] })
+
+        const items: unknown[] = []
+        for await (const item of deps.streamText({} as never)) items.push(item)
+        expect(items).toEqual(['短答。', { type: 'reset' }, '修复后的正文。'])
     })
 })

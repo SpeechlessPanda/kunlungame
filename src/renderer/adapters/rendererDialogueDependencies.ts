@@ -8,6 +8,7 @@ import type {
     DesktopMainlineTurnRequest,
     DesktopMainlineTurnResult
 } from '../../shared/types/desktop.js'
+import type { DialogueTextStreamItem } from '../../modeling/dialogueOrchestrator.js'
 import type { PlayerAttitudeChoice, RuntimeState } from '../../runtime/runtimeState.js'
 import { serializeRuntimeStateForDesktop } from '../../runtime/runtimeStateFacade.js'
 
@@ -482,7 +483,7 @@ export interface BridgeDialogueDependenciesFactoryOptions {
  * 工厂会让 `streamText` 抛出一个可读错误，让 UI 进入可重试的 error 态。
  */
 export const createBridgeDialogueDependenciesFactory = (
-    bridge: Pick<DesktopBridge, 'runMainlineTurn'>,
+    bridge: Pick<DesktopBridge, 'runMainlineTurn' | 'streamMainlineTurn'>,
     options: BridgeDialogueDependenciesFactoryOptions = {}
 ): DialogueDependenciesFactory => {
     const chunkDelayMs = options.chunkDelayMs ?? 60
@@ -491,6 +492,21 @@ export const createBridgeDialogueDependenciesFactory = (
     return ({ node, runtimeState, attitudeChoiceMode, recentTurns }) => {
         let cachedResult: DesktopMainlineTurnResult | null = null
         let pending: Promise<DesktopMainlineTurnResult> | null = null
+        const textQueue: DialogueTextStreamItem[] = []
+        let textDone = false
+        let textError: unknown = null
+        let wakeText: (() => void) | null = null
+
+        const notifyText = (): void => {
+            const resolver = wakeText
+            wakeText = null
+            resolver?.()
+        }
+
+        const enqueueText = (item: DialogueTextStreamItem): void => {
+            textQueue.push(item)
+            notifyText()
+        }
 
         const requestTurn = async (): Promise<DesktopMainlineTurnResult> => {
             if (cachedResult != null) {
@@ -503,27 +519,81 @@ export const createBridgeDialogueDependenciesFactory = (
                     runtimeState: serializeRuntimeStateForDesktop(runtimeState),
                     recentTurns: [...recentTurns]
                 }
-                pending = bridge.runMainlineTurn(request).then((result) => {
-                    cachedResult = result
-                    return result
-                })
+                if (bridge.streamMainlineTurn != null) {
+                    pending = (async () => {
+                        for await (const event of bridge.streamMainlineTurn!(request)) {
+                            if (event.type === 'chunk') {
+                                enqueueText(event.text)
+                                continue
+                            }
+                            if (event.type === 'reset') {
+                                enqueueText({ type: 'reset' })
+                                continue
+                            }
+                            if (event.type === 'error') {
+                                throw new Error(`[bridge] stream: ${event.message}`)
+                            }
+                            cachedResult = event.result
+                            return event.result
+                        }
+                        throw new Error('[bridge] stream ended without a result event')
+                    })()
+                        .catch((error: unknown) => {
+                            textError = error
+                            throw error
+                        })
+                        .finally(() => {
+                            textDone = true
+                            notifyText()
+                        })
+                } else {
+                    pending = bridge.runMainlineTurn(request)
+                        .then((result) => {
+                            cachedResult = result
+                            if (result.ok) {
+                                for (const chunk of result.chunks) enqueueText(chunk)
+                            }
+                            return result
+                        })
+                        .catch((error: unknown) => {
+                            textError = error
+                            throw error
+                        })
+                        .finally(() => {
+                            textDone = true
+                            notifyText()
+                        })
+                }
             }
             return await pending
         }
 
         return {
             streamText: async function* streamText() {
-                const result = await requestTurn()
+                const resultPromise = requestTurn()
+                let emittedCount = 0
+                while (!textDone || textQueue.length > 0) {
+                    if (textQueue.length === 0) {
+                        await new Promise<void>((resolve) => {
+                            wakeText = resolve
+                        })
+                    }
+                    if (textError != null && textQueue.length === 0) {
+                        throw textError
+                    }
+                    const item = textQueue.shift()
+                    if (item == null) continue
+                    if (emittedCount > 0) {
+                        await sleep(chunkDelayMs)
+                    }
+                    emittedCount += 1
+                    yield item
+                }
+                const result = await resultPromise
                 if (!result.ok) {
                     throw new Error(
                         `[bridge] ${result.reason}: ${result.message}`
                     )
-                }
-                for (let index = 0; index < result.chunks.length; index += 1) {
-                    if (index > 0) {
-                        await sleep(chunkDelayMs)
-                    }
-                    yield result.chunks[index]!
                 }
             },
             generateOptions: async ({ semantics }): Promise<DialogueOption[]> => {

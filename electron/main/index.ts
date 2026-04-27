@@ -5,6 +5,7 @@ import type {
   DesktopDownloadProfileResult,
   DesktopMainlineTurnRequest,
   DesktopMainlineTurnResult,
+  DesktopMainlineTurnStreamEvent,
   DesktopProfileAvailability,
   DesktopProfileDownloadProgressEvent,
   DesktopRuntimeStateSnapshot,
@@ -13,7 +14,7 @@ import type {
 } from '../../src/shared/types/desktop.js'
 import { buildModelSetupPlan, evaluateSingleProfileAvailability, type BuildModelSetupPlanInput } from '../../src/modeling/modelSetupPlanner.js'
 import { runDialogueSmokeTest } from '../../src/modeling/dialogueSmokeTest.js'
-import { runMainlineTurn } from '../../src/modeling/mainlineTurnRunner.js'
+import { runMainlineTurn, type MainlineTurnStreamCallbacks } from '../../src/modeling/mainlineTurnRunner.js'
 import { findModelProfileById } from '../../src/modeling/modelProfiles.js'
 import { resolveModelStoragePaths } from '../../src/modeling/modelPaths.js'
 import {
@@ -125,7 +126,8 @@ export const runDesktopDialogueSmoke = async (
 
 export const runDesktopMainlineTurn = async (
   startupInput: DesktopStartupInput,
-  request: DesktopMainlineTurnRequest
+  request: DesktopMainlineTurnRequest,
+  stream: MainlineTurnStreamCallbacks = {}
 ): Promise<DesktopMainlineTurnResult> => {
   const parsedRuntimeState = parseDesktopRuntimeState(request.runtimeState)
   // 用存档里持久化的用户偏好覆写 startupInput.preferredMode，
@@ -140,7 +142,7 @@ export const runDesktopMainlineTurn = async (
     attitudeChoiceMode: request.attitudeChoiceMode,
     runtimeState: parsedRuntimeState,
     recentTurns: request.recentTurns
-  })
+  }, {}, stream)
   if (result.ok) {
     return {
       ok: true,
@@ -161,6 +163,8 @@ export const runDesktopMainlineTurn = async (
     ...(result.modelPath != null ? { modelPath: result.modelPath } : {})
   }
 }
+
+const toMainlineStreamChannel = (requestId: string): string => `desktop:mainline-turn-stream:${requestId}`
 
 export const logDesktopShellBootstrapFailure = (error: unknown): void => {
   console.error('[desktop-shell] bootstrap failed', error)
@@ -325,6 +329,30 @@ const bootstrapDesktopShell = async (): Promise<void> => {
       }),
       request
     )
+  })
+  ipcMain.handle('desktop:stream-mainline-turn', async (event, requestId: string, request: DesktopMainlineTurnRequest) => {
+    const channel = toMainlineStreamChannel(requestId)
+    const send = (payload: DesktopMainlineTurnStreamEvent): void => {
+      if (!event.sender.isDestroyed()) event.sender.send(channel, payload)
+    }
+
+    try {
+      const result = await runDesktopMainlineTurn(
+        buildDesktopStartupInput({
+          isPackaged: app.isPackaged,
+          projectRoot: process.cwd(),
+          appDataDir: app.getPath('userData')
+        }),
+        request,
+        {
+          onChunk: (text) => send({ type: 'chunk', text }),
+          onReset: () => send({ type: 'reset' })
+        }
+      )
+      send({ type: 'result', result })
+    } catch (error) {
+      send({ type: 'error', message: error instanceof Error ? error.message : String(error) })
+    }
   })
   ipcMain.handle('desktop:load-runtime-state', async () => {
     return await loadDesktopRuntimeState(app.getPath('userData'))

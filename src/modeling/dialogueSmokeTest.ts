@@ -127,6 +127,11 @@ export const runDialogueSmokeTest = async (
             continue
         }
 
+        if (event.type === 'reset') {
+            chunks.splice(0, chunks.length)
+            continue
+        }
+
         throw new Error(event.message)
     }
 
@@ -146,8 +151,8 @@ export const runDialogueSmokeTest = async (
             reasons: quality.reasons
         })
         const repairChunks: string[] = []
-        for await (const text of dialogueDependencies.streamText(repairPrompt)) {
-            repairChunks.push(text)
+        for await (const item of dialogueDependencies.streamText(repairPrompt)) {
+            if (typeof item === 'string') repairChunks.push(item)
         }
         const repairText = sanitizeMainlineReply(repairChunks.join(''), { forbiddenTerms })
         const repairQuality = assessReplyQuality({ text: repairText, currentNode })

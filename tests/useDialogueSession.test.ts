@@ -99,6 +99,28 @@ describe('useDialogueSession', () => {
         expect(controller.view.value.snapshot.canRetry).toBe(true)
     })
 
+    it('clears streamed draft text when a reset event arrives', async () => {
+        const deps: DialogueDependencies = {
+            streamText: async function* () {
+                yield '短答。'
+                yield { type: 'reset' as const }
+                yield '修复后的正文。'
+            },
+            generateOptions: async () => [
+                { semantic: 'align', label: '继续。' },
+                { semantic: 'challenge', label: '追问。' }
+            ]
+        }
+
+        const controller = createTurnController()
+        const session = buildSession(deps)
+        await session.runTurn({ node, runtimeState, retrievedEntries: [], attitudeChoiceMode: 'align', recentTurns: [] }, controller)
+
+        expect(controller.view.value.fullText).toBe('修复后的正文。')
+        expect(controller.view.value.fullText).not.toContain('短答')
+        expect(controller.view.value.snapshot.state).toBe('awaiting-choice')
+    })
+
     it('cancels an in-flight turn so later events are ignored by the controller', async () => {
         let resume!: () => void
         const gate = new Promise<void>((resolve) => {
@@ -204,7 +226,7 @@ describe('buildMockDialogueDependencies', () => {
 
         const collected: string[] = []
         for await (const chunk of deps.streamText({ system: '', user: '' })) {
-            collected.push(chunk)
+            if (typeof chunk === 'string') collected.push(chunk)
         }
         expect(collected.length).toBeGreaterThanOrEqual(2)
         expect(new Set(collected).size).toBe(collected.length)
