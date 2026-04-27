@@ -2,10 +2,11 @@
 
 ## 目标
 
-当前项目采用双模型方案：
+当前项目采用三档本地模型方案：
 
-1. 默认模式：Qwen2.5-7B-Instruct GGUF 4-bit。
-2. 兼容模式：Qwen2.5-3B-Instruct GGUF 4-bit。
+1. 默认质量档：Qwen2.5-3B-Instruct GGUF Q4_K_M。
+2. Lite 兜底档：Qwen2.5-1.5B-Instruct GGUF Q4_K_M，用于低显存或纯 CPU 机器。
+3. Pro 可选档：Qwen2.5-7B-Instruct GGUF Q3_K_M，需要用户显式选择。
 
 ## 推理与分发策略
 
@@ -17,7 +18,19 @@
 
 ## 模型文件
 
-默认模式：
+默认质量档：
+
+1. 仓库：`Qwen/Qwen2.5-3B-Instruct-GGUF`
+2. 文件：
+   - `qwen2.5-3b-instruct-q4_k_m.gguf`
+
+Lite 兜底档：
+
+1. 仓库：`Qwen/Qwen2.5-1.5B-Instruct-GGUF`
+2. 文件：
+   - `qwen2.5-1.5b-instruct-q4_k_m.gguf`
+
+Pro 可选档：
 
 1. 仓库：`Qwen/Qwen2.5-7B-Instruct-GGUF`
 2. 文件：
@@ -28,19 +41,13 @@
    叙事可接受；速度提升 ~15-20%；下载/校验链路也由分片合并简化为单文件。如需更高
    质量基准，可在开发机上手工拉取 Q4_K_M 或 Q5_K_M 做离线对比。
 
-兼容模式：
-
-1. 仓库：`Qwen/Qwen2.5-3B-Instruct-GGUF`
-2. 文件：
-   - `qwen2.5-3b-instruct-q4_k_m.gguf`
-
 ## 分层上下文
 
 每轮送入模型的上下文固定按以下顺序组装：
 
 1. 固定规则。
 2. 当前节点。
-3. 检索知识。
+3. 检索知识 RAG cards。
 4. 历史摘要。
 5. 最近对话。
 
@@ -48,8 +55,10 @@
 
 1. 当前 prompt builder 会把 system prompt 固定为中文输出、陪伴式表达、单主线不分叉、二选一语义固定映射。
 2. 当前节点会显式带入 `coreQuestion`、`summary`、`mustIncludeFacts`。
-3. `forbiddenFutureTopics` 会被写入 prompt，作为反剧透边界。
-4. 当前玩家倾向会被翻译为 `附和型` 或 `反驳型`，但不会改变主线事实或节点顺序。
+3. 检索条目会被格式化为 RAG cards，包含来源、主题、事实要点和讲述方式提示；模型必须用当前人物口吻重组这些事实，不能照抄条目。
+4. `forbiddenFutureTopics` 与当前节点之后所有主线节点的关键词会被写入 prompt，作为反剧透边界。
+5. 3B / 1.5B 严格覆盖模式会要求 3-4 个自然段、足够长度和当前节点事实覆盖；如果模型首答太短、段落不足或关键词覆盖不足，会用同一个本地模型再跑一次窄化修复 prompt。
+6. 当前玩家倾向会被翻译为 `附和型` 或 `反驳型`，但不会改变主线事实或节点顺序。
 
 ## 对话事件契约
 
@@ -71,13 +80,13 @@
 
 1. 安装包内需要包含下载器、模型清单和缓存目录逻辑。
 2. 安装包不应强依赖用户手工安装 Ollama。
-3. 应用应支持默认模式与兼容模式切换。
-4. 没有合适 GPU 时，可以给用户显式选择继续低速运行或切换兼容模式。
+3. 应用应支持默认质量档、Lite 兜底档与 Pro 档切换。
+4. 没有合适 GPU 时，可以给用户显式选择继续默认 3B 低速运行或切换 Lite 兜底档。
 5. 桌面壳启动时应先根据用户偏好、可用显存和打包状态生成 runtime bootstrap plan，再决定当前加载哪个模型以及是否触发下载。
 
 ## 当前已落地的适配点
 
-1. 已有双模型清单。
+1. 已有默认 3B、Lite 1.5B、Pro 7B 三档模型清单。
 2. 已有开发态与打包态模型缓存路径解析。
 3. 已有分层上下文构造器。
 4. 已有模型下载脚本与清单写入逻辑；CLI 与应用内下载都复用 `src/modeling/profileDownloader.ts` 的 fetch streaming 下载、断点续传、镜像切换与字节级进度能力。
@@ -92,11 +101,12 @@
 
 ## 当前已验证状态
 
-1. 3B 模型已通过最小中文对话冒烟测试。
-2. 7B 模型先前的运行失败已定位为第一分片文件损坏；重新下载并校验后，7B 模型也已通过最小中文对话冒烟测试。
+1. 代码级默认档是 `qwen2.5-3b-instruct-q4km`；只有显式切换 Compatibility 或 VRAM 明确低于 4GB 时才会降到 `qwen2.5-1.5b-instruct-q4km`。
+2. 当前工作机的 `runtime-cache/models` 下已存在 1.5B、3B、7B 三档 GGUF 文件，可用于真实本地联调。
 3. 当前下载链路需要在用户端保留主源失败后自动切镜像的恢复路径，这在本地修复过程中已经被实际触发验证。
 4. 当前仓库已对白盒验证本地流式对话适配器，确认 chunk 可按顺序转发，且仅在首个 chunk 发出前失败时执行自动重试，避免半途重放导致重复文本。
-5. `pnpm dialogue:smoke` 当前会显式检查开发态与用户目录两组模型路径；在本次工作机上，由于四个候选路径都没有 GGUF 文件，真实联调被准确阻塞在模型资产缺失，而非代码异常。
+5. 渲染层右下角会显示 `本地 AI · Quality Mode · 3B`、`本地 AI · Lite Mode · 1.5B`、`本地 AI · Pro Mode · 7B` 或 `预览脚本模式`，用于区分真实 GGUF 路径与浏览器/Playwright mock 路径。
+6. 2026-04-27 真实 smoke 已确认默认运行 `qwen2.5-3b-instruct-q4km`、`fallbackUsed = false`；短答会触发质量修复回合，最终输出覆盖《山海经》、世界中心/天柱、樊桐/玄圃/阆风、西王母等当前节点知识点。
 
 ## 下载执行约束
 
@@ -110,7 +120,7 @@
 
 ## 桌面壳与设置页接口保留
 
-当前仓库已经落下最小 Electron/Vue 桌面壳，但仍未进入正式 UI 实现阶段，因此本轮只把壳层与后续设置页需要消费的接口接通，不展开视觉和交互细节。
+当前仓库已经落下 Electron/Vue 桌面壳与“玉牍星幕”视觉小说界面，模型设置页直接消费以下接口。
 
 1. 首次启动与设置页都应通过 `buildModelSetupPlan()` 获取当前模型模式、已下载状态、默认动作和设置页落点。
 2. 首次启动在 `shellAction = auto-download-required` 时应自动触发下载，不再等待二次确认。
@@ -120,4 +130,4 @@
 6. 失败态需要直接展示恢复动作：重试下载、切换镜像、打开网络帮助；默认模式下还应允许切换兼容模式。
 7. 当前最小桌面壳已暴露 `desktop:ping` 与 `desktop:get-startup-snapshot` IPC，并在预加载层以白名单 `window.kunlunDesktop` 形式提供给渲染层。
 8. 自 2026-04-25 起预加载桥以同步 `require('electron')` 注册，避免渲染层 `onMounted` 在 `await import('electron')` 之前抢先读取 `window.kunlunDesktop` 而被永久锁在 mock；同时 `kunlunDesktop.quitApp()` 已经接到 `desktop:quit-app` 主进程 handler，供主线结尾的"退出游戏"按钮使用。
-9. 渲染层在右下角持久显示 `本地 AI 连接中` / `预览脚本模式` 的小标识（`data-testid="ai-source-chip"`），用于在 `pnpm dev` 中肉眼确认当前一轮对话是否真的走了本地 GGUF 流式接口而非演示脚本。
+9. 渲染层在右下角持久显示 `本地 AI · Quality Mode · 3B`、`本地 AI · Lite Mode · 1.5B`、`本地 AI · Pro Mode · 7B` 或 `预览脚本模式` 的小标识（`data-testid="ai-source-chip"`），用于在 `pnpm dev` 中肉眼确认当前一轮对话是否真的走了本地 GGUF 流式接口而非演示脚本。

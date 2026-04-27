@@ -37,6 +37,7 @@ export const desktopDialogueSmokeResultSchema = z.object({
   fallbackUsed: z.boolean(),
   chunkCount: z.number().int().nonnegative(),
   combinedText: z.string(),
+  combinedTextLength: z.number().int().nonnegative().optional(),
   options: z.array(dialogueOptionSchema),
   completed: z.boolean()
 })

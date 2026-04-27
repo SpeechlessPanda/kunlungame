@@ -53,11 +53,11 @@ defineProps<Props>()
   width: 100%;
   height: 100%;
   border-radius: var(--radius-lg);
-  border: 1px dashed var(--color-border-strong);
+  border: 1px dashed rgba(216, 168, 79, 0.38);
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.04),
-    rgba(255, 255, 255, 0)
+    rgba(248, 239, 222, 0.09),
+    rgba(248, 239, 222, 0.02)
   );
   display: flex;
   flex-direction: column;
@@ -72,8 +72,8 @@ defineProps<Props>()
   width: 60%;
   background: linear-gradient(
     180deg,
-    rgba(245, 247, 251, 0.12) 0%,
-    rgba(245, 247, 251, 0.04) 70%,
+    rgba(248, 239, 222, 0.24) 0%,
+    rgba(216, 168, 79, 0.1) 70%,
     transparent 100%
   );
   clip-path: polygon(
@@ -92,7 +92,7 @@ defineProps<Props>()
 .character-slot__label {
   font-family: var(--font-serif);
   font-size: var(--font-size-sm);
-  color: var(--color-foreground-muted);
+  color: rgba(255, 246, 232, 0.74);
   letter-spacing: 0.1em;
 }
 </style>

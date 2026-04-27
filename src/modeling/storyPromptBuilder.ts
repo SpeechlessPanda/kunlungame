@@ -1,4 +1,5 @@
 import { buildLayeredContext } from './layeredContextBuilder.js'
+import { formatKnowledgeEntriesForPrompt } from './ragKnowledgeCards.js'
 import { mainlineStoryOutline } from '../content/source/mainlineOutline.js'
 import type { KnowledgeEntry, StoryNode } from '../shared/contracts/contentContracts.js'
 import type { RuntimeState, PlayerAttitudeChoice } from '../runtime/runtimeState.js'
@@ -86,8 +87,18 @@ const describeAttitudeScore = (attitudeScore: number): string => {
  * 让 prompt 可以以自然语言形式告诉模型"不要现在讲盘古/女娲/丝绸之路……"
  * 而不是只给它几个抽象 topic id。
  */
-const collectForbiddenProperNouns = (currentNode: StoryNode): string[] => {
+export const collectForbiddenProperNouns = (currentNode: StoryNode): string[] => {
   const forbidden = new Set<string>()
+  const currentIndex = mainlineStoryOutline.nodes.findIndex((node) => node.id === currentNode.id)
+  const futureNodes = currentIndex >= 0
+    ? mainlineStoryOutline.nodes.slice(currentIndex + 1)
+    : []
+
+  for (const future of futureNodes) {
+    for (const keyword of future.retrievalKeywords) forbidden.add(keyword)
+    for (const figure of future.recommendedFigures) forbidden.add(figure)
+  }
+
   for (const nodeId of currentNode.forbiddenFutureTopics) {
     const future = mainlineStoryOutline.nodes.find(
       (n) => n.id === nodeId || n.era === nodeId || n.theme === nodeId
@@ -137,6 +148,9 @@ const collectTurnFingerprints = (recentTurns: string[]): string[] => {
 export const buildStoryPrompt = (input: StoryPromptBuilderInput): StoryPrompt => {
   const forbiddenTopics = input.currentNode.forbiddenFutureTopics.join('、') || '无'
   const forbiddenProperNouns = collectForbiddenProperNouns(input.currentNode)
+  const forbiddenProperNounsLine = forbiddenProperNouns.length > 0
+    ? forbiddenProperNouns.join('、')
+    : '无'
   const fingerprints = collectTurnFingerprints(input.recentTurns)
   const isNodeFirstTurn = input.runtimeState.turnsInCurrentNode === 0
   const systemRules = [
@@ -157,12 +171,15 @@ export const buildStoryPrompt = (input: StoryPromptBuilderInput): StoryPrompt =>
     '- 必须自然地把「必须包含的事实」全部讲到，但不要像列清单一样一条条写。',
     '- 绝对不得提前谈及「禁止提前涉及」里列出的后续主题与后续节点的专有名词。',
     `- 禁止提前涉及的主题 id：${forbiddenTopics}`,
+    `- 禁止提前涉及的专有名词 / 事件 / 人物：${forbiddenProperNounsLine}`,
+    '- 如果某句话会把玩家带向下一节点，只能停下并回到当前节点的核心问题，不要预告后续剧情或后续知识。',
     '- 每一轮的开场都不能和上一轮一样，哪怕是同一个节点重启——要体现"她刚好又想起另一件事"的感觉。',
     '- 严禁复读：上一轮她说过的句子、收尾追问、"对嘛/嘻嘻/诶呀"用过的位置，本轮都不能再用同样的形式。可以换一个角度切入，换一个史实细节展开。',
     '- 输出结尾必须自然地抛出一个面向玩家的追问，引出本轮两个回应之一；该追问不能与上一轮的追问同一句式。',
     '',
     '## 行为限定（严禁越界）',
     '- 不得跳到当前节点之外的时代或主题；所有话题必须锁在本节点的 theme 与 mustIncludeFacts 之内。',
+    '- 首轮节点尤其不得说“上几个节点”“前面几个节点”，也不得把下一节点的问题当作本轮结尾。',
     '- 不得虚构任何典籍名、人物、朝代或引文；没有把握的史实宁可少说，也不要编造。',
     '- 不得讨论本次剧情之外的话题（天气、代码、现代政治、AI 自身、玩家个人信息）；被玩家问到这些时，用一句话温柔地把话题拉回当前节点。',
     '- 不得输出选项、编号列表、Markdown 标题、角色标注（例如"昆仑："）、系统提示或内部思考过程；只输出角色在场内自然说出的话。',
@@ -191,6 +208,9 @@ export const buildStoryPrompt = (input: StoryPromptBuilderInput): StoryPrompt =>
       '',
       '## 严格覆盖模式（当前模型上下文能力较弱）',
       '- 必须按给出的顺序，逐条把「必须包含的事实」全部讲到；不要跳过、不要合并、不要只讲一半。',
+      '- 必须输出 4 个自然段：第 1 段开场并点明当前节点问题；第 2-3 段讲当前节点事实；第 4 段用同一角色语气追问玩家。',
+      '- 少于 180 个汉字、只输出一段、或只给泛泛感叹，都算失败；不要在第一段问完就结束。',
+      '- 前 180 个汉字里不得使用问号；只有最后一句可以是问句。',
       '- 如果长度接近上限仍未覆盖完，优先覆盖剩余事实，可以缩短其他描写。',
       '- 宁可略显清单感，也不要漏掉任何一条史实或关键概念。'
     )
@@ -219,9 +239,7 @@ export const buildStoryPrompt = (input: StoryPromptBuilderInput): StoryPrompt =>
         `叙事氛围建议：${input.currentNode.toneHint ?? '保持清楚、亲切'}`
       ].join('\n')
     },
-    retrievedKnowledge: input.retrievedEntries.map(
-      (entry) => `${entry.summary}\n${entry.extension}`
-    ),
+    retrievedKnowledge: formatKnowledgeEntriesForPrompt(input.retrievedEntries),
     memorySummary: input.runtimeState.historySummary,
     recentTurnFingerprints: fingerprints,
     forbiddenProperNouns

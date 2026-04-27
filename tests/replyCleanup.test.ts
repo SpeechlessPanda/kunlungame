@@ -58,4 +58,18 @@ describe('sanitizeMainlineReply', () => {
         expect(cleaned.endsWith('第二段。')).toBe(true)
         expect(cleaned).not.toMatch(/\n\n\n/)
     })
+
+    it('drops sentences that cross current-node boundaries', () => {
+        const raw = [
+            '昆仑在古人心中是天柱，也是天与地之间的纽带。',
+            '咱就这样顺着故事往下走吧：盘古开天辟地前的世界混沌一片。',
+            '我对上几个节点描述了许多历史人物，这次轻松点。',
+            '所以你愿意先从昆仑为什么成为起点想起吗？'
+        ].join('\n')
+        const cleaned = sanitizeMainlineReply(raw, { forbiddenTerms: ['盘古'] })
+        expect(cleaned).toContain('昆仑在古人心中是天柱')
+        expect(cleaned).toContain('昆仑为什么成为起点')
+        expect(cleaned).not.toContain('盘古')
+        expect(cleaned).not.toContain('上几个节点')
+    })
 })

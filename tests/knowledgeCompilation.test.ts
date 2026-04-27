@@ -135,6 +135,27 @@ describe('compileKnowledgeSources', () => {
     expect(writtenEntries.some((entry) => entry.topic === 'myth-origin')).toBe(true)
     expect(writtenEntries.every((entry) => entry.topic !== 'dialogue-samples')).toBe(true)
   })
+
+  it('cleans markdown emphasis from generated cultural knowledge summaries', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlungame-cultural-knowledge-clean-'))
+    const knowledgeSourceFile = join(tempDir, 'cultural-knowledge.md')
+    const outputDir = join(tempDir, 'generated')
+
+    await writeFile(
+      knowledgeSourceFile,
+      `# 昆仑谣：文化知识库\n\n## 一、昆仑神话与上古世界观\n\n### 1.1 昆仑山的神圣地位\n\n- **世界中心与天柱**\n- 昆仑山被视为世界中心与天柱\n`,
+      'utf8'
+    )
+
+    const result = await compileKnowledgeSources({
+      knowledgeSourceFile,
+      sourceReferencePath: 'docs/knowledge-base/cultural-knowledge.md',
+      storyOutline: mainlineStoryOutline,
+      outputDir
+    })
+
+    expect(result.entries[0]?.summary).toBe('世界中心与天柱')
+  })
 })
 
 describe('retrieveKnowledgeEntries', () => {

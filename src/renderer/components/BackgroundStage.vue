@@ -103,8 +103,6 @@ const modeLabel = computed(() => {
   transform: scale(1.02);
 }
 
-/* 可爱风统一调：无论节点配的原始背景多冷多深，这里叠一层粉紫奶油的暖纱，
-   让舞台整体和 UI 同一个 mood，而不是画面一半冷一半暖。 */
 .background-stage::after {
   content: "";
   position: absolute;
@@ -113,21 +111,21 @@ const modeLabel = computed(() => {
   background:
     radial-gradient(
       1200px 600px at 15% 10%,
-      rgba(236, 125, 157, 0.35),
+      rgba(216, 168, 79, 0.28),
       transparent 70%
     ),
     radial-gradient(
       900px 600px at 85% 90%,
-      rgba(255, 226, 236, 0.55),
+      rgba(36, 116, 95, 0.22),
       transparent 65%
     ),
     linear-gradient(
       180deg,
-      rgba(253, 245, 241, 0.45) 0%,
-      rgba(253, 245, 241, 0.2) 60%,
-      rgba(253, 245, 241, 0.55) 100%
+      rgba(9, 19, 22, 0.18) 0%,
+      rgba(9, 19, 22, 0.1) 48%,
+      rgba(9, 19, 22, 0.76) 100%
     );
-  mix-blend-mode: screen;
+  mix-blend-mode: normal;
 }
 
 .background-stage__image {
@@ -135,7 +133,7 @@ const modeLabel = computed(() => {
   height: 100%;
   object-fit: cover;
   display: block;
-  filter: saturate(0.78) brightness(1.08);
+  filter: saturate(0.86) brightness(0.82) contrast(1.08);
 }
 
 .background-stage__placeholder {
@@ -143,13 +141,25 @@ const modeLabel = computed(() => {
   height: 100%;
   display: grid;
   place-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.background-stage__placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent 0 49%, rgba(255, 246, 232, 0.12) 49% 51%, transparent 51% 100%),
+    repeating-linear-gradient(0deg, rgba(255, 246, 232, 0.05) 0, rgba(255, 246, 232, 0.05) 1px, transparent 1px, transparent 24px);
+  opacity: 0.55;
 }
 
 .background-stage__hint {
   max-width: 520px;
   padding: var(--space-4) var(--space-5);
   text-align: center;
-  color: var(--color-foreground-muted);
+  color: rgba(255, 246, 232, 0.78);
   font-family: var(--font-serif);
   letter-spacing: 0.08em;
 }
@@ -166,11 +176,11 @@ const modeLabel = computed(() => {
 .background-stage__mode {
   display: inline-block;
   padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-pill);
+  border: 1px solid rgba(216, 168, 79, 0.42);
+  border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
-  color: var(--color-foreground);
-  background: rgba(255, 250, 247, 0.84);
+  color: var(--color-foreground-invert);
+  background: rgba(9, 19, 22, 0.56);
   backdrop-filter: blur(6px);
 }
 
@@ -181,17 +191,17 @@ const modeLabel = computed(() => {
   background:
     radial-gradient(
       3px 3px at 12% 20%,
-      rgba(255, 231, 239, 0.56),
+      rgba(216, 168, 79, 0.42),
       transparent 60%
     ),
     radial-gradient(
       2px 2px at 30% 68%,
-      rgba(255, 232, 224, 0.46),
+      rgba(248, 239, 222, 0.3),
       transparent 60%
     ),
     radial-gradient(
       4px 4px at 82% 26%,
-      rgba(254, 219, 234, 0.52),
+      rgba(36, 116, 95, 0.38),
       transparent 60%
     );
   opacity: 0.65;
@@ -223,7 +233,7 @@ const modeLabel = computed(() => {
     ellipse at center,
     rgba(0, 0, 0, 0) 0%,
     rgba(0, 0, 0, 0) 55%,
-    rgba(0, 0, 0, 0.55) 100%
+    rgba(0, 0, 0, 0.72) 100%
   );
 }
 </style>

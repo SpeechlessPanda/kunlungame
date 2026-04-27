@@ -16,6 +16,8 @@ import type { RuntimeState } from '../runtime/runtimeState.js'
 import { buildGalgameOptionLabels } from './optionLabels.js'
 import { getProModelProfile } from './modelProfiles.js'
 import { sanitizeMainlineReply } from './replyCleanup.js'
+import { collectForbiddenProperNouns } from './storyPromptBuilder.js'
+import { assessReplyQuality, buildCoverageRepairPrompt } from './replyQuality.js'
 
 /**
  * Part 08 · 真实本地模型主线回合执行器。
@@ -121,6 +123,19 @@ const resolveKnowledgeEntriesFile = (projectRoot: string): string => {
     return join(projectRoot, 'src', 'content', 'generated', 'knowledgeEntries.json')
 }
 
+const splitCleanedReplyIntoChunks = (text: string): string[] => {
+    const chunks = text.match(/[^。！？?!\n]+[。！？?!]?|\n+/gu) ?? []
+    return chunks
+        .map((chunk) => chunk.trimEnd())
+        .filter((chunk) => chunk.trim().length > 0)
+}
+
+const collectStreamText = async (stream: AsyncIterable<string>): Promise<string[]> => {
+    const chunks: string[] = []
+    for await (const text of stream) chunks.push(text)
+    return chunks
+}
+
 export const runMainlineTurn = async (
     input: MainlineTurnInput,
     overrides: Partial<MainlineTurnDependencies> = {}
@@ -218,10 +233,33 @@ export const runMainlineTurn = async (
         }
     }
 
+    const forbiddenTerms = collectForbiddenProperNouns(currentNode)
     const rawCombined = chunks.join('')
-    const combinedText = sanitizeMainlineReply(rawCombined, {
-        recentTurns: input.recentTurns
+    let combinedText = sanitizeMainlineReply(rawCombined, {
+        recentTurns: input.recentTurns,
+        forbiddenTerms
     })
+    let cleanedChunks = combinedText === rawCombined ? chunks : splitCleanedReplyIntoChunks(combinedText)
+    const quality = assessReplyQuality({ text: combinedText, currentNode })
+    if (quality.needsRepair) {
+        const repairPrompt = buildCoverageRepairPrompt({
+            currentNode,
+            retrievedEntries: retrieval.entries,
+            previousText: combinedText,
+            forbiddenTerms,
+            reasons: quality.reasons
+        })
+        const repairRawChunks = await collectStreamText(dialogueDependencies.streamText(repairPrompt))
+        const repairText = sanitizeMainlineReply(repairRawChunks.join(''), {
+            recentTurns: input.recentTurns,
+            forbiddenTerms
+        })
+        const repairQuality = assessReplyQuality({ text: repairText, currentNode })
+        if (repairText.length > combinedText.length && repairQuality.reasons.length <= quality.reasons.length) {
+            combinedText = repairText
+            cleanedChunks = splitCleanedReplyIntoChunks(repairText)
+        }
+    }
 
     return {
         ok: true,
@@ -229,7 +267,7 @@ export const runMainlineTurn = async (
         modelPath: selectedModel.modelPath,
         currentNodeId: currentNode.id,
         fallbackUsed: retrieval.fallbackUsed,
-        chunks,
+        chunks: cleanedChunks,
         combinedText,
         options,
         completed

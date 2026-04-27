@@ -15,6 +15,7 @@ export interface DesktopDialogueSmokeResult {
   fallbackUsed: boolean
   chunkCount: number
   combinedText: string
+  combinedTextLength?: number
   options: Array<{
     semantic: 'align' | 'challenge'
     label: string

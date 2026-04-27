@@ -67,7 +67,7 @@ pnpm dev
 2. `pnpm test -- --run` — Vitest 35 test files / 200 tests
 3. `pnpm test:e2e` — Playwright 渲染层黑盒（14 scenarios）
 4. `pnpm coverage` — 覆盖率报告（整体 Lines ≥ 86%，核心模块 ≥ 90%）
-5. `pnpm dialogue:smoke` — 本地 GGUF 端到端冷烟；设 `$env:KUNLUN_SMOKE_MODE='compatibility'` 切到 3B Quality profile 做 A/B；设 `$env:KUNLUN_FORCE_CPU='1'` 强制禁用 GPU 加速（默认会通过 Vulkan 自动识别独显）
+5. `pnpm dialogue:smoke` — 本地 GGUF 端到端冷烟；默认检查并运行 3B Quality profile，设 `$env:KUNLUN_SMOKE_MODE='compatibility'` 可切到 1.5B Lite 做 A/B；设 `$env:KUNLUN_FORCE_CPU='1'` 强制禁用 GPU 加速（默认会通过 Vulkan 自动识别独显）
 6. `pnpm playthrough -- --pattern=alt --maxNodes=8` — 8 节点全链路端到端，最近一次：`docs/audits/2026-04-24-playthrough-8node.md`
 7. `pnpm audit --prod --registry=https://registry.npmjs.org/` — 默认 npmmirror 不提供 audit endpoint，必须显式指向官方 registry
 8. `docs/audits/2026-release-audit-template.md` — 正式发布前填写审计记录（最近一次：`docs/audits/2026-04-24-release-audit-rc2.md`）

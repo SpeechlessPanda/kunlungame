@@ -10,6 +10,9 @@ import { knowledgeEntrySchema } from '../shared/contracts/contentContracts.js'
 import { createDefaultRuntimeState } from '../runtime/runtimeState.js'
 import { orchestrateDialogue, type DialogueDependencies, type DialogueOption } from './dialogueOrchestrator.js'
 import { buildGalgameOptionLabels } from './optionLabels.js'
+import { sanitizeMainlineReply } from './replyCleanup.js'
+import { collectForbiddenProperNouns } from './storyPromptBuilder.js'
+import { assessReplyQuality, buildCoverageRepairPrompt } from './replyQuality.js'
 
 export interface DialogueSmokeTestResult {
     selectedProfileId: string
@@ -17,6 +20,7 @@ export interface DialogueSmokeTestResult {
     fallbackUsed: boolean
     chunkCount: number
     combinedText: string
+    combinedTextLength: number
     options: DialogueOption[]
     completed: boolean
     /** 墙钟耗时（毫秒），从构造 DialogueDependencies 到 complete 事件。*/
@@ -127,13 +131,39 @@ export const runDialogueSmokeTest = async (
     }
 
     const elapsedMs = Date.now() - startMs
+    const forbiddenTerms = collectForbiddenProperNouns(currentNode)
+    let combinedText = sanitizeMainlineReply(chunks.join(''), {
+        forbiddenTerms
+    })
+    let finalChunkCount = chunks.length
+    const quality = assessReplyQuality({ text: combinedText, currentNode })
+    if (quality.needsRepair) {
+        const repairPrompt = buildCoverageRepairPrompt({
+            currentNode,
+            retrievedEntries: retrievalResult.entries,
+            previousText: combinedText,
+            forbiddenTerms,
+            reasons: quality.reasons
+        })
+        const repairChunks: string[] = []
+        for await (const text of dialogueDependencies.streamText(repairPrompt)) {
+            repairChunks.push(text)
+        }
+        const repairText = sanitizeMainlineReply(repairChunks.join(''), { forbiddenTerms })
+        const repairQuality = assessReplyQuality({ text: repairText, currentNode })
+        if (repairText.length > combinedText.length && repairQuality.reasons.length <= quality.reasons.length) {
+            combinedText = repairText
+            finalChunkCount = repairChunks.length
+        }
+    }
 
     return {
         selectedProfileId: selectedModel.profileId,
         currentNodeId: currentNode.id,
         fallbackUsed: retrievalResult.fallbackUsed,
-        chunkCount: chunks.length,
-        combinedText: chunks.join(''),
+        chunkCount: finalChunkCount,
+        combinedText,
+        combinedTextLength: combinedText.length,
         options,
         completed,
         elapsedMs,

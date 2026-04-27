@@ -27,8 +27,8 @@ const resolveModelPath = (input: RuntimeBootstrapInput): { profileId: string; mo
 }
 
 const buildCandidateInputs = (projectRoot: string, appDataDir: string): RuntimeBootstrapInput[] => {
-    // 允许通过环境变量 KUNLUN_SMOKE_MODE=compatibility 强制优先使用 3B fallback 方案，
-    // 便于在同一机器上对 7B 与 3B 做对照 smoke。
+    // 允许通过环境变量 KUNLUN_SMOKE_MODE=compatibility 强制优先使用 1.5B Lite 方案，
+    // 便于在同一机器上对默认 3B 与低配兜底档做对照 smoke。
     const forcedMode = process.env['KUNLUN_SMOKE_MODE']
     const preferredModes: Array<'default' | 'compatibility'> =
         forcedMode === 'compatibility'

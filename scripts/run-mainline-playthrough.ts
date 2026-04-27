@@ -21,7 +21,7 @@ import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
  *   pnpm playthrough -- --pattern=challenge     # 全程怀疑
  *   pnpm playthrough -- --maxNodes=3            # 只跑前 3 个节点
  *   pnpm playthrough -- --turnsPerNode=2        # 每节点跑 2 轮（默认按 minTurns + 1）
- *   KUNLUN_SMOKE_MODE=compatibility pnpm playthrough  # 强制 3B fallback
+ *   KUNLUN_SMOKE_MODE=compatibility pnpm playthrough  # 强制 1.5B Lite 兜底档
  *   KUNLUN_SMOKE_MODE=pro pnpm playthrough            # 强制 7B Pro 档（需手动下 Q3_K_M 权重）
  */
 

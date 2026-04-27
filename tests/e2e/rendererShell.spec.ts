@@ -62,6 +62,7 @@ test.describe('Kunlun Ballad UI shell', () => {
     const toggle = page.getByTestId('settings-bgm-toggle')
     await expect(toggle).toBeVisible()
     await expect(toggle).toBeDisabled()
+    await expect(page.getByTestId('start-button')).toHaveCount(0)
     await page.getByTestId('settings-close').click()
   })
 

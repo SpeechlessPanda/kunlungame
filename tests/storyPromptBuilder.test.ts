@@ -34,6 +34,7 @@ describe('buildStoryPrompt', () => {
     expect(prompt.user).toContain('昆仑被视为世界中心。')
     expect(prompt.user).toContain('顺着你继续听下去')
     expect(prompt.user).toContain('禁止提前涉及')
+    expect(prompt.system).toContain('禁止提前涉及的专有名词')
   })
 
   it("reflects challenge tone and later-turn familiarity in the user prompt", () => {
@@ -105,5 +106,23 @@ describe('buildStoryPrompt', () => {
     })
     expect(cool.user).toContain('非常警惕')
     expect(cool.user).toContain('硬证据')
+  })
+
+  it('tightens length and paragraph requirements in strict coverage mode', () => {
+    const currentNode = mainlineStoryOutline.nodes[0]
+    const runtimeState = createDefaultRuntimeState(mainlineStoryOutline)
+    const prompt = buildStoryPrompt({
+      currentNode,
+      retrievedEntries: [],
+      runtimeState,
+      attitudeChoiceMode: 'align',
+      recentTurns: [],
+      strictCoverage: true
+    })
+
+    expect(prompt.system).toContain('必须输出 4 个自然段')
+    expect(prompt.system).toContain('少于 180 个汉字')
+    expect(prompt.system).toContain('前 180 个汉字里不得使用问号')
+    expect(prompt.system).toContain('只给泛泛感叹，都算失败')
   })
 })

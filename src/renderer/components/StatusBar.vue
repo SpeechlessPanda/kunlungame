@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { Gauge, ScrollText, Sparkles } from "lucide-vue-next";
 import type { StoryNode } from "../../shared/contracts/contentContracts.js";
 
 interface Props {
@@ -53,13 +54,14 @@ const attitudeLabel = computed(() => {
         data-testid="status-fallback-chip"
         title="当前运行在 qwen2.5-3b-instruct 兼容模式，单轮输出会稍慢、叙事密度略低。"
       >
-        轻量模型 · 叙事密度已压缩
+        <Gauge :size="13" :stroke-width="1.8" aria-hidden="true" />
+        Lite 模型 · 叙事密度已压缩
       </span>
     </div>
 
     <div class="status-bar__meta">
       <div class="status-bar__turn" data-testid="status-turn">
-        <span class="status-bar__meta-label">轮次</span>
+        <span class="status-bar__meta-label"><ScrollText :size="14" aria-hidden="true" />轮次</span>
         <span class="status-bar__meta-value">{{ turnIndex + 1 }}</span>
       </div>
       <div
@@ -67,7 +69,7 @@ const attitudeLabel = computed(() => {
         :aria-label="`当前风格倾向：${attitudeLabel}`"
         data-testid="status-attitude"
       >
-        <span class="status-bar__meta-label">风格</span>
+        <span class="status-bar__meta-label"><Sparkles :size="14" aria-hidden="true" />风格</span>
         <div class="status-bar__attitude-bar" aria-hidden="true">
           <div
             class="status-bar__attitude-fill"
@@ -92,19 +94,16 @@ const attitudeLabel = computed(() => {
   padding-left: max(var(--space-6), var(--safe-left));
   padding-right: max(var(--space-6), var(--safe-right));
   background:
-    linear-gradient(
-      180deg,
-      rgba(255, 250, 247, 0.86) 0%,
-      rgba(255, 250, 247, 0.36) 72%,
-      rgba(255, 250, 247, 0) 100%
-    ),
+    linear-gradient(180deg, rgba(8, 19, 22, 0.82) 0%, rgba(8, 19, 22, 0.48) 72%, rgba(8, 19, 22, 0) 100%),
     repeating-linear-gradient(
       135deg,
-      rgba(235, 201, 170, 0.08) 0,
-      rgba(235, 201, 170, 0.08) 8px,
-      rgba(255, 250, 247, 0) 8px,
-      rgba(255, 250, 247, 0) 16px
+        rgba(216, 168, 79, 0.06) 0,
+        rgba(216, 168, 79, 0.06) 8px,
+        rgba(255, 250, 247, 0) 8px,
+        rgba(255, 250, 247, 0) 16px
     );
+      color: var(--color-foreground-invert);
+      backdrop-filter: blur(10px);
 }
 
 @media (max-width: 640px) {
@@ -131,7 +130,7 @@ const attitudeLabel = computed(() => {
   display: block;
   font-size: var(--font-size-xs);
   letter-spacing: 0.24em;
-  color: var(--color-foreground-muted);
+  color: rgba(255, 246, 232, 0.66);
   margin-bottom: var(--space-1);
   font-family: var(--font-sans);
 }
@@ -141,23 +140,25 @@ const attitudeLabel = computed(() => {
   margin: 0;
   font-size: var(--font-size-xl);
   letter-spacing: 0.08em;
-  color: var(--color-foreground);
+  color: var(--color-foreground-invert);
   text-wrap: balance;
 }
 
 .status-bar__tone {
   margin: var(--space-1) 0 0;
   font-size: var(--font-size-sm);
-  color: var(--color-foreground-muted);
+  color: rgba(255, 246, 232, 0.72);
 }
 
 .status-bar__fallback-chip {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   margin-top: var(--space-2);
   padding: 2px 10px;
-  border-radius: var(--radius-pill, 999px);
-  background: rgba(255, 234, 215, 0.72);
-  color: #6a4a2c;
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(216, 168, 79, 0.16);
+  color: #ffe4a3;
   font-size: var(--font-size-xs);
   letter-spacing: 0.08em;
   border: 1px solid rgba(217, 119, 6, 0.35);
@@ -170,16 +171,19 @@ const attitudeLabel = computed(() => {
 }
 
 .status-bar__meta-label {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   font-size: var(--font-size-xs);
   letter-spacing: 0.18em;
-  color: var(--color-foreground-muted);
+  color: rgba(255, 246, 232, 0.68);
   margin-bottom: var(--space-1);
 }
 
 .status-bar__meta-value {
   font-family: var(--font-serif);
   font-size: var(--font-size-lg);
+  color: var(--color-foreground-invert);
 }
 
 .status-bar__attitude {
@@ -193,7 +197,7 @@ const attitudeLabel = computed(() => {
   position: relative;
   height: 6px;
   border-radius: 999px;
-  background: rgba(211, 134, 166, 0.18);
+  background: rgba(248, 239, 222, 0.18);
   overflow: hidden;
 }
 
@@ -205,7 +209,7 @@ const attitudeLabel = computed(() => {
   background: linear-gradient(
     90deg,
     var(--color-challenge) 0%,
-    var(--color-accent) 50%,
+    #d8a84f 50%,
     var(--color-align) 100%
   );
   transition: width var(--motion-base) var(--ease-standard);
@@ -217,12 +221,12 @@ const attitudeLabel = computed(() => {
   bottom: -2px;
   left: calc(50% - 1px);
   width: 2px;
-  background: rgba(108, 67, 87, 0.3);
+  background: rgba(255, 246, 232, 0.35);
 }
 
 .status-bar__attitude-label {
   font-size: var(--font-size-xs);
-  color: var(--color-foreground-muted);
+  color: rgba(255, 246, 232, 0.72);
   letter-spacing: 0.2em;
 }
 </style>

@@ -191,6 +191,17 @@ const cleanHeadingLabel = (heading: string): string => {
   return heading.replace(/^\d+(?:\.\d+)?\s*/, '').trim()
 }
 
+const cleanMarkdownInline = (text: string): string => {
+  return text
+    .replace(/^[-*+]\s*/, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .trim()
+}
+
 const collectKeywords = (sectionTitle: string, subsectionTitle: string): string[] => {
   const keywords = [cleanHeadingLabel(sectionTitle), cleanHeadingLabel(subsectionTitle)]
   return Array.from(new Set(keywords.filter((keyword) => keyword !== '')))
@@ -209,8 +220,8 @@ const buildEntrySummary = (content: string): { summary: string; extension: strin
     }
   }
 
-  const summary = normalizedContent[0]?.replace(/^[-*]\s*/, '') ?? '待补充知识摘要。'
-  const extensionLines = normalizedContent.slice(1)
+  const summary = cleanMarkdownInline(normalizedContent[0] ?? '待补充知识摘要。')
+  const extensionLines = normalizedContent.slice(1).map(cleanMarkdownInline)
 
   return {
     summary,

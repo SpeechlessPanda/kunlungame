@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Volume2, VolumeX } from 'lucide-vue-next'
 import type { BgmControllerState } from '../../presentation/bgmController.js'
 
 interface Props {
@@ -40,6 +41,8 @@ const onVolumeInput = (e: Event): void => {
       :disabled="!bgm.sourceAvailable"
       @click="emit('toggle-bgm')"
     >
+      <Volume2 v-if="bgm.enabled" :size="16" :stroke-width="1.8" class="settings-panel__switch-icon settings-panel__switch-icon--on" aria-hidden="true" />
+      <VolumeX v-else :size="16" :stroke-width="1.8" class="settings-panel__switch-icon" aria-hidden="true" />
       <span class="settings-panel__switch-thumb" :data-on="bgm.enabled" />
     </button>
   </div>
@@ -77,12 +80,13 @@ const onVolumeInput = (e: Event): void => {
 .settings-panel__label {
   margin: 0;
   font-size: var(--font-size-md);
+  color: var(--color-foreground-invert);
 }
 
 .settings-panel__hint {
   margin: 2px 0 0;
   font-size: var(--font-size-xs);
-  color: var(--color-foreground-dim);
+  color: rgba(255, 246, 232, 0.58);
 }
 
 .settings-panel__switch {
@@ -90,7 +94,7 @@ const onVolumeInput = (e: Event): void => {
   height: 30px;
   border-radius: 999px;
   border: 1px solid var(--color-border-strong);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(248, 239, 222, 0.08);
   position: relative;
   padding: 0;
   cursor: pointer;
@@ -103,7 +107,20 @@ const onVolumeInput = (e: Event): void => {
 }
 
 .settings-panel__switch[aria-checked="true"] {
-  background: rgba(63, 154, 106, 0.45);
+  background: rgba(36, 116, 95, 0.52);
+}
+
+.settings-panel__switch-icon {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  color: rgba(255, 246, 232, 0.5);
+}
+
+.settings-panel__switch-icon--on {
+  left: 8px;
+  right: auto;
+  color: rgba(255, 246, 232, 0.82);
 }
 
 .settings-panel__switch-thumb {
@@ -113,7 +130,7 @@ const onVolumeInput = (e: Event): void => {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--color-foreground);
+  background: var(--color-foreground-invert);
   transition: transform var(--motion-fast) var(--ease-standard);
 }
 

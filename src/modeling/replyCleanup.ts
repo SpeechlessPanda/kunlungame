@@ -52,6 +52,25 @@ export interface SanitizeOptions {
     recentTurns?: string[]
     /** 判为"原句复读"的最小字数阈值；默认 10。低于此长度的句子允许重复（如"嘻嘻"）。*/
     minDuplicateLen?: number
+    /** 当前节点不允许提前说出的后续专有名词、人物、事件或主题词。*/
+    forbiddenTerms?: string[]
+}
+
+const OUT_OF_SEQUENCE_PATTERNS: RegExp[] = [
+    /上几个节点/u,
+    /前面几个节点/u,
+    /之前几个节点/u,
+    /后续节点/u,
+    /下一段我(?:们)?(?:会|要|来)/u,
+    /马上(?:就)?(?:解锁|进入|讲到)/u
+]
+
+const normalizeTerm = (value: string): string => value.trim().toLocaleLowerCase()
+
+const containsForbiddenBoundary = (sentence: string, forbiddenTerms: string[]): boolean => {
+    if (OUT_OF_SEQUENCE_PATTERNS.some((pattern) => pattern.test(sentence))) return true
+    const normalizedSentence = normalizeTerm(sentence)
+    return forbiddenTerms.some((term) => term.length >= 2 && normalizedSentence.includes(term))
 }
 
 /**
@@ -61,6 +80,7 @@ export interface SanitizeOptions {
 export const sanitizeMainlineReply = (raw: string, options: SanitizeOptions = {}): string => {
     const recentTurns = options.recentTurns ?? []
     const minDuplicateLen = options.minDuplicateLen ?? 10
+    const forbiddenTerms = [...new Set((options.forbiddenTerms ?? []).map(normalizeTerm).filter((term) => term.length > 0))]
     const priorSentences = collectPriorSentences(recentTurns, minDuplicateLen)
 
     // 第一步：逐行剥离角色标签与结构性噪声。
@@ -96,6 +116,9 @@ export const sanitizeMainlineReply = (raw: string, options: SanitizeOptions = {}
         const keptSentences: string[] = []
         for (const sentence of sentences) {
             const normalized = sentence.trim().replace(/[。！？?!.\s]+$/u, '')
+            if (containsForbiddenBoundary(normalized, forbiddenTerms)) {
+                continue
+            }
             if (normalized.length >= minDuplicateLen && priorSentences.has(normalized)) {
                 // 命中历史原句，整句丢弃。
                 continue

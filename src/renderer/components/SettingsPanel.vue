@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, toRef } from "vue";
+import { SlidersHorizontal, X } from "lucide-vue-next";
 import type { BgmControllerState } from "../../presentation/bgmController.js";
 import { useFocusTrap } from "../composables/useFocusTrap.js";
 import SettingsAudioSection from "./SettingsAudioSection.vue";
@@ -49,7 +50,14 @@ useFocusTrap(toRef(props, "open"), panelRef);
   >
     <div class="settings-panel" ref="panelRef" data-testid="settings-panel">
       <header class="settings-panel__header">
-        <h2 id="settings-title" class="settings-panel__title">设置</h2>
+        <h2 id="settings-title" class="settings-panel__title">
+          <SlidersHorizontal
+            :size="20"
+            :stroke-width="1.8"
+            aria-hidden="true"
+          />
+          设置
+        </h2>
         <button
           type="button"
           class="settings-panel__close"
@@ -57,7 +65,7 @@ useFocusTrap(toRef(props, "open"), panelRef);
           aria-label="关闭设置"
           @click="emit('close')"
         >
-          ×
+          <X :size="20" :stroke-width="1.8" aria-hidden="true" />
         </button>
       </header>
 
@@ -90,69 +98,74 @@ useFocusTrap(toRef(props, "open"), panelRef);
 .settings-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(71, 31, 49, 0.42);
+  background: rgba(5, 11, 13, 0.62);
   backdrop-filter: blur(8px);
   z-index: var(--z-overlay);
   display: grid;
   place-items: center;
-  padding: var(--space-6);
+  padding: var(--space-4);
 }
 
 .settings-panel {
-  width: min(420px, 100%);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 251, 247, 0.96) 0%,
-      rgba(255, 247, 241, 0.94) 100%
-    );
-  border: 1px solid var(--color-border-strong);
+  width: min(440px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  background: linear-gradient(
+    180deg,
+    rgba(33, 48, 48, 0.96),
+    rgba(17, 28, 30, 0.96)
+  );
+  border: 1px solid rgba(216, 168, 79, 0.36);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-surface);
-  padding: var(--space-5);
-  color: var(--color-foreground);
+  padding: var(--space-4);
+  color: var(--color-foreground-invert);
 }
 
 .settings-panel__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .settings-panel__title {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   font-family: var(--font-serif);
   font-size: var(--font-size-xl);
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
 }
 
 .settings-panel__close {
   background: transparent;
   border: none;
-  color: var(--color-foreground-muted);
-  font-size: var(--font-size-xl);
+  color: rgba(255, 246, 232, 0.72);
   width: 44px;
   height: 44px;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  display: inline-grid;
+  place-items: center;
 }
 
 .settings-panel__close:hover,
 .settings-panel__close:focus-visible {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--color-foreground);
+  background: rgba(248, 239, 222, 0.12);
+  color: var(--color-foreground-invert);
 }
 
 .settings-panel__section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .settings-panel__section + .settings-panel__section {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid rgba(216, 168, 79, 0.24);
 }
 </style>

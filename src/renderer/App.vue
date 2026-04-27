@@ -12,8 +12,10 @@ import {
 import { serializeRuntimeStateForDesktop } from "../runtime/runtimeStateFacade.js";
 import { mainlineStoryOutline } from "../content/source/mainlineOutline.js";
 import {
+  getFallbackModelProfile,
   getProModelProfile,
   getAllKnownModelProfiles,
+  findModelProfileById,
 } from "../modeling/modelProfiles.js";
 import type { StoryNode } from "../shared/contracts/contentContracts.js";
 import type { ProfileDownloadStatus } from "./components/SettingsPanel.types.js";
@@ -74,10 +76,15 @@ const settingsOpen = ref(false);
 // 轻量模型标识：当选中非 Pro（7B）档位时，叙事密度已按小模型模板压缩。
 const selectedProfileId = ref<string | null>(null);
 const isFallbackModel = computed(
-  () =>
-    selectedProfileId.value !== null &&
-    selectedProfileId.value !== getProModelProfile().id,
+  () => selectedProfileId.value === getFallbackModelProfile().id,
 );
+const selectedProfileLabel = computed(() => {
+  if (selectedProfileId.value == null) {
+    return "检测中";
+  }
+  const profile = findModelProfileById(selectedProfileId.value);
+  return profile?.label ?? selectedProfileId.value;
+});
 
 const profileAvailability = ref<
   Record<string, "ready" | "partial" | "missing" | "unknown">
@@ -204,12 +211,13 @@ const dismissSaveRecoveryNotice = (): void => {
   saveRecoveryNotice.value = null;
 };
 
-const runTurn = (): void => {
+const runTurn = async (): Promise<void> => {
+  await ensureDialogueSourceReady();
   const node = currentNode.value;
   if (!node) {
     return;
   }
-  void dialogueSession.runTurn(
+  await dialogueSession.runTurn(
     {
       node,
       runtimeState: runtimeState.value,
@@ -221,14 +229,19 @@ const runTurn = (): void => {
   );
 };
 
-const beginMainline = (): void => {
+const beginMainline = async (): Promise<void> => {
+  await ensureDialogueSourceReady();
   runtimeState.value = createDefaultRuntimeState(storyOutline);
   recentTurns.value = [];
   attitudeChoiceMode.value = "align";
   dialogueSession.cancel();
   turn.reset();
   void persistState();
-  runTurn();
+  await runTurn();
+};
+
+const onStartMainline = (): void => {
+  void beginMainline();
 };
 
 const onChoose = (choice: ChoiceModel): void => {
@@ -250,13 +263,13 @@ const onChoose = (choice: ChoiceModel): void => {
   turn.dispatch({ type: "choice-made" });
   void persistState();
   if (currentNode.value) {
-    runTurn();
+    void runTurn();
   }
 };
 
 const onRetry = (): void => {
   turn.dispatch({ type: "retry" });
-  runTurn();
+  void runTurn();
 };
 
 const onSkip = (): void => {
@@ -319,7 +332,14 @@ const useMockStreamFlag = ref(true);
 // 推荐给 UI 指示器读的 "当前一轮对话源头"：【real · 桌面本地模型】或【mock · 预览脚本】。
 // 玩家凭这个 chip 就能在 pnpm dev 里一眼判断输出是否真的走了本地 AI。
 const aiSource = ref<"real" | "mock">("mock");
+const aiSourceLabel = computed(() => {
+  if (aiSource.value === "mock") {
+    return "预览脚本模式";
+  }
+  return `本地 AI · ${selectedProfileLabel.value}`;
+});
 let unsubscribeDownloadProgress: (() => void) | null = null;
+let dialogueSourceReadyPromise: Promise<void> | null = null;
 // 环境探测：在真实 Electron 桌面壳里自动切到真模型；浏览器预览仍走 mock。
 const detectBridgeAvailable = (): boolean => {
   const bridge = window.kunlunDesktop;
@@ -386,9 +406,56 @@ const applyDependenciesFactory = (): void => {
   });
 };
 
+const initializeDesktopBridge = async (): Promise<void> => {
+  const available = await waitForDesktopBridge();
+  useMockStreamFlag.value = !available;
+  aiSource.value = available ? "real" : "mock";
+  applyDependenciesFactory();
+
+  if (!available) {
+    return;
+  }
+
+  const bridge = getBridge();
+  if (!bridge) {
+    return;
+  }
+
+  await restoreFromBridge();
+  try {
+    const snapshot = await bridge.getStartupSnapshot();
+    selectedProfileId.value = snapshot.modelSetup.selectedProfileId;
+  } catch (error) {
+    console.warn("[app] getStartupSnapshot failed", error);
+  }
+  await refreshProfileAvailability();
+  if (unsubscribeDownloadProgress == null) {
+    unsubscribeDownloadProgress = bridge.onProfileDownloadProgress(
+      (event: DesktopProfileDownloadProgressEvent) => {
+        downloadStatus.value = {
+          profileId: event.profileId,
+          phase: event.phase,
+          fileIndex: event.fileIndex,
+          totalFiles: event.totalFiles,
+          message: event.message,
+        };
+      },
+    );
+  }
+};
+
+const ensureDialogueSourceReady = async (): Promise<void> => {
+  if (dialogueSourceReadyPromise == null) {
+    dialogueSourceReadyPromise = initializeDesktopBridge();
+  }
+  await dialogueSourceReadyPromise;
+};
+
 const exposeDebug = (): void => {
   const debug: KunlunDebug = {
-    start: beginMainline,
+    start() {
+      void beginMainline();
+    },
     injectError(message: string) {
       dialogueSession.cancel();
       turn.dispatch({ type: "error", message });
@@ -417,38 +484,8 @@ const exposeDebug = (): void => {
 };
 
 onMounted(() => {
-  // 桌面壳里默认接入真实本地模型；浏览器/开发预览下仍走 mock 流。
-  // 使用 waitForDesktopBridge 避免 preload 微延迟导致被锁在 mock。
-  void waitForDesktopBridge().then((available) => {
-    useMockStreamFlag.value = !available;
-    aiSource.value = available ? "real" : "mock";
-    applyDependenciesFactory();
-  });
   exposeDebug();
-  void restoreFromBridge();
-  const bridge = getBridge();
-  if (bridge) {
-    void bridge
-      .getStartupSnapshot()
-      .then((snapshot) => {
-        selectedProfileId.value = snapshot.modelSetup.selectedProfileId;
-      })
-      .catch((error) => {
-        console.warn("[app] getStartupSnapshot failed", error);
-      });
-    void refreshProfileAvailability();
-    unsubscribeDownloadProgress = bridge.onProfileDownloadProgress(
-      (event: DesktopProfileDownloadProgressEvent) => {
-        downloadStatus.value = {
-          profileId: event.profileId,
-          phase: event.phase,
-          fileIndex: event.fileIndex,
-          totalFiles: event.totalFiles,
-          message: event.message,
-        };
-      },
-    );
-  }
+  void ensureDialogueSourceReady();
 });
 onBeforeUnmount(() => {
   dialogueSession.cancel();
@@ -479,6 +516,7 @@ const backgroundAssetPath = computed<string | null>(() => {
 
 const showStartButton = computed(
   () =>
+    !settingsOpen.value &&
     turn.view.value.snapshot.state === "idle" &&
     turn.view.value.fullText.length === 0,
 );
@@ -496,7 +534,7 @@ const visitedNodeTitles = computed<string[]>(() => {
 });
 
 const onRestartFromEnding = (): void => {
-  beginMainline();
+  void beginMainline();
 };
 
 const onQuitFromEnding = (): void => {
@@ -506,7 +544,7 @@ const onQuitFromEnding = (): void => {
     return;
   }
   // 浏览器/预览环境下退出表现为重启主线。
-  beginMainline();
+  void beginMainline();
 };
 </script>
 
@@ -545,7 +583,7 @@ const onQuitFromEnding = (): void => {
     type="button"
     class="start-button"
     data-testid="start-button"
-    @click="beginMainline"
+    @click="onStartMainline"
   >
     进入昆仑
   </button>
@@ -559,7 +597,7 @@ const onQuitFromEnding = (): void => {
         : '当前一轮对话是预览脚本输出，未调用本地 AI。'
     "
   >
-    {{ aiSource === "real" ? "本地 AI 连接中" : "预览脚本模式" }}
+    {{ aiSourceLabel }}
   </div>
   <EndingOverlay
     :open="endingOpen"
@@ -596,20 +634,24 @@ const onQuitFromEnding = (): void => {
   transform: translateX(-50%);
   padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-accent);
-  background: rgba(217, 119, 6, 0.12);
-  color: var(--color-accent);
+  border: 1px solid rgba(216, 168, 79, 0.72);
+  background: linear-gradient(180deg, rgba(248, 239, 222, 0.96), rgba(216, 168, 79, 0.88));
+  color: #2c2118;
   font-family: var(--font-serif);
   font-size: var(--font-size-lg);
   cursor: pointer;
   z-index: var(--z-toast);
-  transition: background var(--motion-fast) var(--ease-standard);
+  box-shadow: var(--shadow-pop);
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
   min-height: 44px;
 }
 
 .start-button:hover,
 .start-button:focus-visible {
-  background: rgba(217, 119, 6, 0.24);
+  background: linear-gradient(180deg, #fff4d8, #e3b65d);
+  transform: translateX(-50%) translateY(-1px);
 }
 
 .ai-source-chip {
@@ -618,9 +660,9 @@ const onQuitFromEnding = (): void => {
   bottom: 12px;
   z-index: var(--z-toast);
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   font-family: var(--font-sans, system-ui);
   pointer-events: none;
   user-select: none;
@@ -628,15 +670,15 @@ const onQuitFromEnding = (): void => {
 }
 
 .ai-source-chip--real {
-  background: rgba(22, 101, 52, 0.78);
-  color: #ecfdf5;
-  border: 1px solid rgba(187, 247, 208, 0.55);
+  background: rgba(19, 71, 59, 0.82);
+  color: #e9fff5;
+  border: 1px solid rgba(129, 183, 157, 0.58);
 }
 
 .ai-source-chip--mock {
-  background: rgba(120, 53, 15, 0.78);
-  color: #fef3c7;
-  border: 1px solid rgba(253, 230, 138, 0.55);
+  background: rgba(121, 81, 39, 0.82);
+  color: #fff1cf;
+  border: 1px solid rgba(216, 168, 79, 0.55);
 }
 
 .save-recovery-notice {

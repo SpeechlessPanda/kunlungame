@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { Settings } from "lucide-vue-next";
 import type { StoryNode } from "../../shared/contracts/contentContracts.js";
 import type { BgmControllerState } from "../../presentation/bgmController.js";
 import {
@@ -144,7 +145,7 @@ useKeyboardControls(
         aria-label="打开设置"
         @click="emit('open-settings')"
       >
-        <span aria-hidden="true">⚙︎</span>
+        <Settings :size="20" :stroke-width="1.8" aria-hidden="true" />
       </button>
     </div>
 
@@ -203,21 +204,25 @@ useKeyboardControls(
   height: 44px;
   min-width: 44px;
   min-height: 44px;
-  border-radius: 50%;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border-strong);
-  background: var(--color-surface-muted);
-  color: var(--color-foreground);
+  background: rgba(248, 239, 222, 0.16);
+  color: var(--color-foreground-invert);
   cursor: pointer;
-  font-size: var(--font-size-lg);
+  display: inline-grid;
+  place-items: center;
   transition:
     background var(--motion-fast) var(--ease-standard),
-    border-color var(--motion-fast) var(--ease-standard);
+    border-color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+  backdrop-filter: blur(10px);
 }
 
 .game-shell__settings-entry:hover,
 .game-shell__settings-entry:focus-visible {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--color-accent);
+  background: rgba(248, 239, 222, 0.28);
+  border-color: rgba(216, 168, 79, 0.7);
+  transform: translateY(-1px);
 }
 
 .game-shell__dialogue {

@@ -46,6 +46,7 @@ describe('runDialogueSmokeTest', () => {
         expect(result.currentNodeId).toBe('kunlun-threshold')
         expect(result.chunkCount).toBe(2)
         expect(result.combinedText).toBe('第一段。第二段。')
+        expect(result.combinedTextLength).toBe('第一段。第二段。'.length)
         expect(result.completed).toBe(true)
         expect(result.options).toHaveLength(2)
         expect(result.fallbackUsed).toBe(false)

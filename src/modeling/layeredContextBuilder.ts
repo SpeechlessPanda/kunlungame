@@ -53,7 +53,11 @@ export const buildLayeredContext = (input: LayeredContextInput): string => {
       '# 可用的知识条目（必须把它们自然讲进来，不要念清单）',
       input.retrievedKnowledge.length === 0
         ? '（暂无专门检索到的条目，依靠节点 mustIncludeFacts 即可。）'
-        : input.retrievedKnowledge.join('\n\n')
+        : [
+            '下面是本轮检索到的 RAG 知识卡。它们是事实依据，不是成稿。',
+            '请先理解卡片，再用本轮角色语气重新组织成自然对白；知识段也必须保持同一人格与态度刻度。',
+            input.retrievedKnowledge.join('\n\n')
+          ].join('\n')
     ],
     ['# 历史摘要', input.memorySummary],
     [

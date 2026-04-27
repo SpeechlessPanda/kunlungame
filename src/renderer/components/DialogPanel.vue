@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
+import { ChevronsRight, RotateCcw, Sparkles } from "lucide-vue-next";
 import type { TurnViewModel } from "../composables/useTurnController.js";
 
 interface Props {
@@ -69,7 +70,7 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
     aria-atomic="false"
   >
     <div class="dialog-panel__nameplate" aria-hidden="true">
-      <span class="dialog-panel__heart">♡</span>
+      <Sparkles :size="14" :stroke-width="1.8" class="dialog-panel__heart" />
       <span class="dialog-panel__nameplate-text">{{
         speakerLabel ?? "昆仑"
       }}</span>
@@ -107,6 +108,7 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
         data-testid="dialog-retry"
         @click="emit('retry')"
       >
+        <RotateCcw :size="16" :stroke-width="1.8" aria-hidden="true" />
         重试这一轮
       </button>
     </div>
@@ -140,6 +142,7 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
         data-testid="dialog-skip"
         @click="emit('skip')"
       >
+        <ChevronsRight :size="16" :stroke-width="1.8" aria-hidden="true" />
         跳过动画
       </button>
     </div>
@@ -149,8 +152,10 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
 <style scoped>
 .dialog-panel {
   position: relative;
-  background: var(--color-surface);
-  border: 2px solid var(--color-border-strong);
+  background:
+    linear-gradient(180deg, rgba(255, 248, 235, 0.98), rgba(238, 222, 194, 0.96)),
+    var(--color-surface);
+  border: 1px solid rgba(121, 81, 39, 0.56);
   border-radius: var(--radius-lg);
   padding: var(--space-6) var(--space-6) var(--space-5);
   box-shadow: var(--shadow-surface);
@@ -164,15 +169,36 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
   color: var(--color-foreground);
   margin-top: var(--space-5);
   transition: max-height var(--motion-slow) var(--ease-standard);
+  overflow: visible;
+}
+
+.dialog-panel::before,
+.dialog-panel::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(121, 81, 39, 0.34), transparent);
+  pointer-events: none;
+}
+
+.dialog-panel::before {
+  top: 8px;
+}
+
+.dialog-panel::after {
+  bottom: 8px;
 }
 
 /* galgame 风的名字牌：从对话框左上角翘起来一截 */
 .dialog-panel__nameplate {
   position: absolute;
-  top: -20px;
+  top: -18px;
   left: var(--space-5);
   padding: var(--space-1) var(--space-4);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   background: linear-gradient(
     135deg,
     var(--color-accent) 0%,
@@ -182,7 +208,7 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
   font-family: var(--font-display);
   font-size: var(--font-size-md);
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   box-shadow: var(--shadow-pop);
   display: inline-flex;
   align-items: center;
@@ -191,10 +217,8 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
 }
 
 .dialog-panel__heart {
-  font-size: var(--font-size-sm);
   color: #fff;
   opacity: 0.85;
-  transform: translateY(-1px);
 }
 
 .dialog-panel__header {
@@ -299,11 +323,14 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
 .dialog-panel__retry,
 .dialog-panel__skip {
   align-self: flex-start;
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: rgba(184, 69, 50, 0.08);
   color: var(--color-accent-strong);
-  border: 1.5px solid var(--color-accent);
+  border: 1px solid rgba(184, 69, 50, 0.42);
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
@@ -335,9 +362,9 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
   border-radius: var(--radius-sm);
   background: linear-gradient(
     90deg,
-    rgba(236, 125, 157, 0.1) 0%,
-    rgba(236, 125, 157, 0.28) 50%,
-    rgba(236, 125, 157, 0.1) 100%
+    rgba(184, 69, 50, 0.08) 0%,
+    rgba(216, 168, 79, 0.24) 50%,
+    rgba(184, 69, 50, 0.08) 100%
   );
   background-size: 200% 100%;
   animation: dialog-shimmer 1600ms linear infinite;
