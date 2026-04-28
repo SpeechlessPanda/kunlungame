@@ -6,6 +6,7 @@
 
 ### Added · 新增
 
+- **dev 环境 OpenAI 凭据预加载**：`pnpm dev` 启动时若仓库根目录有 `.env.local`（或 `.env`），主进程会读取 `KUNLUN_OPENAI_API_KEY` / `KUNLUN_OPENAI_BASE_URL` / `KUNLUN_OPENAI_MODEL` / `KUNLUN_MODEL_PROVIDER`，自动覆盖到 runtime-state 的 `settings.openAiCompatible`，渲染层加载即看到值已就位。仅在 `app.isPackaged === false` 时生效；安装包不读 `.env`。模板见 `.env.example`。
 - **Windows 安装包**：接入 `electron-builder@26`，新增 `pnpm dist:win` 脚本，输出 NSIS 安装包到 `release/`。首版包大小约 111 MB，含 Electron 35 + node-llama-cpp 原生二进制，支持选择安装路径、在桌面与开始菜单创建快捷方式。配置在 `electron-builder.yml`，`runtime-cache/` 与 `runtime-state.json` 均指向 `app.getPath('userData')`，不进安装包。
 - 8 个节点各补一篇专属 RAG 补充条目在 `md/knowledge/`（全部 `enc:v1:` 不相关，是语料本身）：昂仑天柱、盘古女娲共工、三皇五帝与仰韶考古、礼乐周易与诸子、长安丝路与胡风、宋元明清与心学、学衔南迁与文物护送、费孝通与国风复兴。合并后语料总入口从 43 条增至 52 条，所有节点劤耳多与却 4 条。
 - `scripts/compile-knowledge.ts` 现合并主源 `docs/knowledge-base/cultural-knowledge.md` 与 `md/knowledge/*.md` 补充条目，同 id 优先读补充依据，输出同一份 `knowledgeEntries.json`。

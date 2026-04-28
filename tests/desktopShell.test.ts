@@ -13,7 +13,9 @@ import {
   resolveRendererEntryPath,
   resolveRuntimeSaveFilePath,
   loadDesktopRuntimeState,
-  saveDesktopRuntimeState
+  saveDesktopRuntimeState,
+  loadDevEnvFile,
+  applyDevOpenAiEnvOverrides
 } from '../electron/main/index.js'
 import { createDefaultRuntimeState } from '../src/runtime/runtimeState.js'
 import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
@@ -522,5 +524,229 @@ describe('runDesktopProfileDownload', () => {
     } finally {
       await rm(tempDir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('loadDevEnvFile', () => {
+  it('注入未定义变量并不覆盖已存在的 process.env', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlun-env-'))
+    try {
+      const filePath = join(tempDir, '.env.local')
+      await writeFile(filePath, [
+        '# 这是注释',
+        '',
+        'KUNLUN_TEST_NEW=hello-world',
+        'KUNLUN_TEST_QUOTED="quoted value"',
+        "KUNLUN_TEST_SINGLE='single quoted'",
+        'KUNLUN_TEST_EXISTING=should-be-ignored'
+      ].join('\n'), 'utf8')
+      delete process.env['KUNLUN_TEST_NEW']
+      delete process.env['KUNLUN_TEST_QUOTED']
+      delete process.env['KUNLUN_TEST_SINGLE']
+      process.env['KUNLUN_TEST_EXISTING'] = 'pre-existing'
+      try {
+        loadDevEnvFile(tempDir, ['.env.local'])
+        expect(process.env['KUNLUN_TEST_NEW']).toBe('hello-world')
+        expect(process.env['KUNLUN_TEST_QUOTED']).toBe('quoted value')
+        expect(process.env['KUNLUN_TEST_SINGLE']).toBe('single quoted')
+        expect(process.env['KUNLUN_TEST_EXISTING']).toBe('pre-existing')
+      } finally {
+        delete process.env['KUNLUN_TEST_NEW']
+        delete process.env['KUNLUN_TEST_QUOTED']
+        delete process.env['KUNLUN_TEST_SINGLE']
+        delete process.env['KUNLUN_TEST_EXISTING']
+      }
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  it('文件不存在时静默跳过', () => {
+    const before = JSON.stringify(process.env)
+    expect(() => loadDevEnvFile('D:/__definitely_not_existing_kunlun__', ['.env.local'])).not.toThrow()
+    expect(JSON.stringify(process.env)).toBe(before)
+  })
+})
+
+describe('applyDevOpenAiEnvOverrides', () => {
+  const baseSnapshot = {
+    state: {
+      saveVersion: 1 as const,
+      currentNodeId: 'kunlun-threshold',
+      turnIndex: 0,
+      turnsInCurrentNode: 0,
+      attitudeScore: 0,
+      historySummary: '',
+      readNodeIds: [],
+      isCompleted: false,
+      settings: {
+        bgmEnabled: true,
+        preferredModelMode: 'default' as const,
+        modelProvider: 'local' as const,
+        openAiCompatible: {
+          apiKey: '',
+          baseUrl: 'https://api.openai.com/v1',
+          model: 'gpt-4o-mini',
+          fallbackModels: []
+        }
+      }
+    },
+    recoveryAction: 'created-default' as const
+  }
+
+  it('全部环境变量未设置时返回原对象', () => {
+    const result = applyDevOpenAiEnvOverrides(baseSnapshot, {})
+    expect(result).toBe(baseSnapshot)
+  })
+
+  it('设置 apiKey 时自动切到 openai-compatible 并覆盖 baseUrl/model', () => {
+    const result = applyDevOpenAiEnvOverrides(baseSnapshot, {
+      KUNLUN_OPENAI_API_KEY: 'sk-test-123',
+      KUNLUN_OPENAI_BASE_URL: 'https://api.deepseek.com/v1',
+      KUNLUN_OPENAI_MODEL: 'deepseek-chat'
+    })
+    expect(result.state.settings.modelProvider).toBe('openai-compatible')
+    expect(result.state.settings.openAiCompatible.apiKey).toBe('sk-test-123')
+    expect(result.state.settings.openAiCompatible.baseUrl).toBe('https://api.deepseek.com/v1')
+    expect(result.state.settings.openAiCompatible.model).toBe('deepseek-chat')
+    // 不应污染原对象。
+    expect(baseSnapshot.state.settings.openAiCompatible.apiKey).toBe('')
+  })
+
+  it('显式设置 KUNLUN_MODEL_PROVIDER=local 时即使有 apiKey 也保持 local', () => {
+    const result = applyDevOpenAiEnvOverrides(baseSnapshot, {
+      KUNLUN_OPENAI_API_KEY: 'sk-test-123',
+      KUNLUN_MODEL_PROVIDER: 'local'
+    })
+    expect(result.state.settings.modelProvider).toBe('local')
+    expect(result.state.settings.openAiCompatible.apiKey).toBe('sk-test-123')
+  })
+
+  it('忽略未识别的 provider 值，回退保留快照原 provider', () => {
+    const result = applyDevOpenAiEnvOverrides(baseSnapshot, {
+      KUNLUN_MODEL_PROVIDER: 'banana'
+    })
+    expect(result.state.settings.modelProvider).toBe('local')
+  })
+
+  it('只设置 baseUrl 时不动 apiKey、modelProvider', () => {
+    const result = applyDevOpenAiEnvOverrides(baseSnapshot, {
+      KUNLUN_OPENAI_BASE_URL: 'https://gateway.example.com/v1'
+    })
+    expect(result.state.settings.openAiCompatible.baseUrl).toBe('https://gateway.example.com/v1')
+    expect(result.state.settings.openAiCompatible.apiKey).toBe('')
+    expect(result.state.settings.modelProvider).toBe('local')
+  })
+})
+
+describe('loadDevEnvFile', () => {
+  it('注入未定义变量并不覆盖已存在的 process.env', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'kunlun-env-'))
+    try {
+      const filePath = join(tempDir, '.env.local')
+      await writeFile(filePath, [
+        '# 这是注释',
+        '',
+        'KUNLUN_TEST_NEW=hello-world',
+        'KUNLUN_TEST_QUOTED="quoted value"',
+        "KUNLUN_TEST_SINGLE='single quoted'",
+        'KUNLUN_TEST_EXISTING=should-be-ignored'
+      ].join('\n'), 'utf8')
+      delete process.env['KUNLUN_TEST_NEW']
+      delete process.env['KUNLUN_TEST_QUOTED']
+      delete process.env['KUNLUN_TEST_SINGLE']
+      process.env['KUNLUN_TEST_EXISTING'] = 'pre-existing'
+      try {
+        loadDevEnvFile(tempDir, ['.env.local'])
+        expect(process.env['KUNLUN_TEST_NEW']).toBe('hello-world')
+        expect(process.env['KUNLUN_TEST_QUOTED']).toBe('quoted value')
+        expect(process.env['KUNLUN_TEST_SINGLE']).toBe('single quoted')
+        expect(process.env['KUNLUN_TEST_EXISTING']).toBe('pre-existing')
+      } finally {
+        delete process.env['KUNLUN_TEST_NEW']
+        delete process.env['KUNLUN_TEST_QUOTED']
+        delete process.env['KUNLUN_TEST_SINGLE']
+        delete process.env['KUNLUN_TEST_EXISTING']
+      }
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  it('文件不存在时静默跳过', () => {
+    const before = JSON.stringify(process.env)
+    expect(() => loadDevEnvFile('D:/__definitely_not_existing_kunlun__', ['.env.local'])).not.toThrow()
+    expect(JSON.stringify(process.env)).toBe(before)
+  })
+})
+
+describe('applyDevOpenAiEnvOverrides', () => {
+  const baseSnapshot = {
+    state: {
+      saveVersion: 1 as const,
+      currentNodeId: 'kunlun-threshold',
+      turnIndex: 0,
+      turnsInCurrentNode: 0,
+      attitudeScore: 0,
+      historySummary: '',
+      readNodeIds: [],
+      isCompleted: false,
+      settings: {
+        bgmEnabled: true,
+        preferredModelMode: 'default' as const,
+        modelProvider: 'local' as const,
+        openAiCompatible: {
+          apiKey: '',
+          baseUrl: 'https://api.openai.com/v1',
+          model: 'gpt-4o-mini',
+          fallbackModels: []
+        }
+      }
+    },
+    recoveryAction: 'created-default' as const
+  }
+
+  it('全部环境变量未设置时返回原对象', () => {
+    const result = applyDevOpenAiEnvOverrides(baseSnapshot, {})
+    expect(result).toBe(baseSnapshot)
+  })
+
+  it('设置 apiKey 时自动切到 openai-compatible 并覆盖 baseUrl/model', () => {
+    const result = applyDevOpenAiEnvOverrides(baseSnapshot, {
+      KUNLUN_OPENAI_API_KEY: 'sk-test-123',
+      KUNLUN_OPENAI_BASE_URL: 'https://api.deepseek.com/v1',
+      KUNLUN_OPENAI_MODEL: 'deepseek-chat'
+    })
+    expect(result.state.settings.modelProvider).toBe('openai-compatible')
+    expect(result.state.settings.openAiCompatible.apiKey).toBe('sk-test-123')
+    expect(result.state.settings.openAiCompatible.baseUrl).toBe('https://api.deepseek.com/v1')
+    expect(result.state.settings.openAiCompatible.model).toBe('deepseek-chat')
+    // 不应污染原对象。
+    expect(baseSnapshot.state.settings.openAiCompatible.apiKey).toBe('')
+  })
+
+  it('显式设置 KUNLUN_MODEL_PROVIDER=local 时即使有 apiKey 也保持 local', () => {
+    const result = applyDevOpenAiEnvOverrides(baseSnapshot, {
+      KUNLUN_OPENAI_API_KEY: 'sk-test-123',
+      KUNLUN_MODEL_PROVIDER: 'local'
+    })
+    expect(result.state.settings.modelProvider).toBe('local')
+    expect(result.state.settings.openAiCompatible.apiKey).toBe('sk-test-123')
+  })
+
+  it('忽略未识别的 provider 值，回退保留快照原 provider', () => {
+    const result = applyDevOpenAiEnvOverrides(baseSnapshot, {
+      KUNLUN_MODEL_PROVIDER: 'banana'
+    })
+    expect(result.state.settings.modelProvider).toBe('local')
+  })
+
+  it('只设置 baseUrl 时不动 apiKey、modelProvider', () => {
+    const result = applyDevOpenAiEnvOverrides(baseSnapshot, {
+      KUNLUN_OPENAI_BASE_URL: 'https://gateway.example.com/v1'
+    })
+    expect(result.state.settings.openAiCompatible.baseUrl).toBe('https://gateway.example.com/v1')
+    expect(result.state.settings.openAiCompatible.apiKey).toBe('')
+    expect(result.state.settings.modelProvider).toBe('local')
   })
 })
