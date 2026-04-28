@@ -217,10 +217,37 @@ const dismissSaveRecoveryNotice = (): void => {
   saveRecoveryNotice.value = null;
 };
 
+// 当玩家选择 OpenAI-compatible 但还没填 API Key 时，给一条明确的引导，
+// 而不是等真正调用 fetch 抛出 "OpenAI-compatible API key is required..." 这种生硬错误。
+const apiKeyMissingNotice = ref<string | null>(null);
+const isApiProviderConfigured = computed<boolean>(() => {
+  if (runtimeState.value.settings.modelProvider !== "openai-compatible") {
+    return true;
+  }
+  const cfg = runtimeState.value.settings.openAiCompatible;
+  return cfg.apiKey.trim().length > 0 && cfg.model.trim().length > 0;
+});
+const promptForApiKeyIfMissing = (): boolean => {
+  if (isApiProviderConfigured.value) {
+    apiKeyMissingNotice.value = null;
+    return true;
+  }
+  apiKeyMissingNotice.value =
+    "请先在“设置 → 模型来源”里填写 OpenAI-compatible API Key 与模型名，再开始对话。";
+  settingsOpen.value = true;
+  return false;
+};
+const dismissApiKeyMissingNotice = (): void => {
+  apiKeyMissingNotice.value = null;
+};
+
 const runTurn = async (): Promise<void> => {
   await ensureDialogueSourceReady();
   const node = currentNode.value;
   if (!node) {
+    return;
+  }
+  if (aiSource.value === "real" && !promptForApiKeyIfMissing()) {
     return;
   }
   await dialogueSession.runTurn(
@@ -336,6 +363,13 @@ const onUpdateOpenAiCompatible = (settings: OpenAiCompatibleSettings): void => {
       openAiCompatible: settings,
     },
   };
+  if (
+    apiKeyMissingNotice.value != null &&
+    settings.apiKey.trim().length > 0 &&
+    settings.model.trim().length > 0
+  ) {
+    apiKeyMissingNotice.value = null;
+  }
   void persistState();
 };
 const onSetVolume = (value: number): void => {
@@ -665,6 +699,23 @@ const onQuitFromEnding = (): void => {
       收下
     </button>
   </div>
+  <div
+    v-if="apiKeyMissingNotice"
+    class="save-recovery-notice save-recovery-notice--warning"
+    role="alert"
+    aria-live="assertive"
+    data-testid="api-key-missing-notice"
+  >
+    <span>{{ apiKeyMissingNotice }}</span>
+    <button
+      type="button"
+      class="save-recovery-notice__dismiss"
+      data-testid="api-key-missing-notice-dismiss"
+      @click="dismissApiKeyMissingNotice"
+    >
+      去填写
+    </button>
+  </div>
 </template>
 
 <style scoped>
@@ -762,5 +813,11 @@ const onQuitFromEnding = (): void => {
 .save-recovery-notice__dismiss:hover,
 .save-recovery-notice__dismiss:focus-visible {
   background: rgba(253, 230, 138, 0.12);
+}
+
+.save-recovery-notice--warning {
+  background: rgba(146, 64, 14, 0.94);
+  border-color: rgba(253, 230, 138, 0.62);
+  bottom: 88px;
 }
 </style>

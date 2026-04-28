@@ -86,9 +86,15 @@ export interface MainlineTurnDependencies {
     }) => DialogueDependencies
 }
 
+const knowledgeEntriesCache = new Map<string, z.infer<typeof knowledgeEntrySchema>[]>()
+
 const defaultReadKnowledgeEntries: MainlineTurnDependencies['readKnowledgeEntries'] = async (file) => {
+    const cached = knowledgeEntriesCache.get(file)
+    if (cached != null) return cached
     const raw = await readFile(file, 'utf8')
-    return z.array(knowledgeEntrySchema).parse(JSON.parse(raw))
+    const parsed = z.array(knowledgeEntrySchema).parse(JSON.parse(raw))
+    knowledgeEntriesCache.set(file, parsed)
+    return parsed
 }
 
 const defaultCheckFileExists: MainlineTurnDependencies['checkFileExists'] = async (path) => {

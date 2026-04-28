@@ -232,6 +232,18 @@ const onDownload = (event: Event, profileId: string): void => {
   </div>
 
   <div v-if="modelProvider === 'openai-compatible'" class="settings-panel__api-form" data-testid="settings-openai-form">
+    <div
+      class="settings-panel__api-warning"
+      role="note"
+      data-testid="settings-openai-format-warning"
+    >
+      <strong class="settings-panel__api-warning-title">仅支持 OpenAI 格式 API</strong>
+      <span class="settings-panel__api-warning-body">
+        本应用只走 OpenAI-compatible <code>/chat/completions</code> 流式协议；
+        Anthropic 原生（<code>/v1/messages</code>）、Google Gemini、百度文心等专属格式无法直接接入，
+        请使用其官方/网关提供的 OpenAI-compatible 端点。
+      </span>
+    </div>
     <div class="settings-panel__preset-list" aria-label="API 接入预设">
       <button
         v-for="preset in apiProviderPresets"
@@ -452,6 +464,36 @@ const onDownload = (event: Event, profileId: string): void => {
   border-radius: var(--radius-md);
   border: 1px solid rgba(216, 168, 79, 0.2);
   background: rgba(5, 11, 13, 0.16);
+}
+
+.settings-panel__api-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(216, 168, 79, 0.48);
+  background: rgba(216, 168, 79, 0.12);
+  color: #ffe9b8;
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+}
+
+.settings-panel__api-warning code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.92em;
+  background: rgba(0, 0, 0, 0.32);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+.settings-panel__api-warning-title {
+  font-weight: 600;
+  color: #fff5d8;
+}
+
+.settings-panel__api-warning-body {
+  color: rgba(255, 246, 232, 0.84);
 }
 
 .settings-panel__preset-list {
