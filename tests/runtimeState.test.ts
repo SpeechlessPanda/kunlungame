@@ -49,7 +49,7 @@ describe('createDefaultRuntimeState', () => {
         apiKey: 'sk-test',
         baseUrl: 'https://api.example.test/v1',
         model: 'gpt-4.1-mini',
-        fallbackModels: ['deepseek/deepseek-chat-v3-0324:free']
+        fallbackModels: ['z-ai/glm-4.5-air:free']
       }
     })
 
@@ -63,7 +63,7 @@ describe('createDefaultRuntimeState', () => {
         apiKey: 'sk-test',
         baseUrl: 'https://api.example.test/v1',
         model: 'gpt-4.1-mini',
-        fallbackModels: ['deepseek/deepseek-chat-v3-0324:free']
+        fallbackModels: ['z-ai/glm-4.5-air:free']
       }
     })
   })
@@ -237,7 +237,7 @@ describe('runtime state serialization', () => {
           apiKey: 'sk-test',
           baseUrl: 'https://api.example.test/v1',
           model: 'gpt-4.1-mini',
-          fallbackModels: ['deepseek/deepseek-chat-v3-0324:free', 'qwen/qwen3-235b-a22b:free']
+          fallbackModels: ['z-ai/glm-4.5-air:free', 'meta-llama/llama-3.3-70b-instruct:free']
         }
       }
     }

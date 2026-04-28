@@ -26,7 +26,21 @@ Kunlungame 是一款面向 Windows 的本地桌面叙事游戏。题材围绕昆
 8. `pnpm knowledge:compile`   — 把 `docs/knowledge-base/cultural-knowledge.md` 与 canonical 主线编译为 `src/content/generated/knowledgeEntries.json` / `storyOutline.json`
 9. `pnpm models:download`     — 获取 Qwen2.5-3B (默认质量档) + 1.5B (可选纯 CPU Lite 兜底) GGUF 到 `runtime-cache/models/**`；7B Pro 档需手动下载
 10. `pnpm dialogue:smoke`     — 本地跑首节点端到端烟雾，验证 GGUF 路径 + 编排 + 流式
-11. `pnpm playthrough -- --pattern=alt --maxNodes=8` — 8 节点全链路重放，记录 per-node 滚动、attitudeScore、完整文本
+11. `pnpm smoke:openai`       — 使用环境变量中的 API key 跑真实 OpenAI-compatible 首节点烟雾，并把输出写到 `logs/dialogue-smoke/`
+12. `pnpm playthrough -- --pattern=alt --maxNodes=8` — 8 节点全链路重放，记录 per-node 滚动、attitudeScore、完整文本
+
+OpenAI-compatible 真实烟雾示例：
+
+```powershell
+$env:KUNLUN_OPENAI_API_KEY="sk-..."
+$env:KUNLUN_OPENAI_BASE_URL="https://api.openai.com/v1"
+$env:KUNLUN_OPENAI_MODEL="gpt-4o-mini"
+pnpm smoke:openai
+```
+
+`KUNLUN_OPENAI_BASE_URL` 必须填写 OpenAI-compatible API 根地址，应用会自行拼接 `/chat/completions`；不要填写完整 `/chat/completions` 路径。脚本只把 base URL、model、对话正文与选项写入日志，不写入 API key。
+
+也可以把同名变量写入项目根目录的 `.env.local`。该文件已被 git 忽略，适合本机多人共用测试配置；不要把真实 key 写入 README、文档、提交信息或 issue。
 
 ## 统一日志目录
 
@@ -68,9 +82,10 @@ pnpm dev
 3. `pnpm test:e2e` — Playwright 渲染层黑盒（14 scenarios）
 4. `pnpm coverage` — 覆盖率报告（整体 Lines ≥ 86%，核心模块 ≥ 90%）
 5. `pnpm dialogue:smoke` — 本地 GGUF 端到端冷烟；默认检查并运行 3B Quality profile，设 `$env:KUNLUN_SMOKE_MODE='compatibility'` 可切到 1.5B Lite 做 A/B；设 `$env:KUNLUN_FORCE_CPU='1'` 强制禁用 GPU 加速（默认会通过 Vulkan 自动识别独显）
-6. `pnpm playthrough -- --pattern=alt --maxNodes=8` — 8 节点全链路端到端，最近一次：`docs/audits/2026-04-24-playthrough-8node.md`
-7. `pnpm audit --prod --registry=https://registry.npmjs.org/` — 默认 npmmirror 不提供 audit endpoint，必须显式指向官方 registry
-8. `docs/audits/2026-release-audit-template.md` — 正式发布前填写审计记录（最近一次：`docs/audits/2026-04-24-release-audit-rc2.md`）
+6. `pnpm smoke:openai` — 真实 API key 端到端烟雾；要求 `$env:KUNLUN_OPENAI_API_KEY` 或 `$env:OPENAI_API_KEY`，当前仅支持 OpenAI-compatible `/chat/completions` streaming
+7. `pnpm playthrough -- --pattern=alt --maxNodes=8` — 8 节点全链路端到端，最近一次：`docs/audits/2026-04-24-playthrough-8node.md`
+8. `pnpm audit --prod --registry=https://registry.npmjs.org/` — 默认 npmmirror 不提供 audit endpoint，必须显式指向官方 registry
+9. `docs/audits/2026-release-audit-template.md` — 正式发布前填写审计记录（最近一次：`docs/audits/2026-04-24-release-audit-rc2.md`）
 
 ## 仍需交付的素材
 

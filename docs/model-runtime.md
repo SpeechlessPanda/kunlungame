@@ -9,7 +9,19 @@
 3. Lite 本地兜底档：Qwen2.5-1.5B-Instruct GGUF Q4_K_M，用于低显存或纯 CPU 机器。
 4. Pro 本地可选档：Qwen2.5-7B-Instruct GGUF Q3_K_M，需要用户显式选择。
 
-推荐 API 模型：`gpt-4o-mini` 速度、成本和中文质量平衡最好；`gpt-4.1-mini` 指令遵循更强，适合更重视剧情约束的体验；`gpt-4o` 中文表达更细腻但成本更高。设置页提供 `OpenAI 官方` 与 `OpenRouter 免费` 两个预设；OpenRouter 可通过 `https://openrouter.ai/api/v1` 接入 OpenAI-compatible 格式，免费模型通常以 `:free` 结尾，例如 `deepseek/deepseek-chat-v3-0324:free`、`qwen/qwen3-235b-a22b:free`。当前只支持 OpenAI-compatible `/chat/completions` 流式格式。
+推荐 API 模型：`gpt-4o-mini` 速度、成本和中文质量平衡最好；`gpt-4.1-mini` 指令遵循更强，适合更重视剧情约束的体验；`gpt-4o` 中文表达更细腻但成本更高。设置页提供 `OpenAI 官方` 与 `OpenRouter 免费` 两个预设；OpenRouter 可通过 `https://openrouter.ai/api/v1` 接入 OpenAI-compatible 格式，免费模型通常以 `:free` 结尾，例如 `qwen/qwen3-next-80b-a3b-instruct:free`、`z-ai/glm-4.5-air:free`。当前只支持 OpenAI-compatible `/chat/completions` 流式格式；`baseUrl` 必须填 API 根地址（如 `https://api.openai.com/v1`），不要填完整 `/chat/completions` 路径。
+
+真实 API 烟雾：
+
+```powershell
+$env:KUNLUN_OPENAI_API_KEY="sk-..."
+$env:KUNLUN_OPENAI_BASE_URL="https://api.openai.com/v1"
+$env:KUNLUN_OPENAI_MODEL="gpt-4o-mini"
+pnpm smoke:openai
+```
+
+脚本会跑首节点真实主线回合，输出正文与两个选项，并把无密钥日志写入 `logs/dialogue-smoke/openai-compatible-smoke-*.json`。
+如果不想每次设置环境变量，可以在项目根目录放置 `.env.local`，写入同名变量；该文件被 `.gitignore` 忽略，只用于本机测试。
 
 ## 推理与分发策略
 
@@ -62,7 +74,7 @@ Pro 可选档：
 1. 当前 prompt builder 会把 system prompt 固定为中文输出、`昆仑子`文化引路人口吻、单主线不分叉、二选一语义固定映射。
 2. 当前节点会显式带入 `coreQuestion`、`summary`、`mustIncludeFacts`。
 3. 检索条目会被格式化为 RAG cards，包含来源、主题、事实要点和讲述方式提示；模型必须用当前人物口吻重组这些事实，不能照抄条目。
-4. `forbiddenFutureTopics` 与当前节点之后所有主线节点的关键词会被写入 prompt，作为反剧透边界。
+4. `forbiddenFutureTopics`、当前节点之后所有主线节点的关键词、推荐人物与 `mustIncludeFacts` 中可提取的后续事件/专有词会被写入 prompt，作为反剧透边界。
 5. 3B / 1.5B 严格覆盖模式会要求 3-4 个自然段、足够长度和当前节点事实覆盖；如果模型首答太短、段落不足或关键词覆盖不足，会用同一个本地模型再跑一次窄化修复 prompt。
 6. 当前玩家倾向会被翻译为 `附和型` 或 `反驳型`，但不会改变主线事实或节点顺序。
 7. prompt 明确要求只面对一个玩家说话，称呼为 `你`，不得把玩家称为 `你们`；除非是在引用历史群体或多人场景。
@@ -127,6 +139,7 @@ Pro 可选档：
 12. 已有 `desktop:run-dialogue-smoke` bridge 与 `pnpm dialogue:smoke` 命令，可触发主线首节点、知识检索、prompt builder、orchestrator 和本地 llama adapter 的单轮联调。
 13. 已有 `desktop:stream-mainline-turn` bridge，可把主进程生成中的文本 chunk 实时推入 UI；旧 `desktop:run-mainline-turn` 保留为兼容回退。
 14. 已有 OpenAI-compatible 远程 adapter；配置 API key 时主线会跳过本地模型文件检查，并保留 system/user role 分离与 SSE 增量输出。
+15. 已有 `pnpm smoke:openai` 真实 API 烟雾脚本，使用环境变量读取 key，不把 key 写入日志。
 
 ## 当前已验证状态
 

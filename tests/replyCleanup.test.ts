@@ -72,4 +72,16 @@ describe('sanitizeMainlineReply', () => {
         expect(cleaned).not.toContain('盘古')
         expect(cleaned).not.toContain('上几个节点')
     })
+
+    it('normalizes plural player address without touching historical groups', () => {
+        const raw = [
+            '你们已经听到这里，就该知道昆仑不是单纯的地名。',
+            '但古人他们会把许多人群称作天下之民，这种多人场景可以保留。'
+        ].join('\n')
+        const cleaned = sanitizeMainlineReply(raw)
+
+        expect(cleaned).toContain('你已经听到这里')
+        expect(cleaned).not.toContain('你们已经')
+        expect(cleaned).toContain('许多人群')
+    })
 })

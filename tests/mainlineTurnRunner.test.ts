@@ -23,7 +23,7 @@ describe('runMainlineTurn', () => {
                     apiKey: 'sk-test',
                     baseUrl: 'https://api.example.test/v1',
                     model: 'gpt-4.1-mini',
-                    fallbackModels: ['deepseek/deepseek-chat-v3-0324:free']
+                    fallbackModels: ['z-ai/glm-4.5-air:free']
                 }
             }
         }
@@ -70,7 +70,7 @@ describe('runMainlineTurn', () => {
                 apiKey: 'sk-test',
                 baseUrl: 'https://api.example.test/v1',
                 model: 'gpt-4.1-mini',
-                fallbackModels: ['deepseek/deepseek-chat-v3-0324:free']
+                fallbackModels: ['z-ai/glm-4.5-air:free']
             }
         })
     })

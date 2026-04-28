@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
 import { createDefaultRuntimeState } from '../src/runtime/runtimeState.js'
-import { buildStoryPrompt } from '../src/modeling/storyPromptBuilder.js'
+import { buildStoryPrompt, collectForbiddenProperNouns } from '../src/modeling/storyPromptBuilder.js'
 
 describe('buildStoryPrompt', () => {
   it('builds a Chinese prompt with node facts and anti-spoiler boundaries', () => {
@@ -147,5 +147,41 @@ describe('buildStoryPrompt', () => {
     expect(prompt.user).toContain('昆仑把神话、地理和身份三条线接在一起')
     expect(prompt.user).toContain('古人理解天地秩序')
     expect(prompt.user).not.toContain('[[PREV_REPLY')
+  })
+
+  it('derives anti-spoiler terms from future node fact text without banning the current node', () => {
+    const currentNode = mainlineStoryOutline.nodes.find((node) => node.id === 'fusion-and-refinement')!
+    const forbidden = collectForbiddenProperNouns(currentNode)
+
+    expect(forbidden).toContain('营造学社')
+    expect(forbidden).toContain('新文化运动')
+    expect(forbidden).toContain('文化自觉')
+    expect(forbidden).toContain('非物质文化遗产')
+    expect(forbidden).not.toContain('苏轼')
+    expect(forbidden).not.toContain('青花')
+  })
+
+  it('keeps middle-node prompts focused on current facts while naming later spoiler boundaries', () => {
+    const currentNode = mainlineStoryOutline.nodes.find((node) => node.id === 'fusion-and-refinement')!
+    const runtimeState = createDefaultRuntimeState(mainlineStoryOutline)
+    const prompt = buildStoryPrompt({
+      currentNode,
+      retrievedEntries: [],
+      runtimeState: {
+        ...runtimeState,
+        currentNodeId: currentNode.id,
+        turnIndex: 5,
+        turnsInCurrentNode: 0,
+        readNodeIds: ['kunlun-threshold', 'creation-myths', 'civilization-roots', 'order-and-thought', 'empire-and-openness']
+      },
+      attitudeChoiceMode: 'align',
+      recentTurns: []
+    })
+
+    expect(prompt.user).toContain('宋代词学')
+    expect(prompt.system).toContain('营造学社')
+    expect(prompt.system).toContain('新文化运动')
+    expect(prompt.system).toContain('文化自觉')
+    expect(prompt.system).not.toContain('禁止提前涉及的专有名词 / 事件 / 人物：苏轼')
   })
 })

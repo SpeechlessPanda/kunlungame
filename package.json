@@ -15,6 +15,7 @@
         "coverage": "vitest run --coverage",
         "models:download": "tsx scripts/download-models.ts",
         "dialogue:smoke": "tsx scripts/run-dialogue-smoke.ts",
+        "smoke:openai": "tsx scripts/run-openai-compatible-smoke.ts",
         "playthrough": "tsx scripts/run-mainline-playthrough.ts",
         "knowledge:compile": "tsx scripts/compile-knowledge.ts",
         "test:e2e": "playwright test"

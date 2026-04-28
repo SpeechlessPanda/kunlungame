@@ -113,11 +113,11 @@ const apiProviderPresets: ApiProviderPreset[] = [
     hint: "免费模型波动较大，已预填备用池。",
     settings: {
       baseUrl: "https://openrouter.ai/api/v1",
-      model: "deepseek/deepseek-chat-v3-0324:free",
+      model: "qwen/qwen3-next-80b-a3b-instruct:free",
       fallbackModels: [
-        "qwen/qwen3-235b-a22b:free",
+        "z-ai/glm-4.5-air:free",
         "meta-llama/llama-3.3-70b-instruct:free",
-        "google/gemini-2.0-flash-exp:free",
+        "openai/gpt-oss-120b:free",
       ],
     },
   },
@@ -292,13 +292,13 @@ const onDownload = (event: Event, profileId: string): void => {
         data-testid="settings-openai-fallback-models"
         autocomplete="off"
         rows="3"
-        placeholder="deepseek/deepseek-chat-v3-0324:free"
+        placeholder="qwen/qwen3-next-80b-a3b-instruct:free"
         :value="openAiCompatible.fallbackModels.join('\n')"
         @input="(event) => updateFallbackModels(textareaValue(event))"
       />
     </label>
     <p class="settings-panel__model-hint settings-panel__api-guidance" data-testid="settings-openai-guidance">
-      推荐 gpt-4o-mini 获得速度和成本平衡；gpt-4.1-mini 指令遵循更强；gpt-4o 中文表达更细腻。OpenRouter 免费模型通常以 :free 结尾，例如 deepseek/deepseek-chat-v3-0324:free，可一行一个作为备用。
+      仅支持 OpenAI-compatible 的 /chat/completions 流式格式；Base URL 填 API 根地址，例如 https://api.openai.com/v1 或 https://openrouter.ai/api/v1，不要填完整 /chat/completions 路径。推荐 gpt-4o-mini 获得速度和成本平衡；gpt-4.1-mini 指令遵循更强；gpt-4o 中文表达更细腻。OpenRouter 免费模型通常以 :free 结尾，例如 qwen/qwen3-next-80b-a3b-instruct:free，可一行一个作为备用。
     </p>
   </div>
 

@@ -62,7 +62,15 @@
 - [x] Add unit-testable helper coverage for quiet llama warning filtering and local runtime option resolution.
 - [x] Update `realLlamaSession` to suppress benign control-token warning, log backend/device diagnostics, use bounded context, enable flash attention where supported, and reduce default local output tokens.
 - [x] Update docs with GPU diagnosis and recommended API models.
-- [ ] Run typecheck and the full test suite.
+- [x] Add `pnpm smoke:openai` for real OpenAI-compatible mainline smoke via environment variables, without logging API keys.
+- [x] Run typecheck and the full test suite.
+
+### Task 7: Release Hardening Sweep
+
+- [x] Add regression coverage for future-node fact terms in anti-spoiler boundaries.
+- [x] Normalize accidental plural player address in final reply cleanup.
+- [x] Make settings UI explicitly state that only OpenAI-compatible `/chat/completions` streaming is supported and that Base URL must be the API root.
+- [x] Run real API smoke with the user's configured OpenRouter key through ignored `.env.local`: `pnpm smoke:openai` completed with `qwen/qwen3-next-80b-a3b-instruct:free`, produced a 317-character first-node reply and two contextual options, and log scan found no API key or Authorization header in `logs/dialogue-smoke/`.
 
 ## Acceptance
 
@@ -72,3 +80,5 @@
 - Options feel like player responses: align means wonder/acceptance; challenge means questioning evidence/reasoning.
 - Main prompt no longer frames the guide as a sister and forbids addressing one player as `你们`.
 - Previous model output is retained as compressed continuity context instead of being dropped.
+- Settings UI and docs tell users that API keys must target an OpenAI-compatible chat-completions endpoint.
+- `pnpm smoke:openai` can verify real API dialogue output without storing the key in logs.

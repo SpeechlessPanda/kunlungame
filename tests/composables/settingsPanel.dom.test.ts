@@ -133,6 +133,9 @@ describe('SettingsPanel · model profile picker', () => {
     expect(mounted.container.textContent ?? '').toContain('gpt-4o-mini')
     expect(mounted.container.textContent ?? '').toContain('gpt-4.1-mini')
     expect(mounted.container.textContent ?? '').toContain('gpt-4o')
+    expect(mounted.container.textContent ?? '').toContain('仅支持 OpenAI-compatible')
+    expect(mounted.container.textContent ?? '').toContain('/chat/completions')
+    expect(mounted.container.textContent ?? '').toContain('Base URL 填 API 根地址')
   })
 
   it('edits OpenRouter-compatible fallback model list as newline-separated model ids', () => {
@@ -140,21 +143,21 @@ describe('SettingsPanel · model profile picker', () => {
       openAiCompatible: {
         apiKey: '',
         baseUrl: 'https://openrouter.ai/api/v1',
-        model: 'deepseek/deepseek-chat-v3-0324:free',
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
         fallbackModels: []
       }
     })
 
     const fallbackInput = mounted.container.querySelector<HTMLTextAreaElement>('[data-testid="settings-openai-fallback-models"]')
     expect(fallbackInput).not.toBeNull()
-    fallbackInput!.value = 'qwen/qwen3-235b-a22b:free\n\nmeta-llama/llama-3.3-70b-instruct:free'
+    fallbackInput!.value = 'z-ai/glm-4.5-air:free\n\nmeta-llama/llama-3.3-70b-instruct:free'
     fallbackInput!.dispatchEvent(new Event('input'))
 
     expect(mounted.emitted.updateOpenAiCompatible.at(-1)).toMatchObject({
       baseUrl: 'https://openrouter.ai/api/v1',
-      model: 'deepseek/deepseek-chat-v3-0324:free',
+      model: 'qwen/qwen3-next-80b-a3b-instruct:free',
       fallbackModels: [
-        'qwen/qwen3-235b-a22b:free',
+        'z-ai/glm-4.5-air:free',
         'meta-llama/llama-3.3-70b-instruct:free'
       ]
     })
@@ -178,11 +181,11 @@ describe('SettingsPanel · model profile picker', () => {
     expect(mounted.emitted.updateOpenAiCompatible.at(-1)).toEqual({
       apiKey: 'sk-test',
       baseUrl: 'https://openrouter.ai/api/v1',
-      model: 'deepseek/deepseek-chat-v3-0324:free',
+      model: 'qwen/qwen3-next-80b-a3b-instruct:free',
       fallbackModels: [
-        'qwen/qwen3-235b-a22b:free',
+        'z-ai/glm-4.5-air:free',
         'meta-llama/llama-3.3-70b-instruct:free',
-        'google/gemini-2.0-flash-exp:free'
+        'openai/gpt-oss-120b:free'
       ]
     })
   })

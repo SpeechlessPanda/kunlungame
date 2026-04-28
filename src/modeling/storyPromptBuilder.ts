@@ -82,6 +82,80 @@ const describeAttitudeScore = (attitudeScore: number): string => {
   return '玩家对你的叙述非常警惕。请收起所有撒娇语气，先承认疑问合理，再主要靠硬证据（朝代、年份、典籍名、地点）推进，全程只能保留极淡的小情绪。'
 }
 
+const FACT_TERM_SUFFIXES = [
+  '战争',
+  '运动',
+  '学社',
+  '联大',
+  '南迁',
+  '文化自觉',
+  '文化自信',
+  '文化遗产',
+  '文创',
+  '展陈',
+  '敦煌',
+  '国风内容',
+  '古籍整理'
+] as const
+
+const GENERIC_FORBIDDEN_TERMS = new Set([
+  '传统',
+  '文化',
+  '中国',
+  '中文',
+  '世界',
+  '制度',
+  '历史',
+  '概念',
+  '今天',
+  '共同',
+  '数字',
+  '在线'
+])
+
+const cleanForbiddenTerm = (term: string): string => term
+  .replace(/[“”"'‘’《》()[\]（）【】]/gu, '')
+  .replace(/^(?:和|与|及|把|在|从|对|以|的|中|里|了)+/u, '')
+  .replace(/(?:制度|之后|以前|以来|本身|几个|一辈|一代|共同|大量)$/u, '')
+  .trim()
+
+const addForbiddenTerm = (target: Set<string>, rawTerm: string): void => {
+  const term = cleanForbiddenTerm(rawTerm)
+  if (term.length < 2 || term.length > 16) return
+  if (GENERIC_FORBIDDEN_TERMS.has(term)) return
+  target.add(term)
+}
+
+const collectTermsFromFact = (fact: string): string[] => {
+  const terms = new Set<string>()
+
+  for (const match of fact.matchAll(/《([^》]{2,16})》/gu)) {
+    if (match[1] != null) addForbiddenTerm(terms, match[1])
+  }
+
+  for (const match of fact.matchAll(/["“]([^"”]{2,16})["”]/gu)) {
+    if (match[1] != null) {
+      for (const part of match[1].split(/[\/、，,和与]/u)) addForbiddenTerm(terms, part)
+    }
+  }
+
+  for (const suffix of FACT_TERM_SUFFIXES) {
+    const pattern = new RegExp(`[\\u4e00-\\u9fa5A-Za-z0-9· ]{0,10}${suffix}`, 'gu')
+    for (const match of fact.matchAll(pattern)) {
+      addForbiddenTerm(terms, match[0])
+      for (const part of match[0].split(/[与和、，,]/u)) addForbiddenTerm(terms, part)
+    }
+  }
+
+  for (const match of fact.matchAll(/(?:^|[，,、；;])([\u4e00-\u9fa5]{2,4}(?:、[\u4e00-\u9fa5]{2,4})+)(?=一辈|共同|在|把|的|与|和|既)/gu)) {
+    const group = match[1]
+    if (group == null) continue
+    for (const part of group.split('、')) addForbiddenTerm(terms, part)
+  }
+
+  return [...terms]
+}
+
 /**
  * 从主线后续节点里把该节点"不允许提前涉及"的具体专有名词抽出来，
  * 让 prompt 可以以自然语言形式告诉模型"不要现在讲盘古/女娲/丝绸之路……"
@@ -97,15 +171,21 @@ export const collectForbiddenProperNouns = (currentNode: StoryNode): string[] =>
   for (const future of futureNodes) {
     for (const keyword of future.retrievalKeywords) forbidden.add(keyword)
     for (const figure of future.recommendedFigures) forbidden.add(figure)
+    for (const fact of future.mustIncludeFacts) {
+      for (const term of collectTermsFromFact(fact)) forbidden.add(term)
+    }
   }
 
   for (const nodeId of currentNode.forbiddenFutureTopics) {
     const future = mainlineStoryOutline.nodes.find(
-      (n) => n.id === nodeId || n.era === nodeId || n.theme === nodeId
+      (n) => n.id !== currentNode.id && (n.id === nodeId || n.era === nodeId || n.theme === nodeId)
     )
     if (future == null) continue
     for (const keyword of future.retrievalKeywords) forbidden.add(keyword)
     for (const figure of future.recommendedFigures) forbidden.add(figure)
+    for (const fact of future.mustIncludeFacts) {
+      for (const term of collectTermsFromFact(fact)) forbidden.add(term)
+    }
   }
   return [...forbidden]
 }

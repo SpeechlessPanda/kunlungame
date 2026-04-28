@@ -29,7 +29,9 @@ Part 04 当前已经对齐到真实主线的状态闭环：状态对象可序列
 4. OpenRouter 走同一 OpenAI-compatible 入口：`baseUrl` 填 `https://openrouter.ai/api/v1`，`model` 与 `fallbackModels` 可填 `:free` 结尾的免费模型 ID。备用模型按顺序尝试，只在当前模型尚未输出任何 token 前失败时切换，避免一轮回复混杂多个模型输出。
 5. 设置页编辑 API key、base URL、model、fallback models 或模型来源后，会通过既有 `serializeRuntimeStateForDesktop()` 持久化到桌面存档。
 6. 点击“进入昆仑”或从结尾重新开始时，只重置剧情进度、态度值、历史摘要和已读节点；会保留当前 `settings`，避免用户刚填写的 API key/model 被新开主线清空。
-7. 当前版本只支持 OpenAI-compatible chat completions streaming；更多 provider 与安全凭据存储仍属后续范围。
+7. 当前版本只支持 OpenAI-compatible chat completions streaming；`baseUrl` 填 API 根地址，运行时会拼接 `/chat/completions`。
+8. 当前版本沿用现有存档结构持久化 `apiKey`，尚未接入 OS 级安全凭据存储；发布前若面向非开发用户分发，应在设置页与发行说明中继续保留此限制说明。
+9. 真实 API 烟雾通过环境变量或项目根目录 `.env.local` 读取 key：`KUNLUN_OPENAI_API_KEY` / `OPENAI_API_KEY`、`KUNLUN_OPENAI_BASE_URL` / `OPENAI_BASE_URL`、`KUNLUN_OPENAI_MODEL` / `OPENAI_MODEL`；脚本日志不会写入 key。
 
 ## 态度值规则
 

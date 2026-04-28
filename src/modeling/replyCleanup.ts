@@ -67,6 +67,8 @@ const OUT_OF_SEQUENCE_PATTERNS: RegExp[] = [
 
 const normalizeTerm = (value: string): string => value.trim().toLocaleLowerCase()
 
+const normalizePlayerAddress = (value: string): string => value.replace(/你们/gu, '你')
+
 const containsForbiddenBoundary = (sentence: string, forbiddenTerms: string[]): boolean => {
     if (OUT_OF_SEQUENCE_PATTERNS.some((pattern) => pattern.test(sentence))) return true
     const normalizedSentence = normalizeTerm(sentence)
@@ -98,6 +100,7 @@ export const sanitizeMainlineReply = (raw: string, options: SanitizeOptions = {}
         for (const pattern of INLINE_NOISE_PATTERNS) {
             next = next.replace(pattern, '')
         }
+        next = normalizePlayerAddress(next)
         cleanedLines.push(next)
     }
 
