@@ -86,14 +86,16 @@ All files | % Stmts 88.55 | % Branch 84.38 | % Funcs 90.68 | % Lines 88.55
 out/main/index.js      103.55 kB
 out/preload/index.cjs    3.50 kB
 out/renderer/index.html              0.40 kB
-out/renderer/assets/index-*.css     46.54 kB
-out/renderer/assets/index-*.js     497.31 kB
+out/renderer/assets/index-*.css     46.61 kB
+out/renderer/assets/index-*.js     497.29 kB
 out/renderer/assets/character-kunlun-portrait-*.svg  6.10 kB
 ```
 
 - 三段产物齐全：`out/main/`、`out/preload/`、`out/renderer/`。
-- 渲染层 bundle 497.31 kB（gzip 前），可后续做按需拆分。
-- 本轮复核重新跑了 `pnpm build`；Windows NSIS 安装包已由既有 `pnpm dist:win` 流程落盘到 `release/`，正式分发前按目标渠道决定是否重跑签名/打包。
+- 渲染层 bundle 497.29 kB（gzip 前），可后续做按需拆分。
+- 正式发布前复核已重新跑 `pnpm dist:win`；Windows NSIS 安装包落盘到 `release/Kunlunyao-0.1.0-Setup.exe`，大小 116,325,812 bytes。
+- `release/latest.yml` 指向 `Kunlunyao-0.1.0-Setup.exe`，其 `sha512` 与本地重新计算的 base64 SHA512 一致：`PGe+FFU9d4n+cajzxw5yGiJTmsRIss8cH+FaQorAGwcAakQKqfY2piuiH7Djwarwauze2x1pQsWaND8Xq7SNRA==`。
+- blockmap 文件同步为 `release/Kunlunyao-0.1.0-Setup.exe.blockmap`，避免 GitHub Release 资产名中的中文字符被 CDN 剥离。
 
 ## 4. 启动与 Smoke 🟢
 
@@ -118,6 +120,8 @@ chunks = 67 段，含昆仑天柱、西王母与文明回望的完整开场
 - `logs/playthroughs/playthrough-default-custom-2026-04-28T10-08-49-299Z.md`：加严阪泉/涿鹿事实锚点后复验，8/8 节点贯通，文明起源段明确区分“阪泉相争”与“涿鹿合力击败蚩尤”。
 
 `scripts/run-mainline-playthrough.ts` 与 `scripts/run-dialogue-smoke.ts`、`scripts/run-openai-compatible-smoke.ts` 均存在，可作回归 smoke 触发器。
+
+安装包产物启动 smoke：`release/win-unpacked/昆仑谣.exe` 可拉起进程并返回 `started-ok`；测试结束后无遗留应用进程。快速关闭过程中 Chromium 输出过 GPU/cache 创建警告，未影响进程启动。
 
 > 备注：本轮未重复单节点 `smoke:openai`，但已消耗外部 API 额度完成 5 条 8 节点真实 playthrough；最新日志已用关键词扫描排除已知模型错词、prompt 泄漏、`undefined/null/NaN` 和 API key 泄漏。
 
