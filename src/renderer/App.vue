@@ -183,7 +183,9 @@ const persistState = async (): Promise<void> => {
     return;
   }
   try {
-    await bridge.saveRuntimeState(serializeRuntimeStateForDesktop(runtimeState.value));
+    await bridge.saveRuntimeState(
+      serializeRuntimeStateForDesktop(runtimeState.value),
+    );
   } catch (error) {
     console.error("[app] saveRuntimeState failed", error);
   }
@@ -674,7 +676,11 @@ const onQuitFromEnding = (): void => {
   padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-md);
   border: 1px solid rgba(216, 168, 79, 0.72);
-  background: linear-gradient(180deg, rgba(248, 239, 222, 0.96), rgba(216, 168, 79, 0.88));
+  background: linear-gradient(
+    180deg,
+    rgba(248, 239, 222, 0.96),
+    rgba(216, 168, 79, 0.88)
+  );
   color: #2c2118;
   font-family: var(--font-serif);
   font-size: var(--font-size-lg);
