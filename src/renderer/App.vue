@@ -177,6 +177,21 @@ const getBridge = (): DesktopBridge | null => {
   return raw ? wrapDesktopBridgeWithValidation(raw) : null;
 };
 
+const runConnectionTest = async (
+  request: import("../shared/types/desktop.js").DesktopOpenAiCompatibleTestRequest,
+): Promise<import("../shared/types/desktop.js").DesktopOpenAiCompatibleTestResult> => {
+  const bridge = getBridge();
+  if (bridge == null) {
+    return {
+      ok: false,
+      reason: "network",
+      message:
+        "未检测到 Electron 桌面端能力（kunlunDesktop bridge 不存在）；请在打包后的桌面应用中使用此功能。",
+    };
+  }
+  return await bridge.testOpenAiCompatibleConnection(request);
+};
+
 const persistState = async (): Promise<void> => {
   const bridge = getBridge();
   if (!bridge) {
@@ -638,6 +653,7 @@ const onQuitFromEnding = (): void => {
     :selected-profile-id="selectedProfileId"
     :profile-availability="profileAvailability"
     :download-status="downloadStatus"
+    :run-connection-test="runConnectionTest"
     speaker-label="昆仑子"
     @retry="onRetry"
     @skip="onSkip"

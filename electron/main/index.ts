@@ -6,12 +6,14 @@ import type {
   DesktopMainlineTurnRequest,
   DesktopMainlineTurnResult,
   DesktopMainlineTurnStreamEvent,
+  DesktopOpenAiCompatibleTestRequest,
   DesktopProfileAvailability,
   DesktopProfileDownloadProgressEvent,
   DesktopRuntimeStateSnapshot,
   DesktopSerializedRuntimeState,
   DesktopStartupSnapshot
 } from '../../src/shared/types/desktop.js'
+import { testOpenAiCompatibleConnection } from '../../src/modeling/openAiCompatibleConnectionTest.js'
 import { buildModelSetupPlan, evaluateSingleProfileAvailability, type BuildModelSetupPlanInput } from '../../src/modeling/modelSetupPlanner.js'
 import { runDialogueSmokeTest } from '../../src/modeling/dialogueSmokeTest.js'
 import { runMainlineTurn, type MainlineTurnStreamCallbacks } from '../../src/modeling/mainlineTurnRunner.js'
@@ -374,6 +376,14 @@ const bootstrapDesktopShell = async (): Promise<void> => {
       },
       profileId
     )
+  })
+
+  ipcMain.handle('desktop:test-openai-compatible', async (_event, request: DesktopOpenAiCompatibleTestRequest) => {
+    return await testOpenAiCompatibleConnection({
+      apiKey: request?.apiKey ?? '',
+      baseUrl: request?.baseUrl ?? '',
+      model: request?.model ?? ''
+    })
   })
 
   ipcMain.handle('desktop:download-profile', async (event, profileId: string) => {

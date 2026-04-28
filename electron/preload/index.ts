@@ -5,6 +5,8 @@ import type {
   DesktopMainlineTurnRequest,
   DesktopMainlineTurnResult,
   DesktopMainlineTurnStreamEvent,
+  DesktopOpenAiCompatibleTestRequest,
+  DesktopOpenAiCompatibleTestResult,
   DesktopProfileAvailability,
   DesktopProfileDownloadProgressEvent,
   DesktopRuntimeStateSnapshot,
@@ -111,6 +113,9 @@ export const createDesktopBridge = (renderer: IpcRendererLike): DesktopBridge =>
   },
   async downloadProfile(profileId: string): Promise<DesktopDownloadProfileResult> {
     return await renderer.invoke('desktop:download-profile', profileId) as DesktopDownloadProfileResult
+  },
+  async testOpenAiCompatibleConnection(request: DesktopOpenAiCompatibleTestRequest): Promise<DesktopOpenAiCompatibleTestResult> {
+    return await renderer.invoke('desktop:test-openai-compatible', request) as DesktopOpenAiCompatibleTestResult
   },
   onProfileDownloadProgress(handler: (event: DesktopProfileDownloadProgressEvent) => void): () => void {
     const listener = (_event: unknown, payload: unknown): void => {

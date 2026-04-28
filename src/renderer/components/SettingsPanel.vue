@@ -12,6 +12,10 @@ import type {
   ProfileAvailabilityStatus,
   ProfileDownloadStatus,
 } from "./SettingsPanel.types.js";
+import type {
+  DesktopOpenAiCompatibleTestRequest,
+  DesktopOpenAiCompatibleTestResult,
+} from "../../shared/types/desktop.js";
 
 interface Props {
   open: boolean;
@@ -22,6 +26,9 @@ interface Props {
   selectedProfileId: string | null;
   profileAvailability?: Record<string, ProfileAvailabilityStatus>;
   downloadStatus?: ProfileDownloadStatus | null;
+  runConnectionTest?: (
+    request: DesktopOpenAiCompatibleTestRequest,
+  ) => Promise<DesktopOpenAiCompatibleTestResult>;
 }
 
 interface Emits {
@@ -94,6 +101,7 @@ useFocusTrap(toRef(props, "open"), panelRef);
           :selected-profile-id="selectedProfileId"
           :profile-availability="profileAvailability"
           :download-status="downloadStatus"
+          :run-connection-test="runConnectionTest"
           @set-model-provider="(provider) => emit('set-model-provider', provider)"
           @update-openai-compatible="(settings) => emit('update-openai-compatible', settings)"
           @set-model-mode="(mode) => emit('set-model-mode', mode)"

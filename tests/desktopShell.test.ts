@@ -106,7 +106,7 @@ describe('createDesktopBridge', () => {
     })
 
     expect(Object.keys(bridge).sort()).toEqual(
-      ['downloadProfile', 'getProfileAvailability', 'getStartupSnapshot', 'loadRuntimeState', 'onProfileDownloadProgress', 'ping', 'quitApp', 'runDialogueSmoke', 'runMainlineTurn', 'saveRuntimeState', 'streamMainlineTurn']
+      ['downloadProfile', 'getProfileAvailability', 'getStartupSnapshot', 'loadRuntimeState', 'onProfileDownloadProgress', 'ping', 'quitApp', 'runDialogueSmoke', 'runMainlineTurn', 'saveRuntimeState', 'streamMainlineTurn', 'testOpenAiCompatibleConnection']
     )
     await expect(bridge.ping()).resolves.toBe('pong')
     await expect(bridge.getStartupSnapshot()).resolves.toMatchObject({

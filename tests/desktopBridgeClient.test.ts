@@ -96,6 +96,7 @@ const buildRawBridge = (overrides: Partial<DesktopBridge> = {}): DesktopBridge =
   getProfileAvailability: vi.fn().mockResolvedValue(buildValidProfileAvailability()),
   downloadProfile: vi.fn().mockResolvedValue(buildValidDownloadResult()),
   onProfileDownloadProgress: vi.fn().mockReturnValue(() => {}),
+  testOpenAiCompatibleConnection: vi.fn().mockResolvedValue({ ok: true, model: 'gpt-4o-mini', latencyMs: 123 }),
   ...overrides
 })
 
@@ -303,6 +304,32 @@ describe('wrapDesktopBridgeWithValidation', () => {
         buildRawBridge({ ping: vi.fn().mockResolvedValue(42 as unknown as string) })
       )
       await expect(bridge.ping()).rejects.toBeInstanceOf(IpcContractError)
+    })
+
+    it('testOpenAiCompatibleConnection 合法成功结果透传', async () => {
+      const bridge = wrapDesktopBridgeWithValidation(buildRawBridge())
+      const result = await bridge.testOpenAiCompatibleConnection({
+        apiKey: 'sk-x',
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-4o-mini'
+      })
+      expect(result.ok).toBe(true)
+      if (result.ok) expect(result.model).toBe('gpt-4o-mini')
+    })
+
+    it('testOpenAiCompatibleConnection reason 非法 → 抛 IpcContractError', async () => {
+      const bridge = wrapDesktopBridgeWithValidation(
+        buildRawBridge({
+          testOpenAiCompatibleConnection: vi.fn().mockResolvedValue({
+            ok: false,
+            reason: 'totally-invalid-reason',
+            message: 'oops'
+          })
+        })
+      )
+      await expect(
+        bridge.testOpenAiCompatibleConnection({ apiKey: 'sk', baseUrl: 'https://x/v1', model: 'm' })
+      ).rejects.toBeInstanceOf(IpcContractError)
     })
   })
 

@@ -21,6 +21,10 @@ import ChoicePanel from "./ChoicePanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import BgmPlayer from "./BgmPlayer.vue";
 import type { ModelProvider, OpenAiCompatibleSettings, ProfileDownloadStatus } from "./SettingsPanel.types.js";
+import type {
+  DesktopOpenAiCompatibleTestRequest,
+  DesktopOpenAiCompatibleTestResult,
+} from "../../shared/types/desktop.js";
 
 interface Character {
   id: string;
@@ -51,6 +55,9 @@ interface Props {
     "ready" | "partial" | "missing" | "unknown"
   >;
   downloadStatus?: ProfileDownloadStatus | null;
+  runConnectionTest?: (
+    request: DesktopOpenAiCompatibleTestRequest,
+  ) => Promise<DesktopOpenAiCompatibleTestResult>;
 }
 
 interface Emits {
@@ -178,6 +185,7 @@ useKeyboardControls(
       :selected-profile-id="selectedProfileId"
       :profile-availability="profileAvailability ?? {}"
       :download-status="downloadStatus ?? null"
+      :run-connection-test="runConnectionTest"
       @close="emit('close-settings')"
       @toggle-bgm="emit('toggle-bgm')"
       @set-volume="(value) => emit('set-volume', value)"

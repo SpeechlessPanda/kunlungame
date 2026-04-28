@@ -158,3 +158,35 @@ export const desktopRuntimeStateSnapshotSchema = z.object({
   state: desktopSerializedRuntimeStateSchema,
   recoveryAction: z.enum(['created-default', 'loaded-existing', 'reset-corrupted'])
 })
+
+export const desktopOpenAiCompatibleTestRequestSchema = z.object({
+  apiKey: z.string(),
+  baseUrl: z.string(),
+  model: z.string()
+})
+
+const desktopOpenAiCompatibleTestSuccessSchema = z.object({
+  ok: z.literal(true),
+  model: z.string(),
+  latencyMs: z.number().int().nonnegative()
+})
+
+const desktopOpenAiCompatibleTestFailureSchema = z.object({
+  ok: z.literal(false),
+  reason: z.enum([
+    'missing-input',
+    'invalid-base-url',
+    'auth',
+    'model-not-found',
+    'http-error',
+    'timeout',
+    'network'
+  ]),
+  status: z.number().int().nonnegative().optional(),
+  message: z.string()
+})
+
+export const desktopOpenAiCompatibleTestResultSchema = z.discriminatedUnion('ok', [
+  desktopOpenAiCompatibleTestSuccessSchema,
+  desktopOpenAiCompatibleTestFailureSchema
+])

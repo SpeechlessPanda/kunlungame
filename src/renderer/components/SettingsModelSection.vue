@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { CheckCircle2, Cloud, Cpu, Download, HardDrive, KeyRound } from "lucide-vue-next";
+import { ref } from "vue";
+import { CheckCircle2, Cloud, Cpu, Download, HardDrive, KeyRound, PlugZap } from "lucide-vue-next";
 import {
   getDefaultModelProfile,
   getFallbackModelProfile,
@@ -13,6 +14,10 @@ import type {
   ProfileAvailabilityStatus,
   ProfileDownloadStatus,
 } from "./SettingsPanel.types.js";
+import type {
+  DesktopOpenAiCompatibleTestRequest,
+  DesktopOpenAiCompatibleTestResult,
+} from "../../shared/types/desktop.js";
 
 interface Props {
   modelProvider: ModelProvider;
@@ -21,6 +26,13 @@ interface Props {
   selectedProfileId: string | null;
   profileAvailability?: Record<string, ProfileAvailabilityStatus>;
   downloadStatus?: ProfileDownloadStatus | null;
+  /**
+   * 由 App.vue 注入的 OpenAI-compatible 连接自检函数。如果未注入（例如 dom 测试中
+   * 没接 Electron bridge），按钮会被自动禁用并显示提示，避免误操作。
+   */
+  runConnectionTest?: (
+    request: DesktopOpenAiCompatibleTestRequest,
+  ) => Promise<DesktopOpenAiCompatibleTestResult>;
 }
 
 interface Emits {
@@ -197,6 +209,73 @@ const onDownload = (event: Event, profileId: string): void => {
   event.stopPropagation();
   emit("download-profile", profileId);
 };
+
+type ConnectionTestState =
+  | { status: "idle" }
+  | { status: "testing" }
+  | { status: "ok"; model: string; latencyMs: number }
+  | { status: "error"; reason: string; message: string };
+
+const connectionTestState = ref<ConnectionTestState>({ status: "idle" });
+
+const reasonHint = (reason: string): string => {
+  switch (reason) {
+    case "missing-input":
+      return "请先填写 API Key、Base URL 和模型名。";
+    case "invalid-base-url":
+      return "Base URL 需要以 http:// 或 https:// 开头。";
+    case "auth":
+      return "鉴权失败：API Key 错误或没有访问该模型的权限。";
+    case "model-not-found":
+      return "模型名错误：上游不认这个模型，请核对名称是否完全一致（含 :free 后缀等）。";
+    case "timeout":
+      return "请求超时：检查网络代理或上游是否可达。";
+    case "network":
+      return "网络异常：请确认能访问 Base URL，所在网络是否需要代理。";
+    case "http-error":
+      return "上游返回错误状态码，详见下方原始响应。";
+    default:
+      return "连接失败。";
+  }
+};
+
+const runConnectionTestClick = async (): Promise<void> => {
+  if (props.runConnectionTest == null) {
+    connectionTestState.value = {
+      status: "error",
+      reason: "network",
+      message: "桌面端能力不可用：未检测到 Electron bridge，无法发起测试。",
+    };
+    return;
+  }
+  connectionTestState.value = { status: "testing" };
+  try {
+    const result = await props.runConnectionTest({
+      apiKey: props.openAiCompatible.apiKey,
+      baseUrl: props.openAiCompatible.baseUrl,
+      model: props.openAiCompatible.model,
+    });
+    if (result.ok) {
+      connectionTestState.value = {
+        status: "ok",
+        model: result.model,
+        latencyMs: result.latencyMs,
+      };
+    } else {
+      connectionTestState.value = {
+        status: "error",
+        reason: result.reason,
+        message: result.message,
+      };
+    }
+  } catch (error) {
+    connectionTestState.value = {
+      status: "error",
+      reason: "network",
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+};
 </script>
 
 <template>
@@ -309,6 +388,45 @@ const onDownload = (event: Event, profileId: string): void => {
         @input="(event) => updateFallbackModels(textareaValue(event))"
       />
     </label>
+    <div class="settings-panel__connection-test" data-testid="settings-openai-connection-test">
+      <button
+        type="button"
+        class="settings-panel__connection-test-button"
+        data-testid="settings-openai-test-connection"
+        :disabled="connectionTestState.status === 'testing'"
+        @click="runConnectionTestClick"
+      >
+        <PlugZap :size="14" :stroke-width="1.8" aria-hidden="true" />
+        <span v-if="connectionTestState.status === 'testing'">正在测试连接…</span>
+        <span v-else>测试连接</span>
+      </button>
+      <p
+        v-if="connectionTestState.status === 'idle'"
+        class="settings-panel__connection-test-hint"
+      >
+        点击后会用 max_tokens=1 打一次 /chat/completions，验证 Key、Base URL 和模型名是否真的能跑通。
+      </p>
+      <p
+        v-else-if="connectionTestState.status === 'ok'"
+        class="settings-panel__connection-test-status settings-panel__connection-test-status--ok"
+        data-testid="settings-openai-test-result-ok"
+        role="status"
+      >
+        ✅ 连接成功 · 模型 <code>{{ connectionTestState.model }}</code> · 耗时 {{ connectionTestState.latencyMs }} ms
+      </p>
+      <div
+        v-else-if="connectionTestState.status === 'error'"
+        class="settings-panel__connection-test-status settings-panel__connection-test-status--error"
+        data-testid="settings-openai-test-result-error"
+        role="alert"
+      >
+        <strong>连接失败：{{ reasonHint(connectionTestState.reason) }}</strong>
+        <p
+          v-if="connectionTestState.message"
+          class="settings-panel__connection-test-detail"
+        >{{ connectionTestState.message }}</p>
+      </div>
+    </div>
     <p class="settings-panel__model-hint settings-panel__api-guidance" data-testid="settings-openai-guidance">
       仅支持 OpenAI-compatible 的 /chat/completions 流式格式；Base URL 填 API 根地址，例如 https://api.openai.com/v1 或 https://openrouter.ai/api/v1，不要填完整 /chat/completions 路径。推荐 gpt-4o-mini 获得速度和成本平衡；gpt-4.1-mini 指令遵循更强；gpt-4o 中文表达更细腻。OpenRouter 免费模型通常以 :free 结尾，例如 openai/gpt-oss-120b:free，可一行一个作为备用。
     </p>
@@ -575,6 +693,84 @@ const onDownload = (event: Event, profileId: string): void => {
 
 .settings-panel__api-guidance {
   line-height: 1.55;
+}
+
+.settings-panel__connection-test {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.settings-panel__connection-test-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(216, 168, 79, 0.55);
+  background: rgba(216, 168, 79, 0.18);
+  color: #ffe9b8;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.settings-panel__connection-test-button:hover:not(:disabled) {
+  background: rgba(216, 168, 79, 0.28);
+}
+
+.settings-panel__connection-test-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.settings-panel__connection-test-hint {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 246, 232, 0.55);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.settings-panel__connection-test-status {
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.settings-panel__connection-test-status code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.92em;
+  background: rgba(0, 0, 0, 0.32);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+.settings-panel__connection-test-status--ok {
+  border: 1px solid rgba(120, 196, 144, 0.55);
+  background: rgba(120, 196, 144, 0.14);
+  color: #c9f3d6;
+}
+
+.settings-panel__connection-test-status--error {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid rgba(232, 96, 96, 0.6);
+  background: rgba(232, 96, 96, 0.12);
+  color: #ffd7d7;
+}
+
+.settings-panel__connection-test-detail {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.92em;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  opacity: 0.85;
 }
 
 .settings-panel__local-header {

@@ -81,6 +81,28 @@ export type DesktopMainlineTurnStreamEvent =
   | { type: 'result'; result: DesktopMainlineTurnResult }
   | { type: 'error'; message: string }
 
+export interface DesktopOpenAiCompatibleTestRequest {
+  apiKey: string
+  baseUrl: string
+  model: string
+}
+
+export type DesktopOpenAiCompatibleTestResult =
+  | { ok: true; model: string; latencyMs: number }
+  | {
+    ok: false
+    reason:
+    | 'missing-input'
+    | 'invalid-base-url'
+    | 'auth'
+    | 'model-not-found'
+    | 'http-error'
+    | 'timeout'
+    | 'network'
+    status?: number
+    message: string
+  }
+
 export interface DesktopBridge {
   ping(): Promise<string>
   getStartupSnapshot(): Promise<DesktopStartupSnapshot>
@@ -92,6 +114,8 @@ export interface DesktopBridge {
   getProfileAvailability(profileId: string): Promise<DesktopProfileAvailability>
   downloadProfile(profileId: string): Promise<DesktopDownloadProfileResult>
   onProfileDownloadProgress(handler: (event: DesktopProfileDownloadProgressEvent) => void): () => void
+  /** OpenAI-compatible "测试连接"：用 max_tokens=1 打一次 /chat/completions。 */
+  testOpenAiCompatibleConnection(request: DesktopOpenAiCompatibleTestRequest): Promise<DesktopOpenAiCompatibleTestResult>
   /** Quit the desktop shell entirely (used by the ending overlay's "退出游戏"). */
   quitApp(): Promise<void>
 }

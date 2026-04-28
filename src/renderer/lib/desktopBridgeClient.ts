@@ -19,6 +19,7 @@ import {
   desktopDownloadProfileResultSchema,
   desktopMainlineTurnStreamEventSchema,
   desktopMainlineTurnResultSchema,
+  desktopOpenAiCompatibleTestResultSchema,
   desktopProfileAvailabilitySchema,
   desktopProfileDownloadProgressEventSchema,
   desktopRuntimeStateSnapshotSchema,
@@ -98,6 +99,10 @@ export const wrapDesktopBridgeWithValidation = (raw: DesktopBridge): DesktopBrid
   async downloadProfile(profileId: string) {
     const result = await raw.downloadProfile(profileId)
     return parseOrThrow('desktop:download-profile', desktopDownloadProfileResultSchema, result)
+  },
+  async testOpenAiCompatibleConnection(request) {
+    const result = await raw.testOpenAiCompatibleConnection(request)
+    return parseOrThrow('desktop:test-openai-compatible', desktopOpenAiCompatibleTestResultSchema, result)
   },
   onProfileDownloadProgress(handler: (event: DesktopProfileDownloadProgressEvent) => void) {
     return raw.onProfileDownloadProgress((event) => {
