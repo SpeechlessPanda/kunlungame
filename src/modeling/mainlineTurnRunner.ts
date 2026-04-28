@@ -83,6 +83,8 @@ export interface MainlineTurnDependencies {
         turnIndex: number
         /** 这一轮是否已是结局，结局的选项语义变成"再走一次 / 暂时离开"。 */
         isEnding: boolean
+        /** 当前节点 id，用于按 8 节点定制化选项池挑选 align/challenge 文案。 */
+        nodeId?: string
     }) => DialogueDependencies
 }
 
@@ -111,9 +113,10 @@ const defaultCreateDialogueDependencies: MainlineTurnDependencies['createDialogu
     modelPath,
     openAiCompatible,
     turnIndex,
-    isEnding
+    isEnding,
+    nodeId
 }) => {
-    const generateOptions = async () => buildGalgameOptionLabels({ turnIndex, isEnding })
+    const generateOptions = async () => buildGalgameOptionLabels({ turnIndex, isEnding, nodeId })
     if (provider === 'openai-compatible' && openAiCompatible != null) {
         return createOpenAiCompatibleDialogueDependencies({
             apiKey: openAiCompatible.apiKey,
@@ -278,7 +281,8 @@ export const runMainlineTurn = async (
                 ? { openAiCompatible: selectedModel.openAiCompatible }
                 : {}),
             turnIndex: input.runtimeState.turnIndex,
-            isEnding: input.runtimeState.isCompleted || currentNode.nextNodeId === null
+            isEnding: input.runtimeState.isCompleted || currentNode.nextNodeId === null,
+            nodeId: currentNode.id
         })
     } catch (error) {
         return {
