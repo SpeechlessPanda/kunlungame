@@ -2,6 +2,7 @@
     "name": "kunlungame",
     "version": "0.1.0",
     "private": true,
+    "license": "MIT",
     "packageManager": "pnpm@10.30.3",
     "type": "module",
     "main": "./out/main/index.js",

@@ -15,7 +15,7 @@
 | 3. 构建与打包 | 🟢 | `electron-vite build` 成功，main+preload+renderer 三段产物齐全；尚未跑 `electron-builder` 打 installer。 |
 | 4. 启动与 Smoke | 🟢 | 最近一次 `openai-compatible-smoke` `result.ok=true`；最近一次 mainline 8 节点贯通。 |
 | 5. 性能与资源 | 🟢 | 编译产物 0.65 MB；模型缓存 6.7 GB（用户态、不入安装包）；日志总计 0.8 MB。 |
-| 6. 文档与发布说明 | 🟡 | README 覆盖 install/build/run/smoke；缺 `LICENSE` 与 `CHANGELOG.md`。 |
+| 6. 文档与发布说明 | � | README 覆盖 install/build/run/smoke；LICENSE 与 CHANGELOG.md 已补齐。 |
 | 7. 内容与资产合规 | 🟢 | 8 节点齐全；扫描全仓库未发现明文 `sk-*` / `OPENAI_API_KEY=` 泄漏；`md/knowledge/` 仅 1 篇，建议后续扩充。 |
 
 整体可以发布；建议在正式 GA 之前补 `LICENSE` 与一份首版 `CHANGELOG.md`。
@@ -127,15 +127,15 @@ logs/                 0.80 MB
 - `pnpm test` 整套耗时 ~2.6 s（Cold-start 后），Coverage 模式 ~5 s，CI 友好。
 - 选用 `node-llama-cpp` 内嵌 llama 后端：本地档位实测可在 16 GB 内存机器上跑 Qwen 2.5 3B Q4_K_M（依据先前 dialogue-smoke 日志）。
 
-## 6. 文档与发布说明 🟡
+## 6. 文档与发布说明 🟢
 
 - `README.md`：✓ 安装 / ✓ 构建 / ✓ 开发模式 / ✓ smoke 脚本一节齐全。
 - `docs/`（11 项）：
   - 设计/规范类：`asset-slot-rules.md`、`content-markdown-format.md`、`knowledge-compilation.md`、`model-runtime.md`、`runtime-state.md`、`ui-review-notes.md`、`dialogue-smoke-3b-vs-7b.md`
   - 子目录：`asset-requests/`、`audits/`（本报告写入此处）、`knowledge-base/`、`song/`、`superpowers/`
-- ❌ 仓库根缺 `LICENSE` 文件。
-- ❌ 缺 `CHANGELOG.md`，首版发布前应至少创建并写入 v0.1.0 条目，记录"昆仑入口 - 当代回响 8 节点主线 + OpenAI 兼容 + 本地 GGUF + 设置面板自检按钮"。
-- 其余文档与代码同步状态本会话内已逐项更新（见 `docs/release-notes-v0.1.md` 等若干 doc，本会话外的内容遵循全局规则 8 不动）。
+- ✅ 仓库根已补齐 `LICENSE`（MIT）。
+- ✅ 仓库根已补齐 `CHANGELOG.md`，写入 v0.1.0 首版条目。
+- 其余文档与代码同步状态本会话内已逐项更新（见 `docs/release-notes-v0.1.md` 等若干 doc，本会话外的内容遵循全局规则9 不动）。
 
 ## 7. 内容与资产合规 🟢
 
@@ -148,8 +148,8 @@ logs/                 0.80 MB
 
 ## 待办（不阻断本次发布，但建议尽快处理）
 
-1. 仓库根新增 `LICENSE`（`MIT` 或 `Apache-2.0`）。
-2. 新增 `CHANGELOG.md`，写入 v0.1.0 首版条目。
+1. ~~仓库根新增 `LICENSE`~~（MIT，已补齐）。
+2. ~~新增 `CHANGELOG.md`，写入 v0.1.0 首版条目~~（已补齐）。
 3. `runtime-state.json` 中的 `settings.openAiCompatible.apiKey` 改用 keytar / Electron `safeStorage` 加密。
 4. 用 `electron-builder` 跑一次正式安装包打包，归档到 `release/`。
 5. 知识库扩充：8 个节点各补一篇专属 `md/knowledge/*.md`。
