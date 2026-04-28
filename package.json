@@ -19,7 +19,8 @@
         "smoke:openai": "tsx scripts/run-openai-compatible-smoke.ts",
         "playthrough": "tsx scripts/run-mainline-playthrough.ts",
         "knowledge:compile": "tsx scripts/compile-knowledge.ts",
-        "test:e2e": "playwright test"
+        "test:e2e": "playwright test",
+        "dist:win": "electron-vite build && electron-builder --win --x64 --config electron-builder.yml"
     },
     "dependencies": {
         "lucide-vue-next": "^1.0.0",
@@ -33,6 +34,7 @@
         "@vitejs/plugin-vue": "^5.2.1",
         "@vitest/coverage-v8": "^3.2.4",
         "electron": "^35.3.0",
+        "electron-builder": "^26.8.1",
         "electron-vite": "^3.1.0",
         "happy-dom": "^20.9.0",
         "tsx": "^4.20.3",

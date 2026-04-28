@@ -1,0 +1,38 @@
+appId: com.kunlungame.desktop
+productName: 昆仑谣
+copyright: Copyright (c) 2026 Kunlungame Authors
+# 首版定位：Windows 桌面应用。后续如需 macOS/Linux 可再加 mac/linux 段。
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - "!**/*.map"
+  - "!**/*.test.ts"
+  - "!**/*.test.tsx"
+  - "!**/*.spec.ts"
+# node-llama-cpp 自带 .node 二进制，必须落在 asar 外才能运行时 dlopen。
+asar: true
+asarUnpack:
+  - node_modules/node-llama-cpp/**
+  - node_modules/@node-llama-cpp/**
+# RAG 编译产物在 src/content/generated/，运行时通过 import 进 bundle，已被打到 out/，无需再加。
+# 用户的运行时缓存（runtime-cache/models）与个人 runtime-state.json 都走 app.getPath('userData')，
+# 不进安装包；首次启动时由模型下载流程拉取。
+extraResources: []
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
+  # 无 icon 时 electron-builder 会用 Electron 默认图标；首版不强求商用图标。
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: 昆仑谣
+  artifactName: ${productName}-${version}-Setup.${ext}
