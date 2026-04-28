@@ -24,7 +24,8 @@ const runtimeState: RuntimeState = {
         openAiCompatible: {
             apiKey: '',
             baseUrl: 'https://api.openai.com/v1',
-            model: 'gpt-4o-mini'
+            model: 'gpt-4o-mini',
+            fallbackModels: []
         }
     },
     isCompleted: false

@@ -19,16 +19,17 @@ Part 04 当前已经对齐到真实主线的状态闭环：状态对象可序列
 11. `settings.modelProvider`
 12. `settings.openAiCompatible`
 
-其中 `saveVersion` 当前固定为 `1`，用于后续最小版本演进。`modelProvider` 新存档默认是 `openai-compatible`；`openAiCompatible` 默认值为 `apiKey: ""`、`baseUrl: "https://api.openai.com/v1"`、`model: "gpt-4o-mini"`。
+其中 `saveVersion` 当前固定为 `1`，用于后续最小版本演进。`modelProvider` 新存档默认是 `openai-compatible`；`openAiCompatible` 默认值为 `apiKey: ""`、`baseUrl: "https://api.openai.com/v1"`、`model: "gpt-4o-mini"`、`fallbackModels: []`。
 
 ## 模型设置规则
 
 1. `settings.modelProvider = openai-compatible` 是默认与推荐路径；当 `openAiCompatible.apiKey` 与 `model` 都非空时，主线回合直接走 OpenAI-compatible 远程流式 adapter。
 2. API key 为空时会自动落回本地 GGUF 路径，避免新存档在尚未配置 key 时无法开始游戏。
 3. `settings.modelProvider = local` 时使用 `preferredModelMode` 选择 Quality/Lite/Pro 本地档位。
-4. 设置页编辑 API key、base URL、model 或模型来源后，会通过既有 `serializeRuntimeStateForDesktop()` 持久化到桌面存档。
-5. 点击“进入昆仑”或从结尾重新开始时，只重置剧情进度、态度值、历史摘要和已读节点；会保留当前 `settings`，避免用户刚填写的 API key/model 被新开主线清空。
-6. 当前版本只支持 OpenAI-compatible chat completions streaming；更多 provider 与安全凭据存储仍属后续范围。
+4. OpenRouter 走同一 OpenAI-compatible 入口：`baseUrl` 填 `https://openrouter.ai/api/v1`，`model` 与 `fallbackModels` 可填 `:free` 结尾的免费模型 ID。备用模型按顺序尝试，只在当前模型尚未输出任何 token 前失败时切换，避免一轮回复混杂多个模型输出。
+5. 设置页编辑 API key、base URL、model、fallback models 或模型来源后，会通过既有 `serializeRuntimeStateForDesktop()` 持久化到桌面存档。
+6. 点击“进入昆仑”或从结尾重新开始时，只重置剧情进度、态度值、历史摘要和已读节点；会保留当前 `settings`，避免用户刚填写的 API key/model 被新开主线清空。
+7. 当前版本只支持 OpenAI-compatible chat completions streaming；更多 provider 与安全凭据存储仍属后续范围。
 
 ## 态度值规则
 

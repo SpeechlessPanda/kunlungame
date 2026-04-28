@@ -5,6 +5,7 @@ export interface OpenAiCompatibleDialogueDependenciesInput {
   apiKey: string
   baseUrl: string
   model: string
+  fallbackModels?: string[]
   maxTokens?: number
   temperature?: number
   fetch?: typeof fetch
@@ -16,6 +17,12 @@ interface StreamOpenAiCompatibleTextInput extends Omit<OpenAiCompatibleDialogueD
 }
 
 const normalizeBaseUrl = (baseUrl: string): string => baseUrl.replace(/\/+$/u, '')
+
+const getCandidateModels = (model: string, fallbackModels: string[] = []): string[] => {
+  return [model, ...fallbackModels]
+    .map((candidate) => candidate.trim())
+    .filter((candidate, index, candidates) => candidate.length > 0 && candidates.indexOf(candidate) === index)
+}
 
 const parseSseDataLine = (line: string): string | null => {
   if (!line.startsWith('data:')) return null
@@ -90,7 +97,10 @@ async function* readOpenAiCompatibleSse(response: Response): AsyncGenerator<stri
   }
 }
 
-export async function* streamOpenAiCompatibleText(input: StreamOpenAiCompatibleTextInput): AsyncGenerator<string> {
+async function* streamOpenAiCompatibleTextForModel(
+  input: Omit<StreamOpenAiCompatibleTextInput, 'fallbackModels'>,
+  model: string
+): AsyncGenerator<string> {
   if (input.apiKey.trim().length === 0) {
     throw new Error('OpenAI-compatible API key is required before starting a remote model turn.')
   }
@@ -107,7 +117,7 @@ export async function* streamOpenAiCompatibleText(input: StreamOpenAiCompatibleT
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: input.model,
+      model,
       stream: true,
       temperature: input.temperature ?? 0.72,
       max_tokens: input.maxTokens ?? 420,
@@ -126,6 +136,31 @@ export async function* streamOpenAiCompatibleText(input: StreamOpenAiCompatibleT
   for await (const content of readOpenAiCompatibleSse(response)) {
     yield content
   }
+}
+
+export async function* streamOpenAiCompatibleText(input: StreamOpenAiCompatibleTextInput): AsyncGenerator<string> {
+  const models = getCandidateModels(input.model, input.fallbackModels)
+  if (models.length === 0) {
+    throw new Error('OpenAI-compatible model is required before starting a remote model turn.')
+  }
+
+  let lastError: unknown = null
+  for (const [index, model] of models.entries()) {
+    let didEmitText = false
+    try {
+      for await (const content of streamOpenAiCompatibleTextForModel(input, model)) {
+        didEmitText = true
+        yield content
+      }
+      return
+    } catch (error) {
+      if (didEmitText || index === models.length - 1) throw error
+      lastError = error
+    }
+  }
+
+  if (lastError instanceof Error) throw lastError
+  throw new Error('OpenAI-compatible request failed before any fallback model could stream text.')
 }
 
 export const createOpenAiCompatibleDialogueDependencies = (

@@ -11,7 +11,8 @@ export const modelProviderSchema = z.enum(['openai-compatible', 'local'])
 export const openAiCompatibleSettingsSchema = z.object({
   apiKey: z.string().default(''),
   baseUrl: z.string().default('https://api.openai.com/v1'),
-  model: z.string().default('gpt-4o-mini')
+  model: z.string().default('gpt-4o-mini'),
+  fallbackModels: z.array(z.string().min(1)).default([])
 })
 export const runtimeSettingsSchema = z.object({
   bgmEnabled: z.boolean(),
@@ -98,7 +99,8 @@ export const createDefaultRuntimeSettings = (): RuntimeState['settings'] => runt
   openAiCompatible: {
     apiKey: '',
     baseUrl: 'https://api.openai.com/v1',
-    model: 'gpt-4o-mini'
+    model: 'gpt-4o-mini',
+    fallbackModels: []
   }
 })
 

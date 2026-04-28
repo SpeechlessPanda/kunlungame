@@ -27,7 +27,8 @@ describe('createDefaultRuntimeState', () => {
     expect(result.settings.openAiCompatible).toEqual({
       apiKey: '',
       baseUrl: 'https://api.openai.com/v1',
-      model: 'gpt-4o-mini'
+      model: 'gpt-4o-mini',
+      fallbackModels: []
     })
     expect(result.readNodeIds).toEqual([])
   })
@@ -47,7 +48,8 @@ describe('createDefaultRuntimeState', () => {
       openAiCompatible: {
         apiKey: 'sk-test',
         baseUrl: 'https://api.example.test/v1',
-        model: 'gpt-4.1-mini'
+        model: 'gpt-4.1-mini',
+        fallbackModels: ['deepseek/deepseek-chat-v3-0324:free']
       }
     })
 
@@ -60,7 +62,8 @@ describe('createDefaultRuntimeState', () => {
       openAiCompatible: {
         apiKey: 'sk-test',
         baseUrl: 'https://api.example.test/v1',
-        model: 'gpt-4.1-mini'
+        model: 'gpt-4.1-mini',
+        fallbackModels: ['deepseek/deepseek-chat-v3-0324:free']
       }
     })
   })
@@ -233,7 +236,8 @@ describe('runtime state serialization', () => {
         openAiCompatible: {
           apiKey: 'sk-test',
           baseUrl: 'https://api.example.test/v1',
-          model: 'gpt-4.1-mini'
+          model: 'gpt-4.1-mini',
+          fallbackModels: ['deepseek/deepseek-chat-v3-0324:free', 'qwen/qwen3-235b-a22b:free']
         }
       }
     }
@@ -264,6 +268,7 @@ describe('runtime state serialization', () => {
 
     expect(restored.settings.modelProvider).toBe('openai-compatible')
     expect(restored.settings.openAiCompatible.model).toBe('gpt-4o-mini')
+    expect(restored.settings.openAiCompatible.fallbackModels).toEqual([])
   })
 })
 

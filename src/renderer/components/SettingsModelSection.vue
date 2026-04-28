@@ -99,9 +99,9 @@ const onPickProvider = (provider: ModelProvider): void => {
   emit("set-model-provider", provider);
 };
 
-const updateOpenAiCompatible = (
-  key: keyof OpenAiCompatibleSettings,
-  value: string,
+const updateOpenAiCompatible = <Key extends keyof OpenAiCompatibleSettings>(
+  key: Key,
+  value: OpenAiCompatibleSettings[Key],
 ): void => {
   emit("update-openai-compatible", {
     ...props.openAiCompatible,
@@ -111,6 +111,20 @@ const updateOpenAiCompatible = (
 
 const eventValue = (event: Event): string => {
   return event.target instanceof HTMLInputElement ? event.target.value : "";
+};
+
+const textareaValue = (event: Event): string => {
+  return event.target instanceof HTMLTextAreaElement ? event.target.value : "";
+};
+
+const updateFallbackModels = (value: string): void => {
+  updateOpenAiCompatible(
+    "fallbackModels",
+    value
+      .split(/\r?\n/u)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0),
+  );
 };
 
 const statusFor = (profileId: string): ProfileAvailabilityStatus => {
@@ -213,8 +227,20 @@ const onDownload = (event: Event, profileId: string): void => {
         @input="(event) => updateOpenAiCompatible('model', eventValue(event))"
       />
     </label>
+    <label class="settings-panel__field">
+      <span class="settings-panel__field-label">备用模型</span>
+      <textarea
+        class="settings-panel__input settings-panel__textarea"
+        data-testid="settings-openai-fallback-models"
+        autocomplete="off"
+        rows="3"
+        placeholder="deepseek/deepseek-chat-v3-0324:free"
+        :value="openAiCompatible.fallbackModels.join('\n')"
+        @input="(event) => updateFallbackModels(textareaValue(event))"
+      />
+    </label>
     <p class="settings-panel__model-hint settings-panel__api-guidance" data-testid="settings-openai-guidance">
-      推荐 gpt-4o-mini 获得速度和成本平衡；gpt-4.1-mini 指令遵循更强；gpt-4o 中文表达更细腻。
+      推荐 gpt-4o-mini 获得速度和成本平衡；gpt-4.1-mini 指令遵循更强；gpt-4o 中文表达更细腻。OpenRouter 免费模型通常以 :free 结尾，例如 deepseek/deepseek-chat-v3-0324:free，可一行一个作为备用。
     </p>
   </div>
 
@@ -399,6 +425,12 @@ const onDownload = (event: Event, profileId: string): void => {
 .settings-panel__input:focus-visible {
   border-color: rgba(216, 168, 79, 0.72);
   box-shadow: 0 0 0 2px rgba(216, 168, 79, 0.18);
+}
+
+.settings-panel__textarea {
+  resize: vertical;
+  min-height: 84px;
+  line-height: 1.45;
 }
 
 .settings-panel__api-guidance {

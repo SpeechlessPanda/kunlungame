@@ -44,6 +44,7 @@ export interface DesktopSerializedRuntimeState {
       apiKey: string
       baseUrl: string
       model: string
+      fallbackModels: string[]
     }
   }
 }

@@ -56,7 +56,8 @@ const mountSettings = (
         openAiCompatible: {
           apiKey: '',
           baseUrl: 'https://api.openai.com/v1',
-          model: 'gpt-4o-mini'
+          model: 'gpt-4o-mini',
+          fallbackModels: []
         },
         preferredModelMode,
         selectedProfileId,
@@ -132,6 +133,32 @@ describe('SettingsPanel · model profile picker', () => {
     expect(mounted.container.textContent ?? '').toContain('gpt-4o-mini')
     expect(mounted.container.textContent ?? '').toContain('gpt-4.1-mini')
     expect(mounted.container.textContent ?? '').toContain('gpt-4o')
+  })
+
+  it('edits OpenRouter-compatible fallback model list as newline-separated model ids', () => {
+    mounted = mountSettings('default', getDefaultModelProfile().id, {
+      openAiCompatible: {
+        apiKey: '',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        model: 'deepseek/deepseek-chat-v3-0324:free',
+        fallbackModels: []
+      }
+    })
+
+    const fallbackInput = mounted.container.querySelector<HTMLTextAreaElement>('[data-testid="settings-openai-fallback-models"]')
+    expect(fallbackInput).not.toBeNull()
+    fallbackInput!.value = 'qwen/qwen3-235b-a22b:free\n\nmeta-llama/llama-3.3-70b-instruct:free'
+    fallbackInput!.dispatchEvent(new Event('input'))
+
+    expect(mounted.emitted.updateOpenAiCompatible.at(-1)).toMatchObject({
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'deepseek/deepseek-chat-v3-0324:free',
+      fallbackModels: [
+        'qwen/qwen3-235b-a22b:free',
+        'meta-llama/llama-3.3-70b-instruct:free'
+      ]
+    })
+    expect(mounted.container.textContent ?? '').toContain('OpenRouter 免费模型通常以 :free 结尾')
   })
 
   it('emits provider changes and reveals local model options when local is active', () => {

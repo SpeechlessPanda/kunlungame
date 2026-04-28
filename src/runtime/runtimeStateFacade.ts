@@ -20,7 +20,8 @@ export const serializeRuntimeStateForDesktop = (state: RuntimeState): DesktopSer
     openAiCompatible: {
       apiKey: state.settings.openAiCompatible.apiKey,
       baseUrl: state.settings.openAiCompatible.baseUrl,
-      model: state.settings.openAiCompatible.model
+      model: state.settings.openAiCompatible.model,
+      fallbackModels: [...state.settings.openAiCompatible.fallbackModels]
     }
   }
 })

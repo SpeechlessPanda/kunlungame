@@ -64,6 +64,69 @@ describe('createOpenAiCompatibleDialogueDependencies', () => {
     expect(body.max_tokens).toBeGreaterThan(0)
   })
 
+  it('falls back to the next model when the primary fails before emitting text', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests',
+        body: null,
+        text: async () => '{"error":"rate limited"}'
+      } as Response)
+      .mockResolvedValueOnce(okStreamResponse([
+        'data: {"choices":[{"delta":{"content":"备用模型接上了。"}}]}',
+        '',
+        'data: [DONE]',
+        ''
+      ].join('\n')))
+
+    const deps = createOpenAiCompatibleDialogueDependencies({
+      apiKey: 'sk-test',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'primary/free:free',
+      fallbackModels: ['fallback/free:free'],
+      fetch: fetchMock,
+      generateOptions: async () => []
+    })
+
+    const chunks: string[] = []
+    for await (const chunk of deps.streamText({ system: 's', user: 'u' })) {
+      if (typeof chunk === 'string') chunks.push(chunk)
+    }
+
+    expect(chunks).toEqual(['备用模型接上了。'])
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(JSON.parse(fetchMock.mock.calls[0]![1].body).model).toBe('primary/free:free')
+    expect(JSON.parse(fetchMock.mock.calls[1]![1].body).model).toBe('fallback/free:free')
+  })
+
+  it('does not mix fallback output after a model has already emitted text', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okStreamResponse([
+      'data: {"choices":[{"delta":{"content":"已经开始输出。"}}]}',
+      '',
+      'data: {"error":{"message":"stream broke"}}',
+      ''
+    ].join('\n')))
+    const deps = createOpenAiCompatibleDialogueDependencies({
+      apiKey: 'sk-test',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'primary/free:free',
+      fallbackModels: ['fallback/free:free'],
+      fetch: fetchMock,
+      generateOptions: async () => []
+    })
+
+    const chunks: string[] = []
+    await expect(async () => {
+      for await (const chunk of deps.streamText({ system: 's', user: 'u' })) {
+        if (typeof chunk === 'string') chunks.push(chunk)
+      }
+    }).rejects.toThrow(/stream broke/)
+
+    expect(chunks).toEqual(['已经开始输出。'])
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('delegates option generation to the injected option builder', async () => {
     const deps = createOpenAiCompatibleDialogueDependencies({
       apiKey: 'sk-test',

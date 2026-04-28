@@ -9,16 +9,17 @@
 3. Lite 本地兜底档：Qwen2.5-1.5B-Instruct GGUF Q4_K_M，用于低显存或纯 CPU 机器。
 4. Pro 本地可选档：Qwen2.5-7B-Instruct GGUF Q3_K_M，需要用户显式选择。
 
-推荐 API 模型：`gpt-4o-mini` 速度、成本和中文质量平衡最好；`gpt-4.1-mini` 指令遵循更强，适合更重视剧情约束的体验；`gpt-4o` 中文表达更细腻但成本更高。当前只支持 OpenAI-compatible `/chat/completions` 流式格式。
+推荐 API 模型：`gpt-4o-mini` 速度、成本和中文质量平衡最好；`gpt-4.1-mini` 指令遵循更强，适合更重视剧情约束的体验；`gpt-4o` 中文表达更细腻但成本更高。OpenRouter 可通过 `https://openrouter.ai/api/v1` 接入 OpenAI-compatible 格式，免费模型通常以 `:free` 结尾，例如 `deepseek/deepseek-chat-v3-0324:free`、`qwen/qwen3-235b-a22b:free`。当前只支持 OpenAI-compatible `/chat/completions` 流式格式。
 
 ## 推理与分发策略
 
 1. 新存档默认 `settings.modelProvider = openai-compatible`；配置 API key 后主线回合跳过本地 GGUF 文件检查，直接走远程流式适配器。
-2. 当 API provider 未配置 key 或显式选择 `local` 时，回落到内置 llama.cpp 类 Node 侧运行时。
-3. 软件安装包不直接塞入模型权重文件。
-4. 用户安装后，由应用首次启动或设置页触发模型自动下载。
-5. 开发态缓存目录使用 `runtime-cache/models`。
-6. 打包后缓存目录使用用户级 app data 目录下的 `models` 子目录。
+2. API 设置支持 `fallbackModels`，适合 OpenRouter 免费模型限流、繁忙或临时不可用时兜底；adapter 只会在某个模型尚未输出任何 token 前失败时切换到下一个模型，避免同一段回复混入多个模型的口吻。
+3. 当 API provider 未配置 key 或显式选择 `local` 时，回落到内置 llama.cpp 类 Node 侧运行时。
+4. 软件安装包不直接塞入模型权重文件。
+5. 用户安装后，由应用首次启动或设置页触发模型自动下载。
+6. 开发态缓存目录使用 `runtime-cache/models`。
+7. 打包后缓存目录使用用户级 app data 目录下的 `models` 子目录。
 
 ## 模型文件
 

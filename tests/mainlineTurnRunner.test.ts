@@ -22,7 +22,8 @@ describe('runMainlineTurn', () => {
                 openAiCompatible: {
                     apiKey: 'sk-test',
                     baseUrl: 'https://api.example.test/v1',
-                    model: 'gpt-4.1-mini'
+                    model: 'gpt-4.1-mini',
+                    fallbackModels: ['deepseek/deepseek-chat-v3-0324:free']
                 }
             }
         }
@@ -68,7 +69,8 @@ describe('runMainlineTurn', () => {
             openAiCompatible: {
                 apiKey: 'sk-test',
                 baseUrl: 'https://api.example.test/v1',
-                model: 'gpt-4.1-mini'
+                model: 'gpt-4.1-mini',
+                fallbackModels: ['deepseek/deepseek-chat-v3-0324:free']
             }
         })
     })

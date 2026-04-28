@@ -113,6 +113,7 @@ const defaultCreateDialogueDependencies: MainlineTurnDependencies['createDialogu
             apiKey: openAiCompatible.apiKey,
             baseUrl: openAiCompatible.baseUrl,
             model: openAiCompatible.model,
+            fallbackModels: openAiCompatible.fallbackModels,
             generateOptions
         })
     }

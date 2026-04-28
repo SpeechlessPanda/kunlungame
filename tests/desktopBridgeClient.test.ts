@@ -49,7 +49,8 @@ const buildValidRuntimeStateSnapshot = (): DesktopRuntimeStateSnapshot => ({
       openAiCompatible: {
         apiKey: '',
         baseUrl: 'https://api.openai.com/v1',
-        model: 'gpt-4o-mini'
+        model: 'gpt-4o-mini',
+        fallbackModels: []
       }
     }
   },
@@ -181,7 +182,8 @@ describe('wrapDesktopBridgeWithValidation', () => {
               openAiCompatible: {
                 apiKey: 'sk-test',
                 baseUrl: 'https://api.example.test/v1',
-                model: 'gpt-4.1-mini'
+                model: 'gpt-4.1-mini',
+                fallbackModels: []
               }
             }
           }

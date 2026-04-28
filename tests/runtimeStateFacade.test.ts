@@ -30,7 +30,8 @@ describe('runtimeStateFacade', () => {
         openAiCompatible: {
           apiKey: 'sk-test',
           baseUrl: 'https://api.example.test/v1',
-          model: 'gpt-4.1-mini'
+          model: 'gpt-4.1-mini',
+          fallbackModels: ['deepseek/deepseek-chat-v3-0324:free']
         }
       }
     }
@@ -53,7 +54,8 @@ describe('runtimeStateFacade', () => {
         openAiCompatible: {
           apiKey: 'sk-test',
           baseUrl: 'https://api.example.test/v1',
-          model: 'gpt-4.1-mini'
+          model: 'gpt-4.1-mini',
+          fallbackModels: ['deepseek/deepseek-chat-v3-0324:free']
         }
       }
     })
@@ -79,6 +81,7 @@ describe('runtimeStateFacade', () => {
     expect(parsed.isCompleted).toBe(false)
     expect(parsed.settings.modelProvider).toBe('openai-compatible')
     expect(parsed.settings.openAiCompatible.baseUrl).toBe('https://api.openai.com/v1')
+    expect(parsed.settings.openAiCompatible.fallbackModels).toEqual([])
   })
 
   it('builds the desktop snapshot without dropping recovery metadata', () => {

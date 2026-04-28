@@ -6,6 +6,7 @@ export interface OpenAiCompatibleSettings {
   apiKey: string
   baseUrl: string
   model: string
+  fallbackModels: string[]
 }
 
 export type ProfileAvailabilityStatus = 'ready' | 'partial' | 'missing' | 'unknown'
