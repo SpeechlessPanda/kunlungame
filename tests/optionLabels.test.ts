@@ -107,6 +107,39 @@ describe('buildGalgameOptionLabels', () => {
         }
     })
 
+    it('同一轮的 align/challenge 应共享同一个内容锚点，只改变态度姿态', () => {
+        const nodeIds = [
+            'kunlun-threshold',
+            'creation-myths',
+            'civilization-roots',
+            'order-and-thought',
+            'empire-and-openness',
+            'fusion-and-refinement',
+            'rupture-and-guardianship',
+            'contemporary-return'
+        ]
+
+        for (const nodeId of nodeIds) {
+            for (let turnIndex = 0; turnIndex < 4; turnIndex += 1) {
+                const options = buildGalgameOptionLabels({ turnIndex, nodeId })
+                const align = options.find((option) => option.semantic === 'align')!.label
+                const challenge = options.find((option) => option.semantic === 'challenge')!.label
+                const alignBigrams = new Set<string>()
+                const alignChars = Array.from(align.replace(/[，。！？、——"“”\s]/gu, ''))
+                for (let index = 0; index < alignChars.length - 1; index += 1) {
+                    alignBigrams.add(`${alignChars[index]}${alignChars[index + 1]}`)
+                }
+                const sharedTerms = [...alignBigrams].filter((term) => challenge.includes(term))
+                    .filter((term) => !['我也', '这条', '条线', '听但', '原来', '可以'].includes(term))
+
+                expect(
+                    sharedTerms.length,
+                    `node=${nodeId} turn=${turnIndex} should share a concrete content anchor: ${align} / ${challenge}`
+                ).toBeGreaterThanOrEqual(1)
+            }
+        }
+    })
+
     it('未登记的 nodeId 会回退到通用池而不报错', () => {
         const options = buildGalgameOptionLabels({ turnIndex: 0, nodeId: 'unknown-node-xyz' })
         expect(options).toHaveLength(2)

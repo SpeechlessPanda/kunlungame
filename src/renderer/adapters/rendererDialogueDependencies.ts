@@ -9,6 +9,7 @@ import type {
     DesktopMainlineTurnResult
 } from '../../shared/types/desktop.js'
 import type { DialogueTextStreamItem } from '../../modeling/dialogueOrchestrator.js'
+import { buildGalgameOptionLabels } from '../../modeling/optionLabels.js'
 import type { PlayerAttitudeChoice, RuntimeState } from '../../runtime/runtimeState.js'
 import { serializeRuntimeStateForDesktop } from '../../runtime/runtimeStateFacade.js'
 
@@ -187,56 +188,10 @@ const mockChunksByNode: Record<string, string[]> = {
     ]
 }
 
-const mockChoiceLabelsByNode: Record<string, [string, string]> = {
-    // —— canonical 8 节点：align 顺着叙事往下走；challenge 替"现代怀疑论的我"发声 —— //
-    'kunlun-threshold': [
-        '愿意让昆仑替我重新找回一个起点。',
-        '先别急——"世界中心"只是古人的自我想象罢了。'
-    ],
-    'creation-myths': [
-        '这些神话是一种更早的思考方式，值得认真听。',
-        '盘古与女娲再动人，也替代不了真实的考古证据。'
-    ],
-    'civilization-roots': [
-        '我愿意把"炎黄子孙"理解成一次共同体的发明。',
-        '用一个传说去粘合那么多部族，这本身就很可疑。'
-    ],
-    'order-and-thought': [
-        '礼乐与诸子合起来，才是中国人处理秩序的方式。',
-        '把社会交给一套礼法体系，它的合理性和代价真的说清了吗？'
-    ],
-    'empire-and-openness': [
-        '大一统与开放其实是同一件事的两面，我听进去了。',
-        '盛唐气象背后，是用多少边地与百姓的苦撑起来的？'
-    ],
-    'fusion-and-refinement': [
-        '把精致与融合理解成文明持续生长，我接受这个说法。',
-        '所谓"高峰"有没有美化一个漫长的停滞期？'
-    ],
-    'rupture-and-guardianship': [
-        '这些在断裂里守护文脉的人，是真正的当代英雄。',
-        '被动挨打之后再讲"守护"，会不会太便宜了？'
-    ],
-    'contemporary-return': [
-        '我能感觉到这份文化回响正在影响今天的我。',
-        '文创与流量的包装下，"文化自觉"会不会被稀释？'
-    ],
-
-    // —— 旧 demo 节点 fallback —— //
-    'kunlun-prologue': ['我愿意聆听昆仑的第一句话。', '这听起来过于神话，我需要证据。'],
-    'kunlun-rites': ['雅乐确实让我心绪平稳。', '这些声响离今天太远了。'],
-    'kunlun-dialogue': ['这份交叠正是文化延续的样子。', '霓虹归霓虹，旧辞应当留在旧辞里。']
-}
-
 const fallbackChunks = (node: StoryNode): string[] => [
     `${node.title}。`,
     `${node.summary}`,
     `核心追问：${node.coreQuestion}`
-]
-
-const fallbackChoiceLabels = (node: StoryNode): [string, string] => [
-    `「${node.title}」……嗯——我想继续听你往下讲，好不好？`,
-    `诶——「${node.title}」这里我有点想先追问一下。`
 ]
 
 /**
@@ -420,9 +375,9 @@ export const buildMockDialogueDependencies = (
             if (optionsDelayMs > 0) {
                 await sleep(optionsDelayMs)
             }
-            const labels = mockChoiceLabelsByNode[node.id] ?? fallbackChoiceLabels(node)
-            const alignLabel = labels[0]
-            const challengeLabel = labels[1]
+            const labels = buildGalgameOptionLabels({ turnIndex: 0, nodeId: node.id })
+            const alignLabel = labels.find((option) => option.semantic === 'align')!.label
+            const challengeLabel = labels.find((option) => option.semantic === 'challenge')!.label
             return semantics.map((semantic) => ({
                 semantic,
                 label: semantic === 'align' ? alignLabel : challengeLabel

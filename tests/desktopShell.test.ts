@@ -613,6 +613,21 @@ describe('applyDevOpenAiEnvOverrides', () => {
     expect(baseSnapshot.state.settings.openAiCompatible.apiKey).toBe('')
   })
 
+  it('从 KUNLUN_OPENAI_FALLBACK_MODELS 注入逗号分隔的备用模型列表', () => {
+    const result = applyDevOpenAiEnvOverrides(baseSnapshot, {
+      KUNLUN_OPENAI_API_KEY: 'sk-test-123',
+      KUNLUN_OPENAI_BASE_URL: 'https://openrouter.ai/api/v1',
+      KUNLUN_OPENAI_MODEL: 'qwen/qwen3-next-80b-a3b-instruct:free',
+      KUNLUN_OPENAI_FALLBACK_MODELS: 'z-ai/glm-4.5-air:free, openai/gpt-oss-120b:free,,meta-llama/llama-3.3-70b-instruct:free'
+    })
+
+    expect(result.state.settings.openAiCompatible.fallbackModels).toEqual([
+      'z-ai/glm-4.5-air:free',
+      'openai/gpt-oss-120b:free',
+      'meta-llama/llama-3.3-70b-instruct:free'
+    ])
+  })
+
   it('显式设置 KUNLUN_MODEL_PROVIDER=local 时即使有 apiKey 也保持 local', () => {
     const result = applyDevOpenAiEnvOverrides(baseSnapshot, {
       KUNLUN_OPENAI_API_KEY: 'sk-test-123',

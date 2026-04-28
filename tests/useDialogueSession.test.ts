@@ -6,6 +6,7 @@ import type {
 import type { PlayerAttitudeChoice, RuntimeState } from '../src/runtime/runtimeState.js'
 import { SAVE_VERSION } from '../src/runtime/runtimeState.js'
 import { minimalStoryOutline } from '../src/shared/contracts/contentContracts.js'
+import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
 import { createTurnController } from '../src/renderer/composables/useTurnController.js'
 import { createDialogueSession } from '../src/renderer/composables/useDialogueSession.js'
 import { buildMockDialogueDependencies } from '../src/renderer/adapters/rendererDialogueDependencies.js'
@@ -265,5 +266,26 @@ describe('buildMockDialogueDependencies', () => {
         expect(options).toHaveLength(2)
         expect(options.map((o) => o.semantic)).toEqual(['align', 'challenge'])
         expect(options[0]!.label).not.toBe(options[1]!.label)
+    })
+
+    it('keeps preview align/challenge options on the same content anchor', async () => {
+        for (const mainlineNode of mainlineStoryOutline.nodes) {
+            const deps = buildMockDialogueDependencies(mainlineNode, { sleep: async () => undefined })
+            const options = await deps.generateOptions({ currentNode: mainlineNode, semantics: ['align', 'challenge'] })
+            const align = options.find((option) => option.semantic === 'align')!.label
+            const challenge = options.find((option) => option.semantic === 'challenge')!.label
+
+            const alignBigrams = new Set<string>()
+            const alignChars = Array.from(align.replace(/[，。！？、——"“”\s]/gu, ''))
+            for (let index = 0; index < alignChars.length - 1; index += 1) {
+                alignBigrams.add(`${alignChars[index]}${alignChars[index + 1]}`)
+            }
+            const sharedTerms = [...alignBigrams].filter((term) => challenge.includes(term))
+                .filter((term) => !['我也', '这条', '条线', '听但', '愿意'].includes(term))
+
+            expect(sharedTerms.length, `${mainlineNode.id}: ${align} / ${challenge}`).toBeGreaterThanOrEqual(1)
+            expect(align).toMatch(/原来|源远流长|脉络|听懂|接上|厚|长|回响|愿意|接受|感觉|理解/)
+            expect(challenge).toMatch(/证据|质疑|合理|代价|可疑|追问|凭什么|说清/)
+        }
     })
 })

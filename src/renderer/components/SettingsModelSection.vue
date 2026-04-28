@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { CheckCircle2, Cloud, Cpu, Download, HardDrive, KeyRound, PlugZap } from "lucide-vue-next";
+import {
+  CheckCircle2,
+  Cloud,
+  Cpu,
+  Download,
+  HardDrive,
+  KeyRound,
+  PlugZap,
+} from "lucide-vue-next";
 import {
   getDefaultModelProfile,
   getFallbackModelProfile,
@@ -122,15 +130,11 @@ const apiProviderPresets: ApiProviderPreset[] = [
   {
     id: "openrouter-free",
     label: "OpenRouter 免费",
-    hint: "免费模型波动较大，已预填备用池。",
+    hint: "免费模型波动较大；当前验证以 120B 最稳定。",
     settings: {
       baseUrl: "https://openrouter.ai/api/v1",
       model: "openai/gpt-oss-120b:free",
-      fallbackModels: [
-        "qwen/qwen3-next-80b-a3b-instruct:free",
-        "z-ai/glm-4.5-air:free",
-        "meta-llama/llama-3.3-70b-instruct:free",
-      ],
+      fallbackModels: ["meta-llama/llama-3.3-70b-instruct:free"],
     },
   },
 ];
@@ -285,7 +289,11 @@ const runConnectionTestClick = async (): Promise<void> => {
       推荐接入 OpenAI-compatible API；切换后下一轮对话生效。
     </p>
   </header>
-  <div class="settings-panel__provider-list" role="radiogroup" aria-label="模型来源">
+  <div
+    class="settings-panel__provider-list"
+    role="radiogroup"
+    aria-label="模型来源"
+  >
     <button
       v-for="option in providerOptions"
       :key="option.provider"
@@ -310,17 +318,24 @@ const runConnectionTestClick = async (): Promise<void> => {
     </button>
   </div>
 
-  <div v-if="modelProvider === 'openai-compatible'" class="settings-panel__api-form" data-testid="settings-openai-form">
+  <div
+    v-if="modelProvider === 'openai-compatible'"
+    class="settings-panel__api-form"
+    data-testid="settings-openai-form"
+  >
     <div
       class="settings-panel__api-warning"
       role="note"
       data-testid="settings-openai-format-warning"
     >
-      <strong class="settings-panel__api-warning-title">仅支持 OpenAI 格式 API</strong>
+      <strong class="settings-panel__api-warning-title"
+        >仅支持 OpenAI 格式 API</strong
+      >
       <span class="settings-panel__api-warning-body">
         本应用只走 OpenAI-compatible <code>/chat/completions</code> 流式协议；
-        Anthropic 原生（<code>/v1/messages</code>）、Google Gemini、百度文心等专属格式无法直接接入，
-        请使用其官方/网关提供的 OpenAI-compatible 端点。
+        Anthropic 原生（<code>/v1/messages</code>）、Google
+        Gemini、百度文心等专属格式无法直接接入， 请使用其官方/网关提供的
+        OpenAI-compatible 端点。
       </span>
     </div>
     <div class="settings-panel__preset-list" aria-label="API 接入预设">
@@ -333,7 +348,12 @@ const runConnectionTestClick = async (): Promise<void> => {
         @click="applyApiProviderPreset(preset)"
       >
         <span class="settings-panel__preset-label">
-          <Cloud v-if="preset.id === 'openai'" :size="15" :stroke-width="1.8" aria-hidden="true" />
+          <Cloud
+            v-if="preset.id === 'openai'"
+            :size="15"
+            :stroke-width="1.8"
+            aria-hidden="true"
+          />
           <KeyRound v-else :size="15" :stroke-width="1.8" aria-hidden="true" />
           {{ preset.label }}
         </span>
@@ -383,12 +403,15 @@ const runConnectionTestClick = async (): Promise<void> => {
         data-testid="settings-openai-fallback-models"
         autocomplete="off"
         rows="3"
-        placeholder="openai/gpt-oss-120b:free"
+        placeholder="meta-llama/llama-3.3-70b-instruct:free"
         :value="openAiCompatible.fallbackModels.join('\n')"
         @input="(event) => updateFallbackModels(textareaValue(event))"
       />
     </label>
-    <div class="settings-panel__connection-test" data-testid="settings-openai-connection-test">
+    <div
+      class="settings-panel__connection-test"
+      data-testid="settings-openai-connection-test"
+    >
       <button
         type="button"
         class="settings-panel__connection-test-button"
@@ -397,14 +420,17 @@ const runConnectionTestClick = async (): Promise<void> => {
         @click="runConnectionTestClick"
       >
         <PlugZap :size="14" :stroke-width="1.8" aria-hidden="true" />
-        <span v-if="connectionTestState.status === 'testing'">正在测试连接…</span>
+        <span v-if="connectionTestState.status === 'testing'"
+          >正在测试连接…</span
+        >
         <span v-else>测试连接</span>
       </button>
       <p
         v-if="connectionTestState.status === 'idle'"
         class="settings-panel__connection-test-hint"
       >
-        点击后会用 max_tokens=1 打一次 /chat/completions，验证 Key、Base URL 和模型名是否真的能跑通。
+        点击后会用 max_tokens=1 打一次 /chat/completions，验证 Key、Base URL
+        和模型名是否真的能跑通。
       </p>
       <p
         v-else-if="connectionTestState.status === 'ok'"
@@ -412,7 +438,8 @@ const runConnectionTestClick = async (): Promise<void> => {
         data-testid="settings-openai-test-result-ok"
         role="status"
       >
-        ✅ 连接成功 · 模型 <code>{{ connectionTestState.model }}</code> · 耗时 {{ connectionTestState.latencyMs }} ms
+        ✅ 连接成功 · 模型 <code>{{ connectionTestState.model }}</code> · 耗时
+        {{ connectionTestState.latencyMs }} ms
       </p>
       <div
         v-else-if="connectionTestState.status === 'error'"
@@ -424,11 +451,22 @@ const runConnectionTestClick = async (): Promise<void> => {
         <p
           v-if="connectionTestState.message"
           class="settings-panel__connection-test-detail"
-        >{{ connectionTestState.message }}</p>
+        >
+          {{ connectionTestState.message }}
+        </p>
       </div>
     </div>
-    <p class="settings-panel__model-hint settings-panel__api-guidance" data-testid="settings-openai-guidance">
-      仅支持 OpenAI-compatible 的 /chat/completions 流式格式；Base URL 填 API 根地址，例如 https://api.openai.com/v1 或 https://openrouter.ai/api/v1，不要填完整 /chat/completions 路径。推荐 gpt-4o-mini 获得速度和成本平衡；gpt-4.1-mini 指令遵循更强；gpt-4o 中文表达更细腻。OpenRouter 免费模型通常以 :free 结尾，例如 openai/gpt-oss-120b:free，可一行一个作为备用。
+    <p
+      class="settings-panel__model-hint settings-panel__api-guidance"
+      data-testid="settings-openai-guidance"
+    >
+      仅支持 OpenAI-compatible 的 /chat/completions 流式格式；Base URL 填 API
+      根地址，例如 https://api.openai.com/v1 或
+      https://openrouter.ai/api/v1，不要填完整 /chat/completions 路径。推荐
+      gpt-4o-mini 获得速度和成本平衡；gpt-4.1-mini 指令遵循更强；gpt-4o
+      中文表达更细腻。OpenRouter 免费模型通常以 :free 结尾，当前验证以
+      openai/gpt-oss-120b:free 最稳定；Qwen / GLM
+      免费档曾出现短答或空流，不作为默认推荐。
     </p>
   </div>
 
@@ -439,67 +477,67 @@ const runConnectionTestClick = async (): Promise<void> => {
         本地离线可用，但生成速度取决于 GPU/CPU 和权重大小。
       </p>
     </header>
-  <div
-    class="settings-panel__model-list"
-    role="radiogroup"
-    aria-label="模型档位"
-  >
-    <button
-      v-for="option in modelModeOptions"
-      :key="option.mode"
-      type="button"
-      role="radio"
-      class="settings-panel__model-option"
-      :data-testid="`settings-model-${option.mode}`"
-      :aria-checked="preferredModelMode === option.mode ? 'true' : 'false'"
-      :data-selected="preferredModelMode === option.mode"
-      @click="onPickMode(option.mode)"
+    <div
+      class="settings-panel__model-list"
+      role="radiogroup"
+      aria-label="模型档位"
     >
-      <div class="settings-panel__model-row">
-        <span class="settings-panel__model-label"
-          ><Cpu :size="16" :stroke-width="1.8" aria-hidden="true" />{{
-            option.label
-          }}</span
-        >
-        <span
-          v-if="selectedProfileId === option.profileId"
-          class="settings-panel__model-pill"
-          data-testid="settings-model-active-pill"
-          ><CheckCircle2
-            :size="13"
-            :stroke-width="1.8"
-            aria-hidden="true"
-          />当前加载</span
-        >
-      </div>
-      <p class="settings-panel__model-tagline">{{ option.tagline }}</p>
-      <p class="settings-panel__model-hint">{{ option.hint }}</p>
-      <div
-        v-if="showDownloadButton(option.profileId)"
-        class="settings-panel__model-cta"
+      <button
+        v-for="option in modelModeOptions"
+        :key="option.mode"
+        type="button"
+        role="radio"
+        class="settings-panel__model-option"
+        :data-testid="`settings-model-${option.mode}`"
+        :aria-checked="preferredModelMode === option.mode ? 'true' : 'false'"
+        :data-selected="preferredModelMode === option.mode"
+        @click="onPickMode(option.mode)"
       >
-        <span
-          class="settings-panel__model-status"
-          :data-testid="`settings-model-status-${option.mode}`"
-          >{{ statusLabel(option.profileId) }}</span
+        <div class="settings-panel__model-row">
+          <span class="settings-panel__model-label"
+            ><Cpu :size="16" :stroke-width="1.8" aria-hidden="true" />{{
+              option.label
+            }}</span
+          >
+          <span
+            v-if="selectedProfileId === option.profileId"
+            class="settings-panel__model-pill"
+            data-testid="settings-model-active-pill"
+            ><CheckCircle2
+              :size="13"
+              :stroke-width="1.8"
+              aria-hidden="true"
+            />当前加载</span
+          >
+        </div>
+        <p class="settings-panel__model-tagline">{{ option.tagline }}</p>
+        <p class="settings-panel__model-hint">{{ option.hint }}</p>
+        <div
+          v-if="showDownloadButton(option.profileId)"
+          class="settings-panel__model-cta"
         >
-        <button
-          type="button"
-          class="settings-panel__model-download"
-          :data-testid="`settings-model-download-${option.mode}`"
-          @click="(event) => onDownload(event, option.profileId)"
-        >
-          <Download :size="14" :stroke-width="1.8" aria-hidden="true" />
-          下载权重
-        </button>
-      </div>
-      <SettingsDownloadProgress
-        v-if="isDownloading(option.profileId) && downloadStatus"
-        :mode="option.mode"
-        :status="downloadStatus"
-      />
-    </button>
-  </div>
+          <span
+            class="settings-panel__model-status"
+            :data-testid="`settings-model-status-${option.mode}`"
+            >{{ statusLabel(option.profileId) }}</span
+          >
+          <button
+            type="button"
+            class="settings-panel__model-download"
+            :data-testid="`settings-model-download-${option.mode}`"
+            @click="(event) => onDownload(event, option.profileId)"
+          >
+            <Download :size="14" :stroke-width="1.8" aria-hidden="true" />
+            下载权重
+          </button>
+        </div>
+        <SettingsDownloadProgress
+          v-if="isDownloading(option.profileId) && downloadStatus"
+          :mode="option.mode"
+          :status="downloadStatus"
+        />
+      </button>
+    </div>
   </template>
 </template>
 
@@ -714,7 +752,9 @@ const runConnectionTestClick = async (): Promise<void> => {
   color: #ffe9b8;
   font-size: var(--font-size-xs);
   cursor: pointer;
-  transition: background 120ms ease, transform 120ms ease;
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
 }
 
 .settings-panel__connection-test-button:hover:not(:disabled) {

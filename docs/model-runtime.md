@@ -9,7 +9,7 @@
 3. Lite 本地兜底档：Qwen2.5-1.5B-Instruct GGUF Q4_K_M，用于低显存或纯 CPU 机器。
 4. Pro 本地可选档：Qwen2.5-7B-Instruct GGUF Q3_K_M，需要用户显式选择。
 
-推荐 API 模型：`gpt-4o-mini` 速度、成本和中文质量平衡最好；`gpt-4.1-mini` 指令遵循更强，适合更重视剧情约束的体验；`gpt-4o` 中文表达更细腻但成本更高。设置页提供 `OpenAI 官方` 与 `OpenRouter 免费` 两个预设；OpenRouter 可通过 `https://openrouter.ai/api/v1` 接入 OpenAI-compatible 格式，免费模型通常以 `:free` 结尾，例如 `openai/gpt-oss-120b:free`、`qwen/qwen3-next-80b-a3b-instruct:free`。当前只支持 OpenAI-compatible `/chat/completions` 流式格式；`baseUrl` 必须填 API 根地址（如 `https://api.openai.com/v1`），不要填完整 `/chat/completions` 路径。
+推荐 API 模型：`gpt-4o-mini` 速度、成本和中文质量平衡最好；`gpt-4.1-mini` 指令遵循更强，适合更重视剧情约束的体验；`gpt-4o` 中文表达更细腻但成本更高。设置页提供 `OpenAI 官方` 与 `OpenRouter 免费` 两个预设；OpenRouter 可通过 `https://openrouter.ai/api/v1` 接入 OpenAI-compatible 格式，免费模型通常以 `:free` 结尾。2026-04-28 真实 smoke/playthrough 验证显示，`openai/gpt-oss-120b:free` 在当前主线 prompt 下最稳定；`qwen/qwen3-next-80b-a3b-instruct:free` 与 `z-ai/glm-4.5-air:free` 虽可能体感更快，但出现过短答、截断或空流，不再作为默认推荐。当前只支持 OpenAI-compatible `/chat/completions` 流式格式；`baseUrl` 必须填 API 根地址（如 `https://api.openai.com/v1`），不要填完整 `/chat/completions` 路径。
 
 真实 API 烟雾：
 
@@ -22,11 +22,13 @@ pnpm smoke:openai
 
 脚本会跑首节点真实主线回合，输出正文与两个选项，并把无密钥日志写入 `logs/dialogue-smoke/openai-compatible-smoke-*.json`。
 如果不想每次设置环境变量，可以在项目根目录放置 `.env.local`，写入同名变量；该文件被 `.gitignore` 忽略，只用于本机测试。
+开发态 `.env.local` 还支持 `KUNLUN_OPENAI_FALLBACK_MODELS`，多个模型用逗号或换行分隔；这些备用模型会在主模型尚未输出任何 token 前失败时按顺序尝试。
+`pnpm playthrough` 与 `pnpm smoke:openai` 复用同一套 `.env.local` 解析逻辑；当 API key 与模型名存在时，主线游玩日志会走 OpenAI-compatible，并把 provider、baseUrl、model、fallbackModels 写入 `logs/playthroughs/playthrough-*.md`，但不会写入 key。多路线审查可用 `pnpm playthrough -- --choices=align,challenge,challenge,align --maxNodes=4 --turnsPerNode=1` 指定混合选择序列，避免只跑全附和或全质疑。
 
 ## 推理与分发策略
 
 1. 新存档默认 `settings.modelProvider = openai-compatible`；配置 API key 后主线回合跳过本地 GGUF 文件检查，直接走远程流式适配器。
-2. API 设置支持 `fallbackModels`，适合 OpenRouter 免费模型限流、繁忙或临时不可用时兜底；adapter 只会在某个模型尚未输出任何 token 前失败时切换到下一个模型，避免同一段回复混入多个模型的口吻。
+2. API 设置支持 `fallbackModels`，适合 OpenRouter 免费模型限流、繁忙、临时不可用或空流时兜底；adapter 只会在某个模型尚未输出任何正文前切换到下一个模型，避免同一段回复混入多个模型的口吻。
 3. 当 API provider 未配置 key 或显式选择 `local` 时，回落到内置 llama.cpp 类 Node 侧运行时。
 4. 软件安装包不直接塞入模型权重文件。
 5. 用户安装后，由应用首次启动或设置页触发模型自动下载。
@@ -77,7 +79,8 @@ Pro 可选档：
 4. `forbiddenFutureTopics`、当前节点之后所有主线节点的关键词、推荐人物与 `mustIncludeFacts` 中可提取的后续事件/专有词会被写入 prompt，作为反剧透边界。
 5. 3B / 1.5B 与 OpenAI-compatible 远程 API 默认启用严格覆盖模式，要求 3-4 个自然段、足够长度和当前节点事实覆盖；如果模型首答太短、段落不足或关键词覆盖不足，会用同一个模型再跑一次窄化修复 prompt。只有 7B Pro 本地档可放宽。
 6. 当前玩家倾向会被翻译为 `附和型` 或 `反驳型`，但不会改变主线事实或节点顺序。
-7. prompt 明确要求只面对一个玩家说话，称呼为 `你`，不得把玩家称为 `你们`；除非是在引用历史群体或多人场景。
+7. 玩家刚刚点击的选项会和上一轮回复一起进入压缩上下文；选项表示玩家用哪种态度接住同一内容线，不代表剧情新分支。
+8. prompt 明确要求只面对一个玩家说话，称呼为 `你`，不得把玩家称为 `你们`；除非是在引用历史群体或多人场景。
 
 ## 本地性能与 GPU 诊断
 
@@ -139,7 +142,7 @@ Pro 可选档：
 12. 已有 `desktop:run-dialogue-smoke` bridge 与 `pnpm dialogue:smoke` 命令，可触发主线首节点、知识检索、prompt builder、orchestrator 和本地 llama adapter 的单轮联调。
 13. 已有 `desktop:stream-mainline-turn` bridge，可把主进程生成中的文本 chunk 实时推入 UI；旧 `desktop:run-mainline-turn` 保留为兼容回退。
 14. 已有 OpenAI-compatible 远程 adapter；配置 API key 时主线会跳过本地模型文件检查，并保留 system/user role 分离与 SSE 增量输出。
-15. 已有 `pnpm smoke:openai` 真实 API 烟雾脚本，使用环境变量读取 key，不把 key 写入日志。
+15. 已有 `pnpm smoke:openai` 与 `pnpm playthrough` 真实 API 验收脚本，使用环境变量或 `.env.local` 读取 key，不把 key 写入日志。
 
 ## 当前已验证状态
 

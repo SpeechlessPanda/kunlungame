@@ -64,6 +64,25 @@ describe('parseStoryOutline', () => {
     expect(result.nodes[0]?.id).toBe('kunlun-threshold')
     expect(result.nodes[7]?.id).toBe('contemporary-return')
   })
+
+  it('keeps Ming and Qing compilation anchors historically separated', () => {
+    const fusionNode = mainlineStoryOutline.nodes.find((node) => node.id === 'fusion-and-refinement')
+
+    expect(fusionNode?.mustIncludeFacts.join('\n')).not.toContain('明清之交，《永乐大典》《四库全书》')
+    expect(fusionNode?.mustIncludeFacts).toContain(
+      '明代《永乐大典》与清代《四库全书》分别代表不同时期的大规模文献整理'
+    )
+  })
+
+  it('keeps Banquan and Zhuolu battles distinct in civilization roots facts', () => {
+    const civilizationNode = mainlineStoryOutline.nodes.find((node) => node.id === 'civilization-roots')
+    const facts = civilizationNode?.mustIncludeFacts.join('\n') ?? ''
+
+    expect(facts).toContain('阪泉之战')
+    expect(facts).toContain('涿鹿之战')
+    expect(facts).toContain('蚩尤')
+    expect(facts).not.toContain('黄帝与炎帝的联盟-冲突-合流')
+  })
 })
 
 describe('parseKnowledgeEntries', () => {

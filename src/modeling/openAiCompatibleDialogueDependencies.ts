@@ -152,6 +152,12 @@ export async function* streamOpenAiCompatibleText(input: StreamOpenAiCompatibleT
         didEmitText = true
         yield content
       }
+      if (!didEmitText) {
+        const emptyError = new Error(`OpenAI-compatible model '${model}' completed without streaming content.`)
+        if (index === models.length - 1) throw emptyError
+        lastError = emptyError
+        continue
+      }
       return
     } catch (error) {
       if (didEmitText || index === models.length - 1) throw error

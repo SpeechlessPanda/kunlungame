@@ -17,7 +17,7 @@ export type RuntimeStateRecoveryAction = 'created-default' | 'loaded-existing' |
  * - `decrypt`：把磁盘上的字符串还原成明文；若未加密（无 `enc:` 前缀）原样返回。
  *
  * 默认实现是 identity（保持向后兼容、便于纯测试）；electron 主进程会注入基于
- * `safeStorage.encryptString` 的实现，让明文 apiKey 永不直接落到 runtime-state.json。
+ * `safeStorage.encryptString` 的实现；若目标平台支持 safeStorage，明文 apiKey 不会直接落到 runtime-state.json。
  */
 export interface SecretCipher {
   encrypt: (plaintext: string) => string

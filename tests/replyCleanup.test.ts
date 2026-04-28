@@ -84,4 +84,17 @@ describe('sanitizeMainlineReply', () => {
         expect(cleaned).not.toContain('你们已经')
         expect(cleaned).toContain('许多人群')
     })
+
+    it('normalizes common model slips found in API playthroughs', () => {
+        const raw = [
+            '随后女娦抟土成形，炼五色石补天。',
+            '明初，紫禁城在十四世纪初拔地而起。'
+        ].join('\n')
+        const cleaned = sanitizeMainlineReply(raw)
+
+        expect(cleaned).toContain('女娲抟土成形')
+        expect(cleaned).toContain('紫禁城在十五世纪初拔地而起')
+        expect(cleaned).not.toContain('女娦')
+        expect(cleaned).not.toContain('十四世纪初')
+    })
 })

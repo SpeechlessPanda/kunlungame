@@ -131,6 +131,25 @@ describe('buildStoryPrompt', () => {
     expect(prompt.system).toContain('只给泛泛感叹，都算失败')
   })
 
+  it('adds a hard persona style contract with compact examples', () => {
+    const currentNode = mainlineStoryOutline.nodes[0]
+    const runtimeState = createDefaultRuntimeState(mainlineStoryOutline)
+    const prompt = buildStoryPrompt({
+      currentNode,
+      retrievedEntries: [],
+      runtimeState,
+      attitudeChoiceMode: 'challenge',
+      recentTurns: [
+        '昆仑子上一轮：昆仑把神话、地理和身份三条线接在一起。\n玩家刚才选择了【追问】：我也沿着昆仑这条轴心线听，但证据要更稳。'
+      ]
+    })
+
+    expect(prompt.system).toContain('## 角色风格锁')
+    expect(prompt.system).toContain('<style_examples>')
+    expect(prompt.system).toContain('玩家刚才选择的选项也是上下文事实')
+    expect(prompt.user).toContain('玩家刚才选择了【追问】')
+  })
+
   it('injects compressed prior model replies as continuity context without internal labels', () => {
     const currentNode = mainlineStoryOutline.nodes[1]
     const runtimeState = createDefaultRuntimeState(mainlineStoryOutline)

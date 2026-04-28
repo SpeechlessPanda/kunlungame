@@ -30,8 +30,8 @@ Part 04 当前已经对齐到真实主线的状态闭环：状态对象可序列
 5. 设置页编辑 API key、base URL、model、fallback models 或模型来源后，会通过既有 `serializeRuntimeStateForDesktop()` 持久化到桌面存档。
 6. 点击“进入昆仑”或从结尾重新开始时，只重置剧情进度、态度值、历史摘要和已读节点；会保留当前 `settings`，避免用户刚填写的 API key/model 被新开主线清空。
 7. 当前版本只支持 OpenAI-compatible chat completions streaming；`baseUrl` 填 API 根地址，运行时会拼接 `/chat/completions`。
-8. 当前版本沿用现有存档结构持久化 `apiKey`，尚未接入 OS 级安全凭据存储；发布前若面向非开发用户分发，应在设置页与发行说明中继续保留此限制说明。
-9. 真实 API 烟雾通过环境变量或项目根目录 `.env.local` 读取 key：`KUNLUN_OPENAI_API_KEY` / `OPENAI_API_KEY`、`KUNLUN_OPENAI_BASE_URL` / `OPENAI_BASE_URL`、`KUNLUN_OPENAI_MODEL` / `OPENAI_MODEL`；脚本日志不会写入 key。
+8. 桌面壳保存 `apiKey` 时会优先通过 Electron `safeStorage` 加密敏感字段；如果平台不支持 safeStorage，会按当前实现回退为明文保存以保持功能可用。正式分发应优先确认目标平台 safeStorage 可用，并在发行说明中保留明文 fallback 风险说明。开发态 `.env.local` 只用于本机调试，必须继续保持 git ignore。
+9. 真实 API 烟雾和主线游玩脚本通过环境变量或项目根目录 `.env.local` 读取 key：`KUNLUN_OPENAI_API_KEY` / `OPENAI_API_KEY`、`KUNLUN_OPENAI_BASE_URL` / `OPENAI_BASE_URL`、`KUNLUN_OPENAI_MODEL` / `OPENAI_MODEL`；开发态桌面覆盖与脚本还会读取 `KUNLUN_OPENAI_FALLBACK_MODELS`，日志不会写入 key。
 
 ## 态度值规则
 
@@ -39,6 +39,7 @@ Part 04 当前已经对齐到真实主线的状态闭环：状态对象可序列
 2. 玩家选择 `challenge` 时，态度值 `-1`。
 3. 当前上下界为 `-3` 到 `3`。
 4. 态度值只用于后续风格控制，不用于改变主线节点拓扑。
+5. 渲染层会把上一轮昆仑子的回复和玩家点击的选项合并为最近上下文；下一轮必须沿同一内容推进，只把选项当成态度信号。
 
 ## 推进规则
 

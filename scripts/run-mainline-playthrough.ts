@@ -1,6 +1,7 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { runMainlineTurn, type MainlineAttitudeChoice } from '../src/modeling/mainlineTurnRunner.js'
+import { runMainlineTurn } from '../src/modeling/mainlineTurnRunner.js'
+import { buildRecentTurnMemory } from '../src/renderer/composables/recentTurnMemory.js'
 import { buildLogStamp, ensureLogDir } from './logPaths.js'
 import {
     ATTITUDE_MAX,
@@ -10,6 +11,8 @@ import {
     type RuntimeState
 } from '../src/runtime/runtimeState.js'
 import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
+import { loadOpenAiCompatibleEnv } from './openAiCompatibleEnv.js'
+import { parsePlaythroughOptions, pickPlaythroughChoice } from './playthroughOptions.js'
 
 /**
  * 用真实本地模型一次性走完一段主线，把每一轮的 prompt 输入与模型输出落盘到日志，
@@ -19,41 +22,16 @@ import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
  *   pnpm playthrough                            # 默认 align 全程，第一节点
  *   pnpm playthrough -- --pattern=alt           # align/challenge 交替
  *   pnpm playthrough -- --pattern=challenge     # 全程怀疑
+ *   pnpm playthrough -- --choices=align,challenge,challenge,align # 自定义用户选择序列
  *   pnpm playthrough -- --maxNodes=3            # 只跑前 3 个节点
  *   pnpm playthrough -- --turnsPerNode=2        # 每节点跑 2 轮（默认按 minTurns + 1）
+ *   pnpm playthrough -- --pattern=alt           # 若 .env.local 含 API Key，会走 OpenAI-compatible
  *   KUNLUN_SMOKE_MODE=compatibility pnpm playthrough  # 强制 1.5B Lite 兜底档
  *   KUNLUN_SMOKE_MODE=pro pnpm playthrough            # 强制 7B Pro 档（需手动下 Q3_K_M 权重）
  */
 
-interface CliOptions {
-    pattern: 'align' | 'challenge' | 'alt'
-    maxNodes: number
-    turnsPerNode: number | null
-}
-
-const parseArgs = (): CliOptions => {
-    const opts: CliOptions = { pattern: 'align', maxNodes: 8, turnsPerNode: null }
-    for (const arg of process.argv.slice(2)) {
-        const [key, value] = arg.replace(/^--/, '').split('=')
-        if (key === 'pattern' && (value === 'align' || value === 'challenge' || value === 'alt')) {
-            opts.pattern = value
-        } else if (key === 'maxNodes') {
-            opts.maxNodes = Math.max(1, Number.parseInt(value ?? '8', 10) || 8)
-        } else if (key === 'turnsPerNode') {
-            opts.turnsPerNode = Math.max(1, Number.parseInt(value ?? '1', 10) || 1)
-        }
-    }
-    return opts
-}
-
-const pickChoice = (opts: CliOptions, totalTurnIndex: number): MainlineAttitudeChoice => {
-    if (opts.pattern === 'align') return 'align'
-    if (opts.pattern === 'challenge') return 'challenge'
-    return totalTurnIndex % 2 === 0 ? 'align' : 'challenge'
-}
-
 const main = async (): Promise<void> => {
-    const opts = parseArgs()
+    const opts = parsePlaythroughOptions()
     const projectRoot = process.cwd()
     const appDataDir = process.env['APPDATA']
         ? join(process.env['APPDATA'], 'Kunlungame')
@@ -62,21 +40,40 @@ const main = async (): Promise<void> => {
     const forcedMode = process.env['KUNLUN_SMOKE_MODE']
     const preferredMode: 'default' | 'compatibility' | 'pro' =
         forcedMode === 'compatibility' ? 'compatibility'
-        : forcedMode === 'pro' ? 'pro'
-        : 'default'
+            : forcedMode === 'pro' ? 'pro'
+                : 'default'
 
+    const openAiCompatible = await loadOpenAiCompatibleEnv(projectRoot)
     let state: RuntimeState = createDefaultRuntimeState(mainlineStoryOutline)
+    if (openAiCompatible != null) {
+        state = {
+            ...state,
+            settings: {
+                ...state.settings,
+                modelProvider: 'openai-compatible',
+                openAiCompatible
+            }
+        }
+    }
     const recentTurns: string[] = []
     const log: string[] = []
 
     const stamp = buildLogStamp()
     const logDir = await ensureLogDir(projectRoot, 'playthroughs')
-    const logFile = join(logDir, `playthrough-${preferredMode}-${opts.pattern}-${stamp}.md`)
+    const runLabel = opts.choiceSequence.length > 0 ? 'custom' : opts.pattern
+    const logFile = join(logDir, `playthrough-${preferredMode}-${runLabel}-${stamp}.md`)
 
-    log.push(`# Playthrough · ${preferredMode} · ${opts.pattern} · ${stamp}`)
+    log.push(`# Playthrough · ${preferredMode} · ${runLabel} · ${stamp}`)
     log.push('')
     log.push(`- maxNodes: ${opts.maxNodes}`)
     log.push(`- turnsPerNode: ${opts.turnsPerNode ?? 'minTurns'}`)
+    log.push(`- choices: ${opts.choiceSequence.join(', ') || `(pattern:${opts.pattern})`}`)
+    log.push(`- provider: ${openAiCompatible == null ? 'local' : 'openai-compatible'}`)
+    if (openAiCompatible != null) {
+        log.push(`- baseUrl: ${openAiCompatible.baseUrl}`)
+        log.push(`- model: ${openAiCompatible.model}`)
+        log.push(`- fallbackModels: ${openAiCompatible.fallbackModels.join(', ') || '(none)'}`)
+    }
     log.push('')
 
     let totalTurns = 0
@@ -88,7 +85,7 @@ const main = async (): Promise<void> => {
         const targetTurnsForNode = opts.turnsPerNode ?? node.minTurns
 
         for (let i = 0; i < targetTurnsForNode; i += 1) {
-            const choice = pickChoice(opts, totalTurns)
+            const choice = pickPlaythroughChoice(opts, totalTurns)
             const t0 = Date.now()
             const result = await runMainlineTurn({
                 preferredMode,
@@ -135,7 +132,14 @@ const main = async (): Promise<void> => {
 
             console.log(`[turn ${totalTurns + 1}] node=${node.id} choice=${choice} chars=${result.combinedText.length} elapsed=${elapsed}ms`)
 
-            recentTurns.push(result.combinedText)
+            const selectedOption = result.options.find((option) => option.semantic === choice)
+            recentTurns.push(buildRecentTurnMemory({
+                modelReply: result.combinedText,
+                choice: {
+                    id: choice,
+                    label: selectedOption?.label ?? choice
+                }
+            }))
             state = applyPlayerChoice({ state, storyOutline: mainlineStoryOutline, choice })
             totalTurns += 1
 

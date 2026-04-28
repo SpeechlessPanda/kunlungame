@@ -183,8 +183,6 @@ describe('SettingsPanel · model profile picker', () => {
       baseUrl: 'https://openrouter.ai/api/v1',
       model: 'openai/gpt-oss-120b:free',
       fallbackModels: [
-        'qwen/qwen3-next-80b-a3b-instruct:free',
-        'z-ai/glm-4.5-air:free',
         'meta-llama/llama-3.3-70b-instruct:free'
       ]
     })

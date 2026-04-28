@@ -42,6 +42,7 @@ import {
   createDialogueSession,
   type DialogueDependenciesFactory,
 } from "./composables/useDialogueSession.js";
+import { buildRecentTurnMemory } from "./composables/recentTurnMemory.js";
 import {
   createBridgeDialogueDependenciesFactory,
   createDefaultDialogueDependenciesFactory,
@@ -179,7 +180,9 @@ const getBridge = (): DesktopBridge | null => {
 
 const runConnectionTest = async (
   request: import("../shared/types/desktop.js").DesktopOpenAiCompatibleTestRequest,
-): Promise<import("../shared/types/desktop.js").DesktopOpenAiCompatibleTestResult> => {
+): Promise<
+  import("../shared/types/desktop.js").DesktopOpenAiCompatibleTestResult
+> => {
   const bridge = getBridge();
   if (bridge == null) {
     return {
@@ -300,9 +303,13 @@ const onChoose = (choice: ChoiceModel): void => {
   if (runtimeState.value.isCompleted) {
     return;
   }
-  recentTurns.value = [...recentTurns.value, turn.view.value.fullText].slice(
-    -5,
-  );
+  recentTurns.value = [
+    ...recentTurns.value,
+    buildRecentTurnMemory({
+      modelReply: turn.view.value.fullText,
+      choice,
+    }),
+  ].slice(-5);
   // Part 04 · applyPlayerChoice 负责态度值钳制、已读节点、摘要重建、主线推进。
   runtimeState.value = applyPlayerChoice({
     state: runtimeState.value,

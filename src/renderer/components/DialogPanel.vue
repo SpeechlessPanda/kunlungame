@@ -66,6 +66,7 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
   <section
     class="dialog-panel"
     :data-state="view.snapshot.state"
+    data-testid="dialog-panel"
     aria-live="polite"
     aria-atomic="false"
   >
@@ -90,7 +91,7 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
       class="dialog-panel__empty"
       data-testid="dialog-empty"
     >
-      <p>诶——第一次见面呢。点一下下面的「进入昆仑」，我们慢慢聊。</p>
+      <p>诶——第一次见面呢。点一下中间的「进入昆仑」，我们慢慢聊。</p>
     </div>
 
     <div
@@ -153,23 +154,23 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
 .dialog-panel {
   position: relative;
   background:
-    linear-gradient(180deg, rgba(255, 248, 235, 0.98), rgba(238, 222, 194, 0.96)),
+    linear-gradient(
+      180deg,
+      rgba(255, 248, 235, 0.98),
+      rgba(238, 222, 194, 0.96)
+    ),
     var(--color-surface);
   border: 1px solid rgba(121, 81, 39, 0.56);
   border-radius: var(--radius-lg);
   padding: var(--space-6) var(--space-6) var(--space-5);
   box-shadow: var(--shadow-surface);
-  /* 自适应高度：正文短时塌到 ~180px，长时可以撑开到屏幕高度的 55%，
-     再多就在内部滚，避免把角色立绘和状态栏都挤掉。 */
-  min-height: clamp(180px, 22vh, 240px);
-  max-height: min(55vh, 520px);
+  height: clamp(220px, 34vh, 360px);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   color: var(--color-foreground);
   margin-top: var(--space-5);
-  transition: max-height var(--motion-slow) var(--ease-standard);
-  overflow: visible;
+  overflow: hidden;
 }
 
 .dialog-panel::before,
@@ -180,7 +181,12 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
   right: 18px;
   height: 8px;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(121, 81, 39, 0.34), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(121, 81, 39, 0.34),
+    transparent
+  );
   pointer-events: none;
 }
 
@@ -271,6 +277,14 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
 
 .dialog-panel__body::-webkit-scrollbar-track {
   background: transparent;
+}
+
+.dialog-panel__empty,
+.dialog-panel__error,
+.dialog-panel__skeleton {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .dialog-panel__text {

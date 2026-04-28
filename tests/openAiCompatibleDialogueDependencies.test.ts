@@ -100,6 +100,41 @@ describe('createOpenAiCompatibleDialogueDependencies', () => {
     expect(JSON.parse(fetchMock.mock.calls[1]![1].body).model).toBe('fallback/free:free')
   })
 
+  it('falls back when the primary stream completes without content', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(okStreamResponse([
+        'data: {"choices":[{"delta":{}}]}',
+        '',
+        'data: [DONE]',
+        ''
+      ].join('\n')))
+      .mockResolvedValueOnce(okStreamResponse([
+        'data: {"choices":[{"delta":{"content":"备用模型输出正文。"}}]}',
+        '',
+        'data: [DONE]',
+        ''
+      ].join('\n')))
+
+    const deps = createOpenAiCompatibleDialogueDependencies({
+      apiKey: 'sk-test',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'empty/free:free',
+      fallbackModels: ['fallback/free:free'],
+      fetch: fetchMock,
+      generateOptions: async () => []
+    })
+
+    const chunks: string[] = []
+    for await (const chunk of deps.streamText({ system: 's', user: 'u' })) {
+      if (typeof chunk === 'string') chunks.push(chunk)
+    }
+
+    expect(chunks).toEqual(['备用模型输出正文。'])
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(JSON.parse(fetchMock.mock.calls[0]![1].body).model).toBe('empty/free:free')
+    expect(JSON.parse(fetchMock.mock.calls[1]![1].body).model).toBe('fallback/free:free')
+  })
+
   it('does not mix fallback output after a model has already emitted text', async () => {
     const fetchMock = vi.fn().mockResolvedValue(okStreamResponse([
       'data: {"choices":[{"delta":{"content":"已经开始输出。"}}]}',

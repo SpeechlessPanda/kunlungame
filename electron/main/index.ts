@@ -144,10 +144,17 @@ export const applyDevOpenAiEnvOverrides = (
   const apiKey = env['KUNLUN_OPENAI_API_KEY']
   const baseUrl = env['KUNLUN_OPENAI_BASE_URL']
   const model = env['KUNLUN_OPENAI_MODEL']
+  const fallbackModelsRaw = env['KUNLUN_OPENAI_FALLBACK_MODELS']
   const providerRaw = env['KUNLUN_MODEL_PROVIDER']
-  if (apiKey == null && baseUrl == null && model == null && providerRaw == null) {
+  if (apiKey == null && baseUrl == null && model == null && fallbackModelsRaw == null && providerRaw == null) {
     return snapshot
   }
+  const fallbackModels = fallbackModelsRaw == null
+    ? undefined
+    : fallbackModelsRaw
+      .split(/[\n,]/u)
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
   const provider: 'local' | 'openai-compatible' | undefined =
     providerRaw === 'local' || providerRaw === 'openai-compatible'
       ? providerRaw
@@ -164,7 +171,7 @@ export const applyDevOpenAiEnvOverrides = (
           apiKey: apiKey ?? oai.apiKey,
           baseUrl: baseUrl ?? oai.baseUrl,
           model: model ?? oai.model,
-          fallbackModels: [...oai.fallbackModels]
+          fallbackModels: fallbackModels ?? [...oai.fallbackModels]
         }
       }
     }

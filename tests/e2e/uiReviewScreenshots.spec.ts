@@ -28,12 +28,9 @@ test.describe('UI review screenshots · galgame 可爱风', () => {
 
         // 2) 开始第一轮
         await page.getByTestId('start-button').click()
-        // 等待对话骨架或文字出现
-        await page.waitForFunction(() => {
-            const textEl = document.querySelector('[data-testid="dialog-text"]')
-            const stateEl = document.querySelector('[data-testid="dialog-state"]')
-            return textEl != null || (stateEl?.textContent ?? '').length > 0
-        }, undefined, { timeout: 15_000 })
+        // 等待真正进入正文态，避免把空态误存成 streaming 截图。
+        await expect(page.getByTestId('dialog-text')).toBeVisible({ timeout: 15_000 })
+        await expect(page.getByTestId('dialog-text')).not.toHaveText('', { timeout: 15_000 })
         await page.screenshot({
             path: path.join(outDir, '02-streaming.png'),
             fullPage: true

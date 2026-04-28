@@ -24,7 +24,7 @@
 ## 输出约束
 
 1. `storyOutline.json` 直接来自 Part 02 的 canonical mainline outline。
-2. `knowledgeEntries.json` 目前按章节小节稳定生成，当前编译结果为 43 条知识条目。
+2. `knowledgeEntries.json` 目前按章节小节和 `md/knowledge/*.md` 补充条目稳定生成，当前编译结果为 52 条知识条目。
 3. 每条 knowledge entry 都必须绑定至少一个 `storyNodeIds`，供运行时建立反剧透边界。
 4. 每条 knowledge entry 的 `source` 使用仓库相对引用（例如 `docs/knowledge-base/cultural-knowledge.md#昆仑山的神圣地位`），避免在 worktree、CI 或不同机器上生成绝对路径差异。
 5. 编译器会清理摘要和扩展内容中的 Markdown 粗体、斜体、行首列表符号与多余空白，避免模型在知识段输出里复刻百科式排版。

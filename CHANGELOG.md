@@ -8,12 +8,12 @@
 
 - **dev 环境 OpenAI 凭据预加载**：`pnpm dev` 启动时若仓库根目录有 `.env.local`（或 `.env`），主进程会读取 `KUNLUN_OPENAI_API_KEY` / `KUNLUN_OPENAI_BASE_URL` / `KUNLUN_OPENAI_MODEL` / `KUNLUN_MODEL_PROVIDER`，自动覆盖到 runtime-state 的 `settings.openAiCompatible`，渲染层加载即看到值已就位。仅在 `app.isPackaged === false` 时生效；安装包不读 `.env`。模板见 `.env.example`。
 - **Windows 安装包**：接入 `electron-builder@26`，新增 `pnpm dist:win` 脚本，输出 NSIS 安装包到 `release/`。首版包大小约 111 MB，含 Electron 35 + node-llama-cpp 原生二进制，支持选择安装路径、在桌面与开始菜单创建快捷方式。配置在 `electron-builder.yml`，`runtime-cache/` 与 `runtime-state.json` 均指向 `app.getPath('userData')`，不进安装包。
-- 8 个节点各补一篇专属 RAG 补充条目在 `md/knowledge/`（全部 `enc:v1:` 不相关，是语料本身）：昂仑天柱、盘古女娲共工、三皇五帝与仰韶考古、礼乐周易与诸子、长安丝路与胡风、宋元明清与心学、学衔南迁与文物护送、费孝通与国风复兴。合并后语料总入口从 43 条增至 52 条，所有节点劤耳多与却 4 条。
+- 8 个节点各补一篇专属 RAG 补充条目在 `md/knowledge/`（全部 `enc:v1:` 不相关，是语料本身）：昆仑天柱、盘古女娲共工、三皇五帝与仰韶考古、礼乐周易与诸子、长安丝路与胡风、宋元明清与心学、学脉南迁与文物护送、费孝通与国风复兴。合并后语料总入口从 43 条增至 52 条，每个节点至少 4 条。
 - `scripts/compile-knowledge.ts` 现合并主源 `docs/knowledge-base/cultural-knowledge.md` 与 `md/knowledge/*.md` 补充条目，同 id 优先读补充依据，输出同一份 `knowledgeEntries.json`。
 
 ### Security · 安全
 
-- `settings.openAiCompatible.apiKey` 现在通过 Electron `safeStorage` 加密落盘（Windows DPAPI / macOS Keychain / Linux libsecret），磁盘上的 `runtime-state.json` 只保存 `enc:v1:<base64>` 不透明密文。
+- `settings.openAiCompatible.apiKey` 现在优先通过 Electron `safeStorage` 加密落盘（Windows DPAPI / macOS Keychain / Linux libsecret）；safeStorage 可用时，磁盘上的 `runtime-state.json` 只保存 `enc:v1:<base64>` 不透明密文。
 - 旧版本的明文 apiKey 在加载时透明回明文，下一次保存自动升级为加密形式（向前兼容、零迁移脚本）。
 - 当 OS 加密不可用（例如 Linux 无 libsecret 后端），自动回退为明文存储并保留功能可用。
 
@@ -46,9 +46,9 @@
 
 ### Known Limitations · 已知限制
 
-- `runtime-state.json` 中的 `settings.openAiCompatible.apiKey` 仍为明文存储；下一版将迁入 Electron `safeStorage` / OS keychain。
-- 仅 `kunlun-myth-overview.md` 一篇知识库条目；后续每个节点至少补一篇专属条目。
-- 安装包：本版以 `pnpm dev` / `pnpm start` 直跑模式发布；后续将用 `electron-builder` 出 Windows 安装包。
+- 远端 API key 会优先使用 Electron `safeStorage` 加密；若目标系统加密后端不可用，会明文 fallback 以保持功能可用。
+- 内置 52 条知识条目，并有 9 篇 `md/knowledge/` 补充文件覆盖 8 个主线节点与昆仑总览。
+- Windows NSIS 安装包已通过 `electron-builder` 生成；macOS 与 Linux 安装包暂未提供。
 - 美术资产：`docs/asset-requests/backgrounds/` 仍待回货，目前部分节点使用占位 SVG。
 
 [0.1.0]: https://github.com/SpeechlessPanda/kunlungame/releases/tag/v0.1.0

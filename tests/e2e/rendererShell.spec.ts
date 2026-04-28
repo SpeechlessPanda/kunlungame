@@ -8,6 +8,8 @@ test.describe('Kunlun Ballad UI shell', () => {
     await expect(page.getByTestId('game-shell')).toBeVisible()
     await expect(page.getByTestId('status-node-title')).toContainText('昆仑初问')
     await expect(page.getByTestId('dialog-empty')).toBeVisible()
+    await expect(page.getByTestId('dialog-empty')).not.toContainText('下面')
+    await expect(page.getByTestId('dialog-empty')).toContainText('中间')
     await expect(page.getByTestId('start-button')).toBeVisible()
   })
 
@@ -20,6 +22,22 @@ test.describe('Kunlun Ballad UI shell', () => {
 
     await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
     await expect(page.getByTestId('choice-challenge')).toBeVisible()
+  })
+
+  test('dialog panel keeps a stable framed height while text and choices change', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await gotoRenderer(page)
+    const panel = page.getByTestId('dialog-panel')
+
+    await page.getByTestId('start-button').click()
+    await expect(page.getByTestId('choice-align')).toBeVisible({ timeout: 15000 })
+    const firstHeight = await panel.evaluate((el) => el.getBoundingClientRect().height)
+
+    await page.getByTestId('choice-align').click()
+    await page.waitForTimeout(600)
+    const nextHeight = await panel.evaluate((el) => el.getBoundingClientRect().height)
+
+    expect(Math.abs(nextHeight - firstHeight)).toBeLessThanOrEqual(4)
   })
 
   test('changes node when advancing via the align choice', async ({ page }) => {
@@ -54,6 +72,34 @@ test.describe('Kunlun Ballad UI shell', () => {
     await expect(page.getByTestId('dialog-error')).toBeVisible()
     await expect(page.getByTestId('dialog-retry')).toBeVisible()
     await expect(page.getByTestId('dialog-error')).toContainText('模型暂时不可用')
+  })
+
+  test('long error messages remain scrollable inside the fixed dialog panel', async ({ page }) => {
+    await page.setViewportSize({ width: 400, height: 800 })
+    await gotoRenderer(page)
+    await page.getByTestId('start-button').click()
+    await page.waitForFunction(
+      () =>
+        (window as unknown as { __kunlunDebug?: { snapshot(): { state: string } } }).__kunlunDebug?.snapshot()
+          .state === 'streaming',
+      undefined,
+      { timeout: 5000 }
+    )
+    await page.evaluate(() => {
+      const longMessage = `模型暂时不可用。${'请检查 API Base URL、模型名、网络代理和额度后再重试。'.repeat(30)}`
+        ; (window as unknown as { __kunlunDebug: { injectError(m: string): void } }).__kunlunDebug.injectError(longMessage)
+    })
+
+    const error = page.getByTestId('dialog-error')
+    await expect(error).toBeVisible()
+    const metrics = await error.evaluate((el) => ({
+      clientHeight: el.clientHeight,
+      scrollHeight: el.scrollHeight,
+      overflowY: getComputedStyle(el).overflowY
+    }))
+
+    expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight)
+    expect(metrics.overflowY).toMatch(/auto|scroll/)
   })
 
   test('settings panel exposes a BGM toggle that stays safe without source', async ({ page }) => {

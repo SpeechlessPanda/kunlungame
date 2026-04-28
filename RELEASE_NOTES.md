@@ -29,12 +29,12 @@
 ### 进度与隐私
 
 - 节点粒度续读：关掉重开自动接上次进度。
-- 远端 API Key 通过 Windows DPAPI（macOS Keychain / Linux libsecret）加密落盘，磁盘上看不到明文。
+- 远端 API Key 优先通过 Windows DPAPI（macOS Keychain / Linux libsecret）加密落盘；如果目标系统的 Electron safeStorage 不可用，会回退为明文保存以保持功能可用。
 - 渲染进程沙箱化，所有原生能力走严格的 IPC 契约。
 
 ## 安装
 
-1. 从下方 Assets 下载 `昆仑谣-0.1.0-Setup.exe`（约 111 MB）。
+1. 从下方 Assets 下载 `Kunlunyao-0.1.0-Setup.exe`（约 111 MB）。
 2. 双击运行，可选择安装路径，会在桌面与开始菜单创建快捷方式。
 3. 首次启动后，进入设置面板下载本地模型（约 2 GB），或填入你已有的兼容 API。
 
