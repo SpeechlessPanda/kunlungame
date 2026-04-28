@@ -2,6 +2,14 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Security · 安全
+
+- `settings.openAiCompatible.apiKey` 现在通过 Electron `safeStorage` 加密落盘（Windows DPAPI / macOS Keychain / Linux libsecret），磁盘上的 `runtime-state.json` 只保存 `enc:v1:<base64>` 不透明密文。
+- 旧版本的明文 apiKey 在加载时透明回明文，下一次保存自动升级为加密形式（向前兼容、零迁移脚本）。
+- 当 OS 加密不可用（例如 Linux 无 libsecret 后端），自动回退为明文存储并保留功能可用。
+
 ## [0.1.0] - 2026-04-28
 
 首版桌面应用。Electron 35 + Vue 3.5 + TypeScript 5 + electron-vite + Vite 5。

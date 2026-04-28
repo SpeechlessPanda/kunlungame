@@ -29,8 +29,46 @@ import {
   createDesktopRuntimeStateSnapshot,
   parseDesktopRuntimeState
 } from '../../src/runtime/runtimeStateFacade.js'
-import { loadRuntimeState, saveRuntimeState } from '../../src/runtime/saveRepository.js'
+import { loadRuntimeState, saveRuntimeState, type SecretCipher } from '../../src/runtime/saveRepository.js'
 import { mainlineStoryOutline } from '../../src/content/source/mainlineOutline.js'
+
+/**
+ * 在 Electron 环境里基于 `safeStorage` 构造 SecretCipher。
+ * - 只在 `safeStorage.isEncryptionAvailable()` 为 true 时返回加密实现；
+ * - 输出格式：`enc:v1:<base64(safeStorage.encryptString)>`。
+ * - 读盘时只对以 `enc:v1:` 开头的值调 `decryptString`，原生明文原样返回，
+ *   这让旧版本进入本版本不会丢失现有用户设置。
+ */
+export const createSafeStorageSecretCipher = (
+  safeStorage: { isEncryptionAvailable: () => boolean; encryptString: (plain: string) => Buffer; decryptString: (encrypted: Buffer) => string }
+): SecretCipher => {
+  if (!safeStorage.isEncryptionAvailable()) {
+    return {
+      encrypt: (plaintext) => plaintext,
+      decrypt: (encoded) => encoded
+    }
+  }
+  return {
+    encrypt: (plaintext) => {
+      if (plaintext.length === 0) return ''
+      const buf = safeStorage.encryptString(plaintext)
+      return `enc:v1:${buf.toString('base64')}`
+    },
+    decrypt: (encoded) => {
+      if (!encoded.startsWith('enc:v1:')) {
+        return encoded
+      }
+      const base64 = encoded.slice('enc:v1:'.length)
+      try {
+        const buf = Buffer.from(base64, 'base64')
+        return safeStorage.decryptString(buf)
+      } catch (error) {
+        console.warn('[desktop-shell] safeStorage decryptString failed; treating apiKey as empty.', error)
+        return ''
+      }
+    }
+  }
+}
 
 export interface MainWindowOptions {
   width: number
@@ -181,11 +219,13 @@ export const resolveRuntimeSaveFilePath = (appDataDir: string): string => {
 }
 
 export const loadDesktopRuntimeState = async (
-  appDataDir: string
+  appDataDir: string,
+  secretCipher?: SecretCipher
 ): Promise<DesktopRuntimeStateSnapshot> => {
   const result = await loadRuntimeState({
     storyOutline: mainlineStoryOutline,
-    saveFilePath: resolveRuntimeSaveFilePath(appDataDir)
+    saveFilePath: resolveRuntimeSaveFilePath(appDataDir),
+    ...(secretCipher != null ? { secretCipher } : {})
   })
 
   return createDesktopRuntimeStateSnapshot(result.state, result.recoveryAction)
@@ -193,12 +233,14 @@ export const loadDesktopRuntimeState = async (
 
 export const saveDesktopRuntimeState = async (
   appDataDir: string,
-  state: DesktopSerializedRuntimeState
+  state: DesktopSerializedRuntimeState,
+  secretCipher?: SecretCipher
 ): Promise<void> => {
   const validated = parseDesktopRuntimeState(state)
   await saveRuntimeState({
     saveFilePath: resolveRuntimeSaveFilePath(appDataDir),
-    state: validated
+    state: validated,
+    ...(secretCipher != null ? { secretCipher } : {})
   })
 }
 
@@ -300,7 +342,8 @@ export const runDesktopProfileDownload = async (
 }
 
 const bootstrapDesktopShell = async (): Promise<void> => {
-  const { app, BrowserWindow, ipcMain } = await import('electron')
+  const { app, BrowserWindow, ipcMain, safeStorage } = await import('electron')
+  const desktopSecretCipher = createSafeStorageSecretCipher(safeStorage)
 
   const currentFilePath = fileURLToPath(import.meta.url)
   const currentDir = dirname(currentFilePath)
@@ -361,10 +404,10 @@ const bootstrapDesktopShell = async (): Promise<void> => {
     }
   })
   ipcMain.handle('desktop:load-runtime-state', async () => {
-    return await loadDesktopRuntimeState(app.getPath('userData'))
+    return await loadDesktopRuntimeState(app.getPath('userData'), desktopSecretCipher)
   })
   ipcMain.handle('desktop:save-runtime-state', async (_event, state: DesktopSerializedRuntimeState) => {
-    await saveDesktopRuntimeState(app.getPath('userData'), state)
+    await saveDesktopRuntimeState(app.getPath('userData'), state, desktopSecretCipher)
   })
 
   ipcMain.handle('desktop:get-profile-availability', async (_event, profileId: string) => {

@@ -142,7 +142,7 @@ logs/                 0.80 MB
 - 主线节点：`src/content/source/mainlineOutline.ts` 共 9 个 `id: '` 行（1 个 entryNodeId + 8 个 nodes）。8 个节点齐全：`kunlun-threshold` → `creation-myths` → `civilization-roots` → `order-and-thought` → `empire-and-openness` → `fusion-and-refinement` → `rupture-and-guardianship` → `contemporary-return`。
 - 知识库：`md/knowledge/` 当前只有 `kunlun-myth-overview.md`。建议正式发布前每个节点至少补一篇专属知识条目（共 8 篇），强化 RAG 的覆盖面。
 - 资产请求：`docs/asset-requests/backgrounds/` 列表存在但需要美术回货确认。
-- **OWASP 敏感信息扫描**：受跟踪文件中未出现明文 `sk-*` 或 `OPENAI_API_KEY=` 形式的密钥。设置面板存档 (`runtime-state.json`) 中的 API Key 仍为明文，建议下一轮迁入 OS keychain（已记入 backlog）。
+- **OWASP 敏感信息扫描**：受跟踪文件中未出现明文 `sk-*` 或 `OPENAI_API_KEY=` 形式的密钥。设置面板存档 (`runtime-state.json`) 中的 API Key 已迁至 Electron `safeStorage` 加密落盘（`enc:v1:<base64>` 不透明密文）；Windows 走 DPAPI、macOS 走 Keychain、Linux 走 libsecret，不可用时安全回退为明文。
 
 ---
 
@@ -150,6 +150,6 @@ logs/                 0.80 MB
 
 1. ~~仓库根新增 `LICENSE`~~（MIT，已补齐）。
 2. ~~新增 `CHANGELOG.md`，写入 v0.1.0 首版条目~~（已补齐）。
-3. `runtime-state.json` 中的 `settings.openAiCompatible.apiKey` 改用 keytar / Electron `safeStorage` 加密。
+3. ~~`runtime-state.json` 中的 `settings.openAiCompatible.apiKey` 改用 keytar / Electron `safeStorage` 加密~~（已迁至 `safeStorage`，以 `enc:v1:` 前缀区分加密/明文，老存档可透明迁移）。
 4. 用 `electron-builder` 跑一次正式安装包打包，归档到 `release/`。
 5. 知识库扩充：8 个节点各补一篇专属 `md/knowledge/*.md`。
