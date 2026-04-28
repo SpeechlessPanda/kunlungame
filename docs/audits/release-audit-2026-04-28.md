@@ -152,4 +152,4 @@ logs/                 0.80 MB
 2. ~~新增 `CHANGELOG.md`，写入 v0.1.0 首版条目~~（已补齐）。
 3. ~~`runtime-state.json` 中的 `settings.openAiCompatible.apiKey` 改用 keytar / Electron `safeStorage` 加密~~（已迁至 `safeStorage`，以 `enc:v1:` 前缀区分加密/明文，老存档可透明迁移）。
 4. 用 `electron-builder` 跑一次正式安装包打包，归档到 `release/`。
-5. 知识库扩充：8 个节点各补一篇专属 `md/knowledge/*.md`。
+5. ~~知识库扩充：8 个节点各补一篇专属 `md/knowledge/*.md`~~（52 条语料覆盖全 8 节点，最少 4 条）。
