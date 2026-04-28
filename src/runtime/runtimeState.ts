@@ -7,11 +7,19 @@ export const ATTITUDE_MAX = 3
 
 export const playerAttitudeChoiceSchema = z.enum(['align', 'challenge'])
 export const preferredModelModeSchema = z.enum(['default', 'compatibility', 'pro'])
+export const modelProviderSchema = z.enum(['openai-compatible', 'local'])
+export const openAiCompatibleSettingsSchema = z.object({
+  apiKey: z.string().default(''),
+  baseUrl: z.string().default('https://api.openai.com/v1'),
+  model: z.string().default('gpt-4o-mini')
+})
 export const runtimeSettingsSchema = z.object({
   bgmEnabled: z.boolean(),
   // 用户在 Settings 里挑选的模型档位：Quality / Lite / Pro。
   // 旧存档没有这个字段时按默认 'default'（Quality Mode）补齐。
-  preferredModelMode: preferredModelModeSchema.default('default')
+  preferredModelMode: preferredModelModeSchema.default('default'),
+  modelProvider: modelProviderSchema.default('openai-compatible'),
+  openAiCompatible: openAiCompatibleSettingsSchema.default({})
 })
 
 export const runtimeStateSchema = z.object({
@@ -31,6 +39,7 @@ export const runtimeStateSchema = z.object({
 })
 
 export type PlayerAttitudeChoice = z.infer<typeof playerAttitudeChoiceSchema>
+export type ModelProvider = z.infer<typeof modelProviderSchema>
 export type RuntimeState = z.infer<typeof runtimeStateSchema>
 
 export interface ApplyPlayerChoiceInput {
@@ -96,7 +105,13 @@ export const createDefaultRuntimeState = (storyOutline: StoryOutline): RuntimeSt
     isCompleted: false,
     settings: {
       bgmEnabled: true,
-      preferredModelMode: 'default'
+      preferredModelMode: 'default',
+      modelProvider: 'openai-compatible',
+      openAiCompatible: {
+        apiKey: '',
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-4o-mini'
+      }
     }
   })
 }

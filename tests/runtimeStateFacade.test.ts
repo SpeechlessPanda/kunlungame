@@ -25,7 +25,13 @@ describe('runtimeStateFacade', () => {
       isCompleted: true,
       settings: {
         bgmEnabled: false,
-        preferredModelMode: 'pro'
+        preferredModelMode: 'pro',
+        modelProvider: 'openai-compatible',
+        openAiCompatible: {
+          apiKey: 'sk-test',
+          baseUrl: 'https://api.example.test/v1',
+          model: 'gpt-4.1-mini'
+        }
       }
     }
 
@@ -42,7 +48,13 @@ describe('runtimeStateFacade', () => {
       isCompleted: true,
       settings: {
         bgmEnabled: false,
-        preferredModelMode: 'pro'
+        preferredModelMode: 'pro',
+        modelProvider: 'openai-compatible',
+        openAiCompatible: {
+          apiKey: 'sk-test',
+          baseUrl: 'https://api.example.test/v1',
+          model: 'gpt-4.1-mini'
+        }
       }
     })
   })
@@ -65,6 +77,8 @@ describe('runtimeStateFacade', () => {
 
     expect(parsed.turnsInCurrentNode).toBe(0)
     expect(parsed.isCompleted).toBe(false)
+    expect(parsed.settings.modelProvider).toBe('openai-compatible')
+    expect(parsed.settings.openAiCompatible.baseUrl).toBe('https://api.openai.com/v1')
   })
 
   it('builds the desktop snapshot without dropping recovery metadata', () => {

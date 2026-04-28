@@ -27,14 +27,17 @@ describe('buildStoryPrompt', () => {
     })
 
     expect(prompt.system).toContain('必须使用中文')
-    expect(prompt.system).toContain('昆仑')
-    expect(prompt.system).toContain('小妹妹')
+    expect(prompt.system).toContain('昆仑子')
+    expect(prompt.system).not.toContain('小妹妹')
+    expect(prompt.system).toContain('称呼玩家为"你"')
+    expect(prompt.system).toContain('不得用"你们"称呼玩家')
     expect(prompt.user).toContain(currentNode.coreQuestion)
     expect(prompt.user).toContain(currentNode.mustIncludeFacts[0] ?? '')
     expect(prompt.user).toContain('昆仑被视为世界中心。')
     expect(prompt.user).toContain('顺着你继续听下去')
     expect(prompt.user).toContain('禁止提前涉及')
     expect(prompt.system).toContain('禁止提前涉及的专有名词')
+    expect(`${prompt.system}\n${prompt.user}`).not.toContain('你们已经')
   })
 
   it("reflects challenge tone and later-turn familiarity in the user prompt", () => {
@@ -124,5 +127,25 @@ describe('buildStoryPrompt', () => {
     expect(prompt.system).toContain('少于 180 个汉字')
     expect(prompt.system).toContain('前 180 个汉字里不得使用问号')
     expect(prompt.system).toContain('只给泛泛感叹，都算失败')
+  })
+
+  it('injects compressed prior model replies as continuity context without internal labels', () => {
+    const currentNode = mainlineStoryOutline.nodes[1]
+    const runtimeState = createDefaultRuntimeState(mainlineStoryOutline)
+    const prompt = buildStoryPrompt({
+      currentNode,
+      retrievedEntries: [],
+      runtimeState: { ...runtimeState, turnIndex: 2, turnsInCurrentNode: 1 },
+      attitudeChoiceMode: 'align',
+      recentTurns: [
+        '昆仑子刚才说，昆仑把神话、地理和身份三条线接在一起，所以回望文化时先从这座山开始。你当时追问这是不是过度象征。',
+        '她接着补充，《山海经》里的天帝都城不是地图事实，而是一种古人理解天地秩序的方式。'
+      ]
+    })
+
+    expect(prompt.user).toContain('# 上文连续性')
+    expect(prompt.user).toContain('昆仑把神话、地理和身份三条线接在一起')
+    expect(prompt.user).toContain('古人理解天地秩序')
+    expect(prompt.user).not.toContain('[[PREV_REPLY')
   })
 })

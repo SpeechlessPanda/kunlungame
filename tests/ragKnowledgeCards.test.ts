@@ -31,7 +31,7 @@ describe('formatKnowledgeEntriesForPrompt', () => {
     expect(cards).toContain('来源：docs/knowledge-base/cultural-knowledge.md#昆仑山的神圣地位')
     expect(cards).toContain('事实要点：')
     expect(cards).toContain('昆仑山在古代神话中被视为世界中心')
-    expect(cards).toContain('讲述方式：用昆仑小妹妹的口吻重新组织')
+    expect(cards).toContain('讲述方式：用昆仑子的口吻重新组织')
     expect(cards).not.toContain('**早期形象**')
     expect(cards).not.toMatch(/^-/m)
   })

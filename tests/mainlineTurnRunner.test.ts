@@ -12,6 +12,103 @@ const bootstrapInput = {
 }
 
 describe('runMainlineTurn', () => {
+    it('uses OpenAI-compatible dependencies and skips local model checks when an API key is configured', async () => {
+        const runtimeState = {
+            ...createDefaultRuntimeState(mainlineStoryOutline),
+            settings: {
+                bgmEnabled: true,
+                preferredModelMode: 'default' as const,
+                modelProvider: 'openai-compatible' as const,
+                openAiCompatible: {
+                    apiKey: 'sk-test',
+                    baseUrl: 'https://api.example.test/v1',
+                    model: 'gpt-4.1-mini'
+                }
+            }
+        }
+        const checkFileExists = async () => {
+            throw new Error('remote turns must not check local GGUF files')
+        }
+        const createInputs: unknown[] = []
+
+        const result = await runMainlineTurn(
+            {
+                ...bootstrapInput,
+                nodeId: 'kunlun-threshold',
+                attitudeChoiceMode: 'align',
+                runtimeState,
+                recentTurns: []
+            },
+            {
+                checkFileExists,
+                readKnowledgeEntries: async () => [],
+                createDialogueDependencies: (input) => {
+                    createInputs.push(input)
+                    return {
+                        streamText: async function* () {
+                            yield '昆仑子把这一段讲清楚。'
+                        },
+                        generateOptions: async () => [
+                            { semantic: 'align' as const, label: '原来这条脉络这么长。' },
+                            { semantic: 'challenge' as const, label: '证据够吗？' }
+                        ]
+                    }
+                }
+            }
+        )
+
+        expect(result.ok).toBe(true)
+        if (!result.ok) return
+        expect(result.selectedProfileId).toBe('openai-compatible')
+        expect(result.modelPath).toBe('openai-compatible:gpt-4.1-mini')
+        expect(createInputs).toHaveLength(1)
+        expect(createInputs[0]).toMatchObject({
+            provider: 'openai-compatible',
+            modelPath: 'openai-compatible:gpt-4.1-mini',
+            openAiCompatible: {
+                apiKey: 'sk-test',
+                baseUrl: 'https://api.example.test/v1',
+                model: 'gpt-4.1-mini'
+            }
+        })
+    })
+
+    it('falls back to local GGUF when API provider is selected but no key is configured', async () => {
+        const runtimeState = createDefaultRuntimeState(mainlineStoryOutline)
+        let didCheckLocalModel = false
+
+        const result = await runMainlineTurn(
+            {
+                ...bootstrapInput,
+                nodeId: 'kunlun-threshold',
+                attitudeChoiceMode: 'align',
+                runtimeState,
+                recentTurns: []
+            },
+            {
+                checkFileExists: async () => {
+                    didCheckLocalModel = true
+                    return true
+                },
+                readKnowledgeEntries: async () => [],
+                createDialogueDependencies: (input) => ({
+                    streamText: async function* () {
+                        yield `local:${input.provider}`
+                    },
+                    generateOptions: async () => [
+                        { semantic: 'align' as const, label: '继续听。' },
+                        { semantic: 'challenge' as const, label: '先追问。' }
+                    ]
+                })
+            }
+        )
+
+        expect(didCheckLocalModel).toBe(true)
+        expect(result.ok).toBe(true)
+        if (!result.ok) return
+        expect(result.combinedText).toBe('local:local')
+    })
+
     it('drives a non-first canonical node end-to-end with injected dependencies', async () => {
         const runtimeState = createDefaultRuntimeState(mainlineStoryOutline)
         runtimeState.currentNodeId = 'creation-myths'

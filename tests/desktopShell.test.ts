@@ -361,7 +361,16 @@ describe('desktop runtime state save/load roundtrip', () => {
           historySummary: '',
           readNodeIds: [],
           isCompleted: false,
-          settings: { bgmEnabled: true, preferredModelMode: 'default' }
+          settings: {
+            bgmEnabled: true,
+            preferredModelMode: 'default',
+            modelProvider: 'openai-compatible',
+            openAiCompatible: {
+              apiKey: '',
+              baseUrl: 'https://api.openai.com/v1',
+              model: 'gpt-4o-mini'
+            }
+          }
         })
       ).rejects.toBeTruthy()
     } finally {

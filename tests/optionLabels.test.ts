@@ -30,6 +30,19 @@ describe('buildGalgameOptionLabels', () => {
         expect(seen.size).toBeGreaterThanOrEqual(3)
     })
 
+    it('align 像自然赞同文化纵深，challenge 像质疑合理性或证据', () => {
+        for (let turnIndex = 0; turnIndex < 12; turnIndex += 1) {
+            const options = buildGalgameOptionLabels({ turnIndex })
+            const align = options.find((option) => option.semantic === 'align')!.label
+            const challenge = options.find((option) => option.semantic === 'challenge')!.label
+
+            expect(align).toMatch(/原来|源远流长|脉络|听懂|接上|厚|长|回响/)
+            expect(challenge).toMatch(/合理|证据|凭什么|代价|逻辑|质疑|站得住/)
+            expect(`${align}${challenge}`).not.toContain('你们')
+            expect(`${align}${challenge}`).not.toContain('给我个更硬的理由')
+        }
+    })
+
     it('isEnding=true 时切换为"再走一次 / 收下离开"语义', () => {
         const options = buildGalgameOptionLabels({ turnIndex: 0, isEnding: true })
         const align = options.find((option) => option.semantic === 'align')!

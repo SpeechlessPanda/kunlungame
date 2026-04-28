@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CheckCircle2, Cpu, Download } from "lucide-vue-next";
+import { CheckCircle2, Cloud, Cpu, Download, HardDrive, KeyRound } from "lucide-vue-next";
 import {
   getDefaultModelProfile,
   getFallbackModelProfile,
@@ -7,12 +7,16 @@ import {
 } from "../../modeling/modelProfiles.js";
 import SettingsDownloadProgress from "./SettingsDownloadProgress.vue";
 import type {
+  ModelProvider,
+  OpenAiCompatibleSettings,
   PreferredModelMode,
   ProfileAvailabilityStatus,
   ProfileDownloadStatus,
 } from "./SettingsPanel.types.js";
 
 interface Props {
+  modelProvider: ModelProvider;
+  openAiCompatible: OpenAiCompatibleSettings;
   preferredModelMode: PreferredModelMode;
   selectedProfileId: string | null;
   profileAvailability?: Record<string, ProfileAvailabilityStatus>;
@@ -20,6 +24,8 @@ interface Props {
 }
 
 interface Emits {
+  (event: "set-model-provider", provider: ModelProvider): void;
+  (event: "update-openai-compatible", settings: OpenAiCompatibleSettings): void;
   (event: "set-model-mode", mode: PreferredModelMode): void;
   (event: "download-profile", profileId: string): void;
 }
@@ -29,6 +35,23 @@ const props = withDefaults(defineProps<Props>(), {
   downloadStatus: null,
 });
 const emit = defineEmits<Emits>();
+
+const providerOptions: Array<{
+  provider: ModelProvider;
+  label: string;
+  hint: string;
+}> = [
+  {
+    provider: "openai-compatible",
+    label: "API 模型（推荐）",
+    hint: "中文更稳、输出更快，适合正式游玩。",
+  },
+  {
+    provider: "local",
+    label: "本地模型",
+    hint: "离线兜底，需要先下载 GGUF 权重。",
+  },
+];
 
 interface ModelModeOption {
   mode: PreferredModelMode;
@@ -71,6 +94,25 @@ const onPickMode = (mode: PreferredModelMode): void => {
   emit("set-model-mode", mode);
 };
 
+const onPickProvider = (provider: ModelProvider): void => {
+  if (props.modelProvider === provider) return;
+  emit("set-model-provider", provider);
+};
+
+const updateOpenAiCompatible = (
+  key: keyof OpenAiCompatibleSettings,
+  value: string,
+): void => {
+  emit("update-openai-compatible", {
+    ...props.openAiCompatible,
+    [key]: value,
+  });
+};
+
+const eventValue = (event: Event): string => {
+  return event.target instanceof HTMLInputElement ? event.target.value : "";
+};
+
 const statusFor = (profileId: string): ProfileAvailabilityStatus => {
   return props.profileAvailability?.[profileId] ?? "unknown";
 };
@@ -104,11 +146,85 @@ const onDownload = (event: Event, profileId: string): void => {
 
 <template>
   <header class="settings-panel__section-header">
-    <h3 class="settings-panel__section-title">模型档位</h3>
+    <h3 class="settings-panel__section-title">模型来源</h3>
     <p class="settings-panel__hint">
-      切换后下一轮对话生效；不会中断当前正在进行的一轮。
+      推荐接入 OpenAI-compatible API；切换后下一轮对话生效。
     </p>
   </header>
+  <div class="settings-panel__provider-list" role="radiogroup" aria-label="模型来源">
+    <button
+      v-for="option in providerOptions"
+      :key="option.provider"
+      type="button"
+      role="radio"
+      class="settings-panel__provider-option"
+      :data-testid="`settings-provider-${option.provider}`"
+      :aria-checked="modelProvider === option.provider ? 'true' : 'false'"
+      @click="onPickProvider(option.provider)"
+    >
+      <span class="settings-panel__provider-label">
+        <Cloud
+          v-if="option.provider === 'openai-compatible'"
+          :size="16"
+          :stroke-width="1.8"
+          aria-hidden="true"
+        />
+        <HardDrive v-else :size="16" :stroke-width="1.8" aria-hidden="true" />
+        {{ option.label }}
+      </span>
+      <span class="settings-panel__provider-hint">{{ option.hint }}</span>
+    </button>
+  </div>
+
+  <div v-if="modelProvider === 'openai-compatible'" class="settings-panel__api-form" data-testid="settings-openai-form">
+    <label class="settings-panel__field">
+      <span class="settings-panel__field-label">
+        <KeyRound :size="14" :stroke-width="1.8" aria-hidden="true" />API Key
+      </span>
+      <input
+        class="settings-panel__input"
+        data-testid="settings-openai-api-key"
+        type="password"
+        autocomplete="off"
+        placeholder="sk-..."
+        :value="openAiCompatible.apiKey"
+        @input="(event) => updateOpenAiCompatible('apiKey', eventValue(event))"
+      />
+    </label>
+    <label class="settings-panel__field">
+      <span class="settings-panel__field-label">Base URL</span>
+      <input
+        class="settings-panel__input"
+        data-testid="settings-openai-base-url"
+        type="url"
+        autocomplete="off"
+        :value="openAiCompatible.baseUrl"
+        @input="(event) => updateOpenAiCompatible('baseUrl', eventValue(event))"
+      />
+    </label>
+    <label class="settings-panel__field">
+      <span class="settings-panel__field-label">模型名</span>
+      <input
+        class="settings-panel__input"
+        data-testid="settings-openai-model"
+        type="text"
+        autocomplete="off"
+        :value="openAiCompatible.model"
+        @input="(event) => updateOpenAiCompatible('model', eventValue(event))"
+      />
+    </label>
+    <p class="settings-panel__model-hint settings-panel__api-guidance" data-testid="settings-openai-guidance">
+      推荐 gpt-4o-mini 获得速度和成本平衡；gpt-4.1-mini 指令遵循更强；gpt-4o 中文表达更细腻。
+    </p>
+  </div>
+
+  <template v-if="modelProvider === 'local'">
+    <header class="settings-panel__section-header settings-panel__local-header">
+      <h3 class="settings-panel__section-title">本地模型档位</h3>
+      <p class="settings-panel__hint">
+        本地离线可用，但生成速度取决于 GPU/CPU 和权重大小。
+      </p>
+    </header>
   <div
     class="settings-panel__model-list"
     role="radiogroup"
@@ -170,6 +286,7 @@ const onDownload = (event: Event, profileId: string): void => {
       />
     </button>
   </div>
+  </template>
 </template>
 
 <style scoped>
@@ -196,6 +313,100 @@ const onDownload = (event: Event, profileId: string): void => {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.settings-panel__provider-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.settings-panel__provider-option {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 76px;
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(216, 168, 79, 0.24);
+  background: rgba(248, 239, 222, 0.08);
+  color: var(--color-foreground-invert);
+  cursor: pointer;
+}
+
+.settings-panel__provider-option:hover,
+.settings-panel__provider-option:focus-visible {
+  background: rgba(248, 239, 222, 0.14);
+  border-color: rgba(216, 168, 79, 0.48);
+}
+
+.settings-panel__provider-option[aria-checked="true"] {
+  border-color: rgba(216, 168, 79, 0.72);
+  background: rgba(216, 168, 79, 0.14);
+}
+
+.settings-panel__provider-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-foreground-invert);
+}
+
+.settings-panel__provider-hint {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 246, 232, 0.6);
+  line-height: 1.45;
+}
+
+.settings-panel__api-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(216, 168, 79, 0.2);
+  background: rgba(5, 11, 13, 0.16);
+}
+
+.settings-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-panel__field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: rgba(255, 246, 232, 0.72);
+}
+
+.settings-panel__input {
+  width: 100%;
+  min-height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(216, 168, 79, 0.28);
+  background: rgba(248, 239, 222, 0.1);
+  color: var(--color-foreground-invert);
+  padding: 8px 10px;
+  font: inherit;
+  outline: none;
+}
+
+.settings-panel__input:focus-visible {
+  border-color: rgba(216, 168, 79, 0.72);
+  box-shadow: 0 0 0 2px rgba(216, 168, 79, 0.18);
+}
+
+.settings-panel__api-guidance {
+  line-height: 1.55;
+}
+
+.settings-panel__local-header {
+  margin-top: var(--space-2);
 }
 
 .settings-panel__model-option {
@@ -291,5 +502,11 @@ const onDownload = (event: Event, profileId: string): void => {
 
 .settings-panel__model-download:hover {
   background: rgba(248, 239, 222, 0.2);
+}
+
+@media (max-width: 520px) {
+  .settings-panel__provider-list {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

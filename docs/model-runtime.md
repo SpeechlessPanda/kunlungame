@@ -2,19 +2,23 @@
 
 ## 目标
 
-当前项目采用三档本地模型方案：
+当前项目默认推荐 OpenAI-compatible API 模型；三档本地 GGUF 模型保留为离线兜底：
 
-1. 默认质量档：Qwen2.5-3B-Instruct GGUF Q4_K_M。
-2. Lite 兜底档：Qwen2.5-1.5B-Instruct GGUF Q4_K_M，用于低显存或纯 CPU 机器。
-3. Pro 可选档：Qwen2.5-7B-Instruct GGUF Q3_K_M，需要用户显式选择。
+1. API 推荐档：OpenAI-compatible Chat Completions streaming，默认 `https://api.openai.com/v1` + `gpt-4o-mini`。
+2. 默认本地质量档：Qwen2.5-3B-Instruct GGUF Q4_K_M。
+3. Lite 本地兜底档：Qwen2.5-1.5B-Instruct GGUF Q4_K_M，用于低显存或纯 CPU 机器。
+4. Pro 本地可选档：Qwen2.5-7B-Instruct GGUF Q3_K_M，需要用户显式选择。
+
+推荐 API 模型：`gpt-4o-mini` 速度、成本和中文质量平衡最好；`gpt-4.1-mini` 指令遵循更强，适合更重视剧情约束的体验；`gpt-4o` 中文表达更细腻但成本更高。当前只支持 OpenAI-compatible `/chat/completions` 流式格式。
 
 ## 推理与分发策略
 
-1. 默认推理运行时为内置 llama.cpp 类 Node 侧运行时。
-2. 软件安装包不直接塞入模型权重文件。
-3. 用户安装后，由应用首次启动或设置页触发模型自动下载。
-4. 开发态缓存目录使用 `runtime-cache/models`。
-5. 打包后缓存目录使用用户级 app data 目录下的 `models` 子目录。
+1. 新存档默认 `settings.modelProvider = openai-compatible`；配置 API key 后主线回合跳过本地 GGUF 文件检查，直接走远程流式适配器。
+2. 当 API provider 未配置 key 或显式选择 `local` 时，回落到内置 llama.cpp 类 Node 侧运行时。
+3. 软件安装包不直接塞入模型权重文件。
+4. 用户安装后，由应用首次启动或设置页触发模型自动下载。
+5. 开发态缓存目录使用 `runtime-cache/models`。
+6. 打包后缓存目录使用用户级 app data 目录下的 `models` 子目录。
 
 ## 模型文件
 
@@ -49,16 +53,26 @@ Pro 可选档：
 2. 当前节点。
 3. 检索知识 RAG cards。
 4. 历史摘要。
-5. 最近对话。
+5. 上文连续性：最近模型回复经清洗压缩后进入 prompt，用于保持逻辑衔接。
+6. 最近对话的禁用开场/口癖指纹。
 
 ## 主线 prompt 约束
 
-1. 当前 prompt builder 会把 system prompt 固定为中文输出、陪伴式表达、单主线不分叉、二选一语义固定映射。
+1. 当前 prompt builder 会把 system prompt 固定为中文输出、`昆仑子`文化引路人口吻、单主线不分叉、二选一语义固定映射。
 2. 当前节点会显式带入 `coreQuestion`、`summary`、`mustIncludeFacts`。
 3. 检索条目会被格式化为 RAG cards，包含来源、主题、事实要点和讲述方式提示；模型必须用当前人物口吻重组这些事实，不能照抄条目。
 4. `forbiddenFutureTopics` 与当前节点之后所有主线节点的关键词会被写入 prompt，作为反剧透边界。
 5. 3B / 1.5B 严格覆盖模式会要求 3-4 个自然段、足够长度和当前节点事实覆盖；如果模型首答太短、段落不足或关键词覆盖不足，会用同一个本地模型再跑一次窄化修复 prompt。
 6. 当前玩家倾向会被翻译为 `附和型` 或 `反驳型`，但不会改变主线事实或节点顺序。
+7. prompt 明确要求只面对一个玩家说话，称呼为 `你`，不得把玩家称为 `你们`；除非是在引用历史群体或多人场景。
+
+## 本地性能与 GPU 诊断
+
+1. 本地运行仍使用 `getLlama({ gpu: 'auto' })`，`KUNLUN_FORCE_CPU=1` 可强制 CPU 以排查驱动问题。
+2. 启动本地会话时会输出一次 `[kunlun:llama] backend=... gpuOffload=... device=... vram=...`，用于确认是否实际用上 CUDA/Vulkan/Metal 与显存。
+3. 已知无害的 `control-looking token '</s>' was not control-type` tokenizer warning 会被静默过滤；其他 warning/error 仍会输出。
+4. 本地上下文目标从 8192 调整为 3072-4096 bounded range，配合 `gpuLayers.fitContext`、`batchSize: 512` 与 `flashAttention: true`，降低显存压力和首 token 延迟。
+5. 本地默认输出上限从 512 token 降到 320 token；远程 API adapter 默认 420 token，以优先保证对话节奏。
 
 ## 对话事件契约
 
@@ -111,6 +125,7 @@ Pro 可选档：
 11. 已有 `src/modeling/localDialogueDependencies.ts`，可把 `node-llama-cpp` 封装为可注入的本地流式依赖，并在首个文本 chunk 发出前失败时执行一次受控自动重试。
 12. 已有 `desktop:run-dialogue-smoke` bridge 与 `pnpm dialogue:smoke` 命令，可触发主线首节点、知识检索、prompt builder、orchestrator 和本地 llama adapter 的单轮联调。
 13. 已有 `desktop:stream-mainline-turn` bridge，可把主进程生成中的文本 chunk 实时推入 UI；旧 `desktop:run-mainline-turn` 保留为兼容回退。
+14. 已有 OpenAI-compatible 远程 adapter；配置 API key 时主线会跳过本地模型文件检查，并保留 system/user role 分离与 SSE 增量输出。
 
 ## 当前已验证状态
 
@@ -120,7 +135,7 @@ Pro 可选档：
 4. 当前仓库已对白盒验证本地流式对话适配器，确认 chunk 可按顺序转发，且仅在首个 chunk 发出前失败时执行自动重试，避免半途重放导致重复文本。
 5. 当前仓库已对白盒验证桌面 IPC 流式链路，确认 preload 请求通道、renderer adapter、schema guard 与 session reset 都能按事件顺序工作。
 6. 2026-04-27 真实 Electron UAT 已确认构建版显示 `本地 AI · Quality Mode`，DOM 文本在选项出现前持续增长：首个可见字符约 6.56s，选项约 15.17s，最终文本 373 字。
-7. 渲染层右下角会显示 `本地 AI · Quality Mode · 3B`、`本地 AI · Lite Mode · 1.5B`、`本地 AI · Pro Mode · 7B` 或 `预览脚本模式`，用于区分真实 GGUF 路径与浏览器/Playwright mock 路径。
+7. 渲染层右下角会显示 `API 模型 · <model>`、`本地 AI · Quality Mode · 3B`、`本地 AI · Lite Mode · 1.5B`、`本地 AI · Pro Mode · 7B` 或 `预览脚本模式`，用于区分远程 API、本地 GGUF 与浏览器/Playwright mock 路径。
 8. 2026-04-27 真实 smoke 已确认默认运行 `qwen2.5-3b-instruct-q4km`、`fallbackUsed = false`；短答会触发质量修复回合，最终输出覆盖《山海经》、世界中心/天柱、樊桐/玄圃/阆风、西王母等当前节点知识点。
 
 ## 下载执行约束

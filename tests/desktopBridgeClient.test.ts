@@ -44,7 +44,13 @@ const buildValidRuntimeStateSnapshot = (): DesktopRuntimeStateSnapshot => ({
     isCompleted: false,
     settings: {
       bgmEnabled: true,
-      preferredModelMode: 'default'
+      preferredModelMode: 'default',
+      modelProvider: 'openai-compatible',
+      openAiCompatible: {
+        apiKey: '',
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-4o-mini'
+      }
     }
   },
   recoveryAction: 'loaded-existing'
@@ -160,6 +166,32 @@ describe('wrapDesktopBridgeWithValidation', () => {
       await expect(
         bridge.saveRuntimeState(buildValidRuntimeStateSnapshot().state)
       ).resolves.toBeUndefined()
+    })
+
+    it('loadRuntimeState accepts OpenAI-compatible provider settings', async () => {
+      const bridge = wrapDesktopBridgeWithValidation(buildRawBridge({
+        loadRuntimeState: vi.fn().mockResolvedValue({
+          ...buildValidRuntimeStateSnapshot(),
+          state: {
+            ...buildValidRuntimeStateSnapshot().state,
+            settings: {
+              bgmEnabled: true,
+              preferredModelMode: 'default',
+              modelProvider: 'openai-compatible',
+              openAiCompatible: {
+                apiKey: 'sk-test',
+                baseUrl: 'https://api.example.test/v1',
+                model: 'gpt-4.1-mini'
+              }
+            }
+          }
+        })
+      }))
+
+      const snapshot = await bridge.loadRuntimeState()
+
+      expect(snapshot.state.settings.modelProvider).toBe('openai-compatible')
+      expect(snapshot.state.settings.openAiCompatible.model).toBe('gpt-4.1-mini')
     })
   })
 

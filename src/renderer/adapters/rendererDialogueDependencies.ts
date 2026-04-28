@@ -203,7 +203,7 @@ const mockChoiceLabelsByNode: Record<string, [string, string]> = {
     ],
     'order-and-thought': [
         '礼乐与诸子合起来，才是中国人处理秩序的方式。',
-        '把社会交给一套礼法体系，代价是不是被你们低估了？'
+        '把社会交给一套礼法体系，它的合理性和代价真的说清了吗？'
     ],
     'empire-and-openness': [
         '大一统与开放其实是同一件事的两面，我听进去了。',
@@ -242,7 +242,7 @@ const fallbackChoiceLabels = (node: StoryNode): [string, string] => [
 /**
  * 态度驱动的开场微变体。
  *
- * 玩家上一轮选了顺从 or 反驳，会让「小妹妹」这一段开场的第一口气明显不同。
+ * 玩家上一轮选了顺从 or 反驳，会让「昆仑子」这一段开场的第一口气明显不同。
  * 这些开场不携带任何史实，纯粹是语气层的变化，和节点内容解耦。
  */
 const ALIGN_OPENERS = [

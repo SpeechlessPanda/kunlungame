@@ -6,6 +6,8 @@ import { useFocusTrap } from "../composables/useFocusTrap.js";
 import SettingsAudioSection from "./SettingsAudioSection.vue";
 import SettingsModelSection from "./SettingsModelSection.vue";
 import type {
+  ModelProvider,
+  OpenAiCompatibleSettings,
   PreferredModelMode,
   ProfileAvailabilityStatus,
   ProfileDownloadStatus,
@@ -14,6 +16,8 @@ import type {
 interface Props {
   open: boolean;
   bgm: BgmControllerState;
+  modelProvider: ModelProvider;
+  openAiCompatible: OpenAiCompatibleSettings;
   preferredModelMode: PreferredModelMode;
   selectedProfileId: string | null;
   profileAvailability?: Record<string, ProfileAvailabilityStatus>;
@@ -24,6 +28,8 @@ interface Emits {
   (event: "close"): void;
   (event: "toggle-bgm"): void;
   (event: "set-volume", value: number): void;
+  (event: "set-model-provider", provider: ModelProvider): void;
+  (event: "update-openai-compatible", settings: OpenAiCompatibleSettings): void;
   (event: "set-model-mode", mode: PreferredModelMode): void;
   (event: "download-profile", profileId: string): void;
 }
@@ -83,9 +89,13 @@ useFocusTrap(toRef(props, "open"), panelRef);
       >
         <SettingsModelSection
           :preferred-model-mode="preferredModelMode"
+          :model-provider="modelProvider"
+          :open-ai-compatible="openAiCompatible"
           :selected-profile-id="selectedProfileId"
           :profile-availability="profileAvailability"
           :download-status="downloadStatus"
+          @set-model-provider="(provider) => emit('set-model-provider', provider)"
+          @update-openai-compatible="(settings) => emit('update-openai-compatible', settings)"
           @set-model-mode="(mode) => emit('set-model-mode', mode)"
           @download-profile="(profileId) => emit('download-profile', profileId)"
         />

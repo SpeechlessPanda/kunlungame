@@ -296,7 +296,7 @@ describe('streamLocalLlamaText · 边界分支', () => {
         for await (const _chunk of streamLocalLlamaText(
             {
                 prompt: {
-                    system: '你是昆仑，活泼小妹妹的文化陪伴者。',
+                    system: '你是昆仑子，亲切的文化引路人。',
                     user: '请用 30 字开场介绍昆仑。'
                 },
                 modelPath: 'D:/models/qwen.gguf'
@@ -318,10 +318,10 @@ describe('streamLocalLlamaText · 边界分支', () => {
             // consume
         }
 
-        expect(capturedSystem).toBe('你是昆仑，活泼小妹妹的文化陪伴者。')
+        expect(capturedSystem).toBe('你是昆仑子，亲切的文化引路人。')
         expect(capturedUserPrompt).toBe('请用 30 字开场介绍昆仑。')
         // 关键反向断言：用户文本里不应该再看到 "System:" / 系统人格泄露。
         expect(capturedUserPrompt).not.toContain('System:')
-        expect(capturedUserPrompt).not.toContain('小妹妹的文化陪伴者')
+        expect(capturedUserPrompt).not.toContain('文化引路人')
     })
 })

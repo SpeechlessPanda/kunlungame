@@ -60,7 +60,7 @@ export const buildCoverageRepairPrompt = (input: {
   const ragCards = formatKnowledgeEntriesForPrompt(input.retrievedEntries).join('\n\n')
   return {
     system: [
-      '你仍然扮演「昆仑」这个文化陪伴者小妹妹。',
+      '你仍然扮演「昆仑子」这个文化引路人。',
       '上一版回答没有达到质量门槛；现在只重写正文，不输出选项、编号、标题或解释。',
       '必须保持当前节点，不得跳到后续节点。',
       '必须输出 3-4 个自然段，总长 180-260 字。',

@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp, h } from 'vue'
 import SettingsPanel from '../../src/renderer/components/SettingsPanel.vue'
+import type { ModelProvider, OpenAiCompatibleSettings } from '../../src/renderer/components/SettingsPanel.types.js'
 import {
   getDefaultModelProfile,
   getFallbackModelProfile,
@@ -19,6 +20,8 @@ interface MountResult {
   unmount: () => void
   emitted: {
     setModelMode: Array<'default' | 'compatibility' | 'pro'>
+    setModelProvider: ModelProvider[]
+    updateOpenAiCompatible: OpenAiCompatibleSettings[]
     close: number
     toggleBgm: number
     setVolume: number[]
@@ -36,6 +39,8 @@ const mountSettings = (
 
   const emitted: MountResult['emitted'] = {
     setModelMode: [],
+    setModelProvider: [],
+    updateOpenAiCompatible: [],
     close: 0,
     toggleBgm: 0,
     setVolume: [],
@@ -47,6 +52,12 @@ const mountSettings = (
       return h(SettingsPanel, {
         open: true,
         bgm: defaultBgm,
+        modelProvider: 'openai-compatible',
+        openAiCompatible: {
+          apiKey: '',
+          baseUrl: 'https://api.openai.com/v1',
+          model: 'gpt-4o-mini'
+        },
         preferredModelMode,
         selectedProfileId,
         ...extraProps,
@@ -58,6 +69,12 @@ const mountSettings = (
         },
         'onSet-volume': (v: number) => {
           emitted.setVolume.push(v)
+        },
+        'onSet-model-provider': (provider: ModelProvider) => {
+          emitted.setModelProvider.push(provider)
+        },
+        'onUpdate-openai-compatible': (settings: OpenAiCompatibleSettings) => {
+          emitted.updateOpenAiCompatible.push(settings)
         },
         'onSet-model-mode': (mode: 'default' | 'compatibility' | 'pro') => {
           emitted.setModelMode.push(mode)
@@ -94,10 +111,52 @@ describe('SettingsPanel · model profile picker', () => {
     vi.useRealTimers()
   })
 
-  it('renders three profile options reflecting the current preferred mode', () => {
+  it('defaults to API provider and edits OpenAI-compatible fields', () => {
     mounted = mountSettings('default', getDefaultModelProfile().id)
 
-    const radios = mounted.container.querySelectorAll('[role="radio"]')
+    const apiProvider = mounted.container.querySelector('[data-testid="settings-provider-openai-compatible"]')
+    const localProvider = mounted.container.querySelector('[data-testid="settings-provider-local"]')
+    expect(apiProvider?.getAttribute('aria-checked')).toBe('true')
+    expect(localProvider?.getAttribute('aria-checked')).toBe('false')
+    expect(mounted.container.querySelector('[data-testid="settings-openai-form"]')).not.toBeNull()
+
+    const modelInput = mounted.container.querySelector<HTMLInputElement>('[data-testid="settings-openai-model"]')
+    expect(modelInput?.value).toBe('gpt-4o-mini')
+    modelInput!.value = 'gpt-4.1-mini'
+    modelInput!.dispatchEvent(new Event('input'))
+
+    expect(mounted.emitted.updateOpenAiCompatible.at(-1)).toMatchObject({
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-4.1-mini'
+    })
+    expect(mounted.container.textContent ?? '').toContain('gpt-4o-mini')
+    expect(mounted.container.textContent ?? '').toContain('gpt-4.1-mini')
+    expect(mounted.container.textContent ?? '').toContain('gpt-4o')
+  })
+
+  it('emits provider changes and reveals local model options when local is active', () => {
+    mounted = mountSettings('default', getDefaultModelProfile().id, {
+      modelProvider: 'local'
+    })
+
+    const localProvider = mounted.container.querySelector<HTMLButtonElement>('[data-testid="settings-provider-local"]')
+    const apiProvider = mounted.container.querySelector<HTMLButtonElement>('[data-testid="settings-provider-openai-compatible"]')
+    expect(localProvider?.getAttribute('aria-checked')).toBe('true')
+    expect(mounted.container.querySelector('[data-testid="settings-model-default"]')).not.toBeNull()
+    expect(mounted.container.querySelector('[data-testid="settings-openai-form"]')).toBeNull()
+
+    apiProvider?.click()
+    localProvider?.click()
+
+    expect(mounted.emitted.setModelProvider).toEqual(['openai-compatible'])
+  })
+
+  it('renders three profile options reflecting the current preferred mode', () => {
+    mounted = mountSettings('default', getDefaultModelProfile().id, {
+      modelProvider: 'local'
+    })
+
+    const radios = mounted.container.querySelectorAll('.settings-panel__model-list [role="radio"]')
     expect(radios.length).toBe(3)
 
     const defaultOption = mounted.container.querySelector('[data-testid="settings-model-default"]')
@@ -114,7 +173,9 @@ describe('SettingsPanel · model profile picker', () => {
   })
 
   it('emits set-model-mode when user picks a different profile and suppresses re-emit on the active one', () => {
-    mounted = mountSettings('default', getDefaultModelProfile().id)
+    mounted = mountSettings('default', getDefaultModelProfile().id, {
+      modelProvider: 'local'
+    })
 
     const liteOption = mounted.container.querySelector<HTMLButtonElement>(
       '[data-testid="settings-model-compatibility"]'
@@ -135,7 +196,9 @@ describe('SettingsPanel · model profile picker', () => {
   })
 
   it('labels all three profile ids consistently with modelProfiles module', () => {
-    mounted = mountSettings('pro', getProModelProfile().id)
+    mounted = mountSettings('pro', getProModelProfile().id, {
+      modelProvider: 'local'
+    })
 
     const liteOption = mounted.container.querySelector('[data-testid="settings-model-compatibility"]')
     expect(liteOption?.textContent ?? '').toContain('Lite Mode')
@@ -153,6 +216,7 @@ describe('SettingsPanel · model profile picker', () => {
 
   it('shows the download CTA for a profile whose availability is missing', () => {
     mounted = mountSettings('default', getDefaultModelProfile().id, {
+      modelProvider: 'local',
       profileAvailability: {
         [getDefaultModelProfile().id]: 'ready',
         [getFallbackModelProfile().id]: 'ready',
@@ -178,6 +242,7 @@ describe('SettingsPanel · model profile picker', () => {
 
   it('renders the progress line while a download is in flight and hides the CTA', () => {
     mounted = mountSettings('pro', getDefaultModelProfile().id, {
+      modelProvider: 'local',
       profileAvailability: {
         [getProModelProfile().id]: 'missing'
       },
@@ -206,6 +271,7 @@ describe('SettingsPanel · model profile picker', () => {
 
   it('renders byte-level percent when downloadStatus carries bytesDownloaded/totalBytes', () => {
     mounted = mountSettings('pro', getDefaultModelProfile().id, {
+      modelProvider: 'local',
       profileAvailability: {
         [getProModelProfile().id]: 'missing'
       },

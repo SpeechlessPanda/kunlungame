@@ -18,7 +18,11 @@ import {
   findModelProfileById,
 } from "../modeling/modelProfiles.js";
 import type { StoryNode } from "../shared/contracts/contentContracts.js";
-import type { ProfileDownloadStatus } from "./components/SettingsPanel.types.js";
+import type {
+  ModelProvider,
+  OpenAiCompatibleSettings,
+  ProfileDownloadStatus,
+} from "./components/SettingsPanel.types.js";
 import type {
   DesktopBridge,
   DesktopProfileDownloadProgressEvent,
@@ -308,6 +312,29 @@ const onSetModelMode = (mode: "default" | "compatibility" | "pro"): void => {
   // 新模式在下一轮 `runMainlineTurn` 时生效；主进程会根据
   // runtimeState.settings.preferredModelMode 重新 bootstrapPlan。
 };
+const onSetModelProvider = (provider: ModelProvider): void => {
+  if (runtimeState.value.settings.modelProvider === provider) {
+    return;
+  }
+  runtimeState.value = {
+    ...runtimeState.value,
+    settings: {
+      ...runtimeState.value.settings,
+      modelProvider: provider,
+    },
+  };
+  void persistState();
+};
+const onUpdateOpenAiCompatible = (settings: OpenAiCompatibleSettings): void => {
+  runtimeState.value = {
+    ...runtimeState.value,
+    settings: {
+      ...runtimeState.value.settings,
+      openAiCompatible: settings,
+    },
+  };
+  void persistState();
+};
 const onSetVolume = (value: number): void => {
   refreshBgm(bgm.setVolume(value));
 };
@@ -335,6 +362,12 @@ const aiSource = ref<"real" | "mock">("mock");
 const aiSourceLabel = computed(() => {
   if (aiSource.value === "mock") {
     return "预览脚本模式";
+  }
+  if (
+    runtimeState.value.settings.modelProvider === "openai-compatible" &&
+    runtimeState.value.settings.openAiCompatible.apiKey.trim().length > 0
+  ) {
+    return `API 模型 · ${runtimeState.value.settings.openAiCompatible.model}`;
   }
   return `本地 AI · ${selectedProfileLabel.value}`;
 });
@@ -497,7 +530,7 @@ onBeforeUnmount(() => {
 
 const demoCharacter = computed(() => ({
   id: "kunlun",
-  label: "昆仑",
+  label: "昆仑子",
   assetPath: resolveAssetPath(
     defaultAssetManifest,
     "character.kunlun.portrait",
@@ -562,11 +595,13 @@ const onQuitFromEnding = (): void => {
     :bgm-src="bgmSrc"
     :settings-open="settingsOpen"
     :is-fallback-model="isFallbackModel"
+    :model-provider="runtimeState.settings.modelProvider"
+    :open-ai-compatible="runtimeState.settings.openAiCompatible"
     :preferred-model-mode="runtimeState.settings.preferredModelMode"
     :selected-profile-id="selectedProfileId"
     :profile-availability="profileAvailability"
     :download-status="downloadStatus"
-    speaker-label="昆仑"
+    speaker-label="昆仑子"
     @retry="onRetry"
     @skip="onSkip"
     @choose="onChoose"
@@ -574,6 +609,8 @@ const onQuitFromEnding = (): void => {
     @close-settings="onCloseSettings"
     @toggle-bgm="onToggleBgm"
     @set-volume="onSetVolume"
+    @set-model-provider="onSetModelProvider"
+    @update-openai-compatible="onUpdateOpenAiCompatible"
     @bgm-source-resolved="onBgmSource"
     @set-model-mode="onSetModelMode"
     @download-profile="onDownloadProfile"
@@ -588,6 +625,7 @@ const onQuitFromEnding = (): void => {
     进入昆仑
   </button>
   <div
+    v-if="!settingsOpen"
     class="ai-source-chip"
     :class="`ai-source-chip--${aiSource}`"
     data-testid="ai-source-chip"

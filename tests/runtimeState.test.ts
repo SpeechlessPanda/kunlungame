@@ -23,6 +23,12 @@ describe('createDefaultRuntimeState', () => {
     expect(result.attitudeScore).toBe(0)
     expect(result.settings.bgmEnabled).toBe(true)
     expect(result.settings.preferredModelMode).toBe('default')
+    expect(result.settings.modelProvider).toBe('openai-compatible')
+    expect(result.settings.openAiCompatible).toEqual({
+      apiKey: '',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-4o-mini'
+    })
     expect(result.readNodeIds).toEqual([])
   })
 
@@ -193,13 +199,45 @@ describe('runtime state serialization', () => {
     const state = {
       ...createDefaultRuntimeState(minimalStoryOutline),
       historySummary: '玩家已经完成开场。',
-      readNodeIds: ['kunlun-prologue']
+      readNodeIds: ['kunlun-prologue'],
+      settings: {
+        bgmEnabled: false,
+        preferredModelMode: 'pro' as const,
+        modelProvider: 'openai-compatible' as const,
+        openAiCompatible: {
+          apiKey: 'sk-test',
+          baseUrl: 'https://api.example.test/v1',
+          model: 'gpt-4.1-mini'
+        }
+      }
     }
 
     const serialized = serializeRuntimeState(state)
     const restored = deserializeRuntimeState(serialized)
 
     expect(restored).toEqual(state)
+  })
+
+  it('repairs legacy saves with API-first model defaults', () => {
+    const legacyPayload = JSON.stringify({
+      saveVersion: 1,
+      currentNodeId: 'kunlun-prologue',
+      turnIndex: 0,
+      turnsInCurrentNode: 0,
+      attitudeScore: 0,
+      historySummary: '旧存档。',
+      readNodeIds: [],
+      isCompleted: false,
+      settings: {
+        bgmEnabled: true,
+        preferredModelMode: 'default'
+      }
+    })
+
+    const restored = deserializeRuntimeState(legacyPayload)
+
+    expect(restored.settings.modelProvider).toBe('openai-compatible')
+    expect(restored.settings.openAiCompatible.model).toBe('gpt-4o-mini')
   })
 })
 

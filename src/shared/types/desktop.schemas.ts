@@ -53,7 +53,13 @@ export const desktopSerializedRuntimeStateSchema = z.object({
   isCompleted: z.boolean(),
   settings: z.object({
     bgmEnabled: z.boolean(),
-    preferredModelMode: z.enum(['default', 'compatibility', 'pro'])
+    preferredModelMode: z.enum(['default', 'compatibility', 'pro']),
+    modelProvider: z.enum(['openai-compatible', 'local']).default('openai-compatible'),
+    openAiCompatible: z.object({
+      apiKey: z.string().default(''),
+      baseUrl: z.string().default('https://api.openai.com/v1'),
+      model: z.string().default('gpt-4o-mini')
+    }).default({})
   })
 })
 

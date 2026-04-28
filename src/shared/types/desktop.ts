@@ -39,6 +39,12 @@ export interface DesktopSerializedRuntimeState {
   settings: {
     bgmEnabled: boolean
     preferredModelMode: 'default' | 'compatibility' | 'pro'
+    modelProvider: 'openai-compatible' | 'local'
+    openAiCompatible: {
+      apiKey: string
+      baseUrl: string
+      model: string
+    }
   }
 }
 

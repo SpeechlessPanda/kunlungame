@@ -38,7 +38,7 @@ export const formatKnowledgeEntriesForPrompt = (entries: KnowledgeEntry[]): stri
       `主题：${entry.topic}`,
       '事实要点：',
       factBlock,
-      '讲述方式：用昆仑小妹妹的口吻重新组织；可以改变顺序与表达，但不得照抄条目、不得输出列表或 Markdown。'
+      '讲述方式：用昆仑子的口吻重新组织；可以改变顺序与表达，但不得照抄条目、不得输出列表或 Markdown。'
     ].join('\n')
   })
 }

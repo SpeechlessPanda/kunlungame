@@ -6,6 +6,7 @@ import { mainlineStoryOutline } from '../content/source/mainlineOutline.js'
 import { retrieveKnowledgeEntries } from './knowledgeCompilation.js'
 import { buildRuntimeBootstrapPlan, type RuntimeBootstrapInput } from './runtimeBootstrap.js'
 import { createLocalDialogueDependencies } from './localDialogueDependencies.js'
+import { createOpenAiCompatibleDialogueDependencies } from './openAiCompatibleDialogueDependencies.js'
 import { knowledgeEntrySchema } from '../shared/contracts/contentContracts.js'
 import {
     orchestrateDialogue,
@@ -75,7 +76,9 @@ export interface MainlineTurnDependencies {
     checkFileExists: (path: string) => Promise<boolean>
     /** 构造真实 `DialogueDependencies`；默认调用 `createLocalDialogueDependencies`。可在测试里注入 mock 以避免加载 GGUF。 */
     createDialogueDependencies: (input: {
+        provider: 'local' | 'openai-compatible'
         modelPath: string
+        openAiCompatible?: RuntimeState['settings']['openAiCompatible']
         /** 当前已经走到第几轮（用于轮换 option 文案，避免每轮选项长一样）。 */
         turnIndex: number
         /** 这一轮是否已是结局，结局的选项语义变成"再走一次 / 暂时离开"。 */
@@ -97,12 +100,28 @@ const defaultCheckFileExists: MainlineTurnDependencies['checkFileExists'] = asyn
     }
 }
 
-const defaultCreateDialogueDependencies: MainlineTurnDependencies['createDialogueDependencies'] = ({ modelPath, turnIndex, isEnding }) =>
-    createLocalDialogueDependencies({
+const defaultCreateDialogueDependencies: MainlineTurnDependencies['createDialogueDependencies'] = ({
+    provider,
+    modelPath,
+    openAiCompatible,
+    turnIndex,
+    isEnding
+}) => {
+    const generateOptions = async () => buildGalgameOptionLabels({ turnIndex, isEnding })
+    if (provider === 'openai-compatible' && openAiCompatible != null) {
+        return createOpenAiCompatibleDialogueDependencies({
+            apiKey: openAiCompatible.apiKey,
+            baseUrl: openAiCompatible.baseUrl,
+            model: openAiCompatible.model,
+            generateOptions
+        })
+    }
+    return createLocalDialogueDependencies({
         modelPath,
         maxRetries: 1,
-        generateOptions: async () => buildGalgameOptionLabels({ turnIndex, isEnding })
+        generateOptions
     })
+}
 
 const defaultDependencies: MainlineTurnDependencies = {
     readKnowledgeEntries: defaultReadKnowledgeEntries,
@@ -119,6 +138,37 @@ const resolveModelPath = (input: RuntimeBootstrapInput): { profileId: string; mo
     return {
         profileId: plan.selectedProfile.id,
         modelPath: join(plan.storage.modelsDir, plan.selectedProfile.id, basename(firstFile))
+    }
+}
+
+type ResolvedModelTarget =
+    | { provider: 'local'; profileId: string; modelPath: string }
+    | {
+        provider: 'openai-compatible'
+        profileId: 'openai-compatible'
+        modelPath: string
+        openAiCompatible: RuntimeState['settings']['openAiCompatible']
+    }
+
+const shouldUseOpenAiCompatible = (settings: RuntimeState['settings']): boolean => {
+    return settings.modelProvider === 'openai-compatible' &&
+        settings.openAiCompatible.apiKey.trim().length > 0 &&
+        settings.openAiCompatible.model.trim().length > 0
+}
+
+const resolveModelTarget = (input: MainlineTurnInput): ResolvedModelTarget => {
+    if (shouldUseOpenAiCompatible(input.runtimeState.settings)) {
+        return {
+            provider: 'openai-compatible',
+            profileId: 'openai-compatible',
+            modelPath: `openai-compatible:${input.runtimeState.settings.openAiCompatible.model}`,
+            openAiCompatible: input.runtimeState.settings.openAiCompatible
+        }
+    }
+
+    return {
+        provider: 'local',
+        ...resolveModelPath(input)
     }
 }
 
@@ -187,8 +237,10 @@ export const runMainlineTurn = async (
         }
     }
 
-    const selectedModel = resolveModelPath(input)
-    const fileExists = await deps.checkFileExists(selectedModel.modelPath)
+    const selectedModel = resolveModelTarget(input)
+    const fileExists = selectedModel.provider === 'local'
+        ? await deps.checkFileExists(selectedModel.modelPath)
+        : true
     if (!fileExists) {
         return {
             ok: false,
@@ -213,7 +265,11 @@ export const runMainlineTurn = async (
     let dialogueDependencies: DialogueDependencies
     try {
         dialogueDependencies = deps.createDialogueDependencies({
+            provider: selectedModel.provider,
             modelPath: selectedModel.modelPath,
+            ...(selectedModel.provider === 'openai-compatible'
+                ? { openAiCompatible: selectedModel.openAiCompatible }
+                : {}),
             turnIndex: input.runtimeState.turnIndex,
             isEnding: input.runtimeState.isCompleted || currentNode.nextNodeId === null
         })
@@ -244,7 +300,7 @@ export const runMainlineTurn = async (
             attitudeChoiceMode: input.attitudeChoiceMode,
             recentTurns: input.recentTurns,
             // 1.5B / 3B 都需要 strictCoverage（小模型指令遵循弱），只有 7B Pro 可以放宽。
-            strictCoverage: selectedModel.profileId !== getProModelProfile().id
+            strictCoverage: selectedModel.provider === 'local' && selectedModel.profileId !== getProModelProfile().id
         })) {
             if (event.type === 'chunk') {
                 chunks.push(event.text)

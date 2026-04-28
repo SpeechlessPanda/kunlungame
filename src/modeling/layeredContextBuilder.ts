@@ -13,6 +13,11 @@ export interface LayeredContextInput {
    */
   recentTurnFingerprints?: string[]
   /**
+   * 压缩后的上一轮模型输出/剧情连续性。不同于禁句指纹，这部分是允许模型理解的上下文，
+   * 但已经被截短和去标签化，避免把整段原文当模板复诵。
+   */
+  recentTurnContinuity?: string[]
+  /**
    * 额外注入的"本轮必须避开的开头 / 口癖"清单。会与 recentTurnFingerprints 合并展示。
    */
   avoidOpeners?: string[]
@@ -46,6 +51,13 @@ export const buildLayeredContext = (input: LayeredContextInput): string => {
       ? `本轮严禁提到以下后续节点才会展开的专有名词 / 人物 / 事件：${input.forbiddenProperNouns.join('、')}。`
       : '（本节点没有额外需要避开的后续专有名词。）'
 
+  const continuityBlock = input.recentTurnContinuity != null && input.recentTurnContinuity.length > 0
+    ? [
+        '下面是已经发生过的对话压缩摘要，只用于保持逻辑连续；不要照抄句式。',
+        ...input.recentTurnContinuity.map((turn, index) => `- 上文 ${index + 1}：${turn}`)
+      ].join('\n')
+    : '（暂无可用的上一轮内容；按当前节点自然开场。）'
+
   const sections: Array<[string, string]> = [
     ['# 固定规则', input.systemRules.join('\n')],
     ['# 当前节点', `${input.currentNode.title}\n${input.currentNode.summary}`],
@@ -60,6 +72,7 @@ export const buildLayeredContext = (input: LayeredContextInput): string => {
           ].join('\n')
     ],
     ['# 历史摘要', input.memorySummary],
+    ['# 上文连续性', continuityBlock],
     [
       '# 本轮剧情边界（严格）',
       forbiddenNounsBlock
@@ -75,9 +88,9 @@ export const buildLayeredContext = (input: LayeredContextInput): string => {
     [
       '# 现在开始说话',
       [
-        '请你直接以"昆仑"这个小妹妹角色的口吻开始这一轮对话的正文。',
+        '请你直接以"昆仑子"这个文化引路人的口吻开始这一轮对话的正文。',
         '不要输出任何以下内容：',
-        '- "[[PREV_REPLY"、"历史轮"、"内部参考"、"系统"、"System:"、"User:" 等元标签；',
+        '- 内部历史标签、角色标签、系统标签、用户标签等元标签；',
         '- 三道横线 "---" / "===" 之类分隔符；',
         '- 编号列表、项目符号、Markdown 标题；',
         '- 对自己上一轮句子的任何直接复读或近义改写。',

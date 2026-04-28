@@ -20,7 +20,7 @@ import DialogPanel from "./DialogPanel.vue";
 import ChoicePanel from "./ChoicePanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import BgmPlayer from "./BgmPlayer.vue";
-import type { ProfileDownloadStatus } from "./SettingsPanel.types.js";
+import type { ModelProvider, OpenAiCompatibleSettings, ProfileDownloadStatus } from "./SettingsPanel.types.js";
 
 interface Character {
   id: string;
@@ -42,6 +42,8 @@ interface Props {
   settingsOpen: boolean;
   speakerLabel?: string;
   isFallbackModel?: boolean;
+  modelProvider: ModelProvider;
+  openAiCompatible: OpenAiCompatibleSettings;
   preferredModelMode: "default" | "compatibility" | "pro";
   selectedProfileId: string | null;
   profileAvailability?: Record<
@@ -59,6 +61,8 @@ interface Emits {
   (event: "close-settings"): void;
   (event: "toggle-bgm"): void;
   (event: "set-volume", value: number): void;
+  (event: "set-model-provider", provider: ModelProvider): void;
+  (event: "update-openai-compatible", settings: OpenAiCompatibleSettings): void;
   (event: "bgm-source-resolved", available: boolean): void;
   (event: "set-model-mode", mode: "default" | "compatibility" | "pro"): void;
   (event: "download-profile", profileId: string): void;
@@ -168,6 +172,8 @@ useKeyboardControls(
     <SettingsPanel
       :open="settingsOpen"
       :bgm="bgm"
+      :model-provider="modelProvider"
+      :open-ai-compatible="openAiCompatible"
       :preferred-model-mode="preferredModelMode"
       :selected-profile-id="selectedProfileId"
       :profile-availability="profileAvailability ?? {}"
@@ -175,6 +181,8 @@ useKeyboardControls(
       @close="emit('close-settings')"
       @toggle-bgm="emit('toggle-bgm')"
       @set-volume="(value) => emit('set-volume', value)"
+      @set-model-provider="(provider) => emit('set-model-provider', provider)"
+      @update-openai-compatible="(settings) => emit('update-openai-compatible', settings)"
       @set-model-mode="(mode) => emit('set-model-mode', mode)"
       @download-profile="(profileId) => emit('download-profile', profileId)"
     />
