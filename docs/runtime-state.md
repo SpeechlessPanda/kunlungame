@@ -27,7 +27,8 @@ Part 04 当前已经对齐到真实主线的状态闭环：状态对象可序列
 2. API key 为空时会自动落回本地 GGUF 路径，避免新存档在尚未配置 key 时无法开始游戏。
 3. `settings.modelProvider = local` 时使用 `preferredModelMode` 选择 Quality/Lite/Pro 本地档位。
 4. 设置页编辑 API key、base URL、model 或模型来源后，会通过既有 `serializeRuntimeStateForDesktop()` 持久化到桌面存档。
-5. 当前版本只支持 OpenAI-compatible chat completions streaming；更多 provider 与安全凭据存储仍属后续范围。
+5. 点击“进入昆仑”或从结尾重新开始时，只重置剧情进度、态度值、历史摘要和已读节点；会保留当前 `settings`，避免用户刚填写的 API key/model 被新开主线清空。
+6. 当前版本只支持 OpenAI-compatible chat completions streaming；更多 provider 与安全凭据存储仍属后续范围。
 
 ## 态度值规则
 

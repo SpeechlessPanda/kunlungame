@@ -38,6 +38,32 @@ describe('createDefaultRuntimeState', () => {
     expect(result.currentNodeId).toBe('kunlun-threshold')
     expect(result.historySummary).toBe('尚未修复任何文化记忆片段。')
   })
+
+  it('can reset story progress while preserving user model settings', () => {
+    const result = createDefaultRuntimeState(mainlineStoryOutline, {
+      bgmEnabled: false,
+      preferredModelMode: 'pro',
+      modelProvider: 'openai-compatible',
+      openAiCompatible: {
+        apiKey: 'sk-test',
+        baseUrl: 'https://api.example.test/v1',
+        model: 'gpt-4.1-mini'
+      }
+    })
+
+    expect(result.currentNodeId).toBe('kunlun-threshold')
+    expect(result.turnIndex).toBe(0)
+    expect(result.settings).toEqual({
+      bgmEnabled: false,
+      preferredModelMode: 'pro',
+      modelProvider: 'openai-compatible',
+      openAiCompatible: {
+        apiKey: 'sk-test',
+        baseUrl: 'https://api.example.test/v1',
+        model: 'gpt-4.1-mini'
+      }
+    })
+  })
 })
 
 describe('applyPlayerChoice', () => {

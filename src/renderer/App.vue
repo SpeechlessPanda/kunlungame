@@ -235,7 +235,8 @@ const runTurn = async (): Promise<void> => {
 
 const beginMainline = async (): Promise<void> => {
   await ensureDialogueSourceReady();
-  runtimeState.value = createDefaultRuntimeState(storyOutline);
+  const currentSettings = runtimeState.value.settings;
+  runtimeState.value = createDefaultRuntimeState(storyOutline, currentSettings);
   recentTurns.value = [];
   attitudeChoiceMode.value = "align";
   dialogueSession.cancel();

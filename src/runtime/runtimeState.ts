@@ -91,7 +91,21 @@ const resolveNextNodeId = (storyOutline: StoryOutline, currentNodeId: string, ne
   return nextNodeId
 }
 
-export const createDefaultRuntimeState = (storyOutline: StoryOutline): RuntimeState => {
+export const createDefaultRuntimeSettings = (): RuntimeState['settings'] => runtimeSettingsSchema.parse({
+  bgmEnabled: true,
+  preferredModelMode: 'default',
+  modelProvider: 'openai-compatible',
+  openAiCompatible: {
+    apiKey: '',
+    baseUrl: 'https://api.openai.com/v1',
+    model: 'gpt-4o-mini'
+  }
+})
+
+export const createDefaultRuntimeState = (
+  storyOutline: StoryOutline,
+  settings: RuntimeState['settings'] = createDefaultRuntimeSettings()
+): RuntimeState => {
   const readNodeIds: string[] = []
 
   return runtimeStateSchema.parse({
@@ -103,16 +117,7 @@ export const createDefaultRuntimeState = (storyOutline: StoryOutline): RuntimeSt
     historySummary: summarizeRepairedMemories(storyOutline, readNodeIds),
     readNodeIds,
     isCompleted: false,
-    settings: {
-      bgmEnabled: true,
-      preferredModelMode: 'default',
-      modelProvider: 'openai-compatible',
-      openAiCompatible: {
-        apiKey: '',
-        baseUrl: 'https://api.openai.com/v1',
-        model: 'gpt-4o-mini'
-      }
-    }
+    settings
   })
 }
 
