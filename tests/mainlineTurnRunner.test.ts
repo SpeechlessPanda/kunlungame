@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { runMainlineTurn } from '../src/modeling/mainlineTurnRunner.js'
 import { mainlineStoryOutline } from '../src/content/source/mainlineOutline.js'
 import { createDefaultRuntimeState } from '../src/runtime/runtimeState.js'
+import type { StoryPrompt } from '../src/modeling/storyPromptBuilder.js'
 
 const bootstrapInput = {
     preferredMode: 'default' as const,
@@ -31,6 +32,7 @@ describe('runMainlineTurn', () => {
             throw new Error('remote turns must not check local GGUF files')
         }
         const createInputs: unknown[] = []
+        const prompts: StoryPrompt[] = []
 
         const result = await runMainlineTurn(
             {
@@ -46,7 +48,8 @@ describe('runMainlineTurn', () => {
                 createDialogueDependencies: (input) => {
                     createInputs.push(input)
                     return {
-                        streamText: async function* () {
+                        streamText: async function* (prompt) {
+                            prompts.push(prompt)
                             yield '昆仑子把这一段讲清楚。'
                         },
                         generateOptions: async () => [
@@ -73,6 +76,7 @@ describe('runMainlineTurn', () => {
                 fallbackModels: ['z-ai/glm-4.5-air:free']
             }
         })
+        expect(prompts[0]?.system).toContain('严格覆盖模式')
     })
 
     it('falls back to local GGUF when API provider is selected but no key is configured', async () => {

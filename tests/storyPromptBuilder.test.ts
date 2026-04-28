@@ -31,6 +31,8 @@ describe('buildStoryPrompt', () => {
     expect(prompt.system).not.toContain('小妹妹')
     expect(prompt.system).toContain('称呼玩家为"你"')
     expect(prompt.system).toContain('不得用"你们"称呼玩家')
+    expect(prompt.system).toContain('[[PREV_REPLY')
+    expect(prompt.system).toContain('System:')
     expect(prompt.user).toContain(currentNode.coreQuestion)
     expect(prompt.user).toContain(currentNode.mustIncludeFacts[0] ?? '')
     expect(prompt.user).toContain('昆仑被视为世界中心。')

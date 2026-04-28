@@ -143,22 +143,22 @@ describe('SettingsPanel · model profile picker', () => {
       openAiCompatible: {
         apiKey: '',
         baseUrl: 'https://openrouter.ai/api/v1',
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openai/gpt-oss-120b:free',
         fallbackModels: []
       }
     })
 
     const fallbackInput = mounted.container.querySelector<HTMLTextAreaElement>('[data-testid="settings-openai-fallback-models"]')
     expect(fallbackInput).not.toBeNull()
-    fallbackInput!.value = 'z-ai/glm-4.5-air:free\n\nmeta-llama/llama-3.3-70b-instruct:free'
+    fallbackInput!.value = 'qwen/qwen3-next-80b-a3b-instruct:free\n\nz-ai/glm-4.5-air:free'
     fallbackInput!.dispatchEvent(new Event('input'))
 
     expect(mounted.emitted.updateOpenAiCompatible.at(-1)).toMatchObject({
       baseUrl: 'https://openrouter.ai/api/v1',
-      model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+      model: 'openai/gpt-oss-120b:free',
       fallbackModels: [
-        'z-ai/glm-4.5-air:free',
-        'meta-llama/llama-3.3-70b-instruct:free'
+        'qwen/qwen3-next-80b-a3b-instruct:free',
+        'z-ai/glm-4.5-air:free'
       ]
     })
     expect(mounted.container.textContent ?? '').toContain('OpenRouter 免费模型通常以 :free 结尾')
@@ -181,11 +181,11 @@ describe('SettingsPanel · model profile picker', () => {
     expect(mounted.emitted.updateOpenAiCompatible.at(-1)).toEqual({
       apiKey: 'sk-test',
       baseUrl: 'https://openrouter.ai/api/v1',
-      model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+      model: 'openai/gpt-oss-120b:free',
       fallbackModels: [
+        'qwen/qwen3-next-80b-a3b-instruct:free',
         'z-ai/glm-4.5-air:free',
-        'meta-llama/llama-3.3-70b-instruct:free',
-        'openai/gpt-oss-120b:free'
+        'meta-llama/llama-3.3-70b-instruct:free'
       ]
     })
   })

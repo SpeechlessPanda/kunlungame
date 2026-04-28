@@ -301,7 +301,7 @@ export const runMainlineTurn = async (
             attitudeChoiceMode: input.attitudeChoiceMode,
             recentTurns: input.recentTurns,
             // 1.5B / 3B 都需要 strictCoverage（小模型指令遵循弱），只有 7B Pro 可以放宽。
-            strictCoverage: selectedModel.provider === 'local' && selectedModel.profileId !== getProModelProfile().id
+            strictCoverage: selectedModel.profileId !== getProModelProfile().id
         })) {
             if (event.type === 'chunk') {
                 chunks.push(event.text)

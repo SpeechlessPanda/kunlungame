@@ -9,7 +9,7 @@
 3. Lite 本地兜底档：Qwen2.5-1.5B-Instruct GGUF Q4_K_M，用于低显存或纯 CPU 机器。
 4. Pro 本地可选档：Qwen2.5-7B-Instruct GGUF Q3_K_M，需要用户显式选择。
 
-推荐 API 模型：`gpt-4o-mini` 速度、成本和中文质量平衡最好；`gpt-4.1-mini` 指令遵循更强，适合更重视剧情约束的体验；`gpt-4o` 中文表达更细腻但成本更高。设置页提供 `OpenAI 官方` 与 `OpenRouter 免费` 两个预设；OpenRouter 可通过 `https://openrouter.ai/api/v1` 接入 OpenAI-compatible 格式，免费模型通常以 `:free` 结尾，例如 `qwen/qwen3-next-80b-a3b-instruct:free`、`z-ai/glm-4.5-air:free`。当前只支持 OpenAI-compatible `/chat/completions` 流式格式；`baseUrl` 必须填 API 根地址（如 `https://api.openai.com/v1`），不要填完整 `/chat/completions` 路径。
+推荐 API 模型：`gpt-4o-mini` 速度、成本和中文质量平衡最好；`gpt-4.1-mini` 指令遵循更强，适合更重视剧情约束的体验；`gpt-4o` 中文表达更细腻但成本更高。设置页提供 `OpenAI 官方` 与 `OpenRouter 免费` 两个预设；OpenRouter 可通过 `https://openrouter.ai/api/v1` 接入 OpenAI-compatible 格式，免费模型通常以 `:free` 结尾，例如 `openai/gpt-oss-120b:free`、`qwen/qwen3-next-80b-a3b-instruct:free`。当前只支持 OpenAI-compatible `/chat/completions` 流式格式；`baseUrl` 必须填 API 根地址（如 `https://api.openai.com/v1`），不要填完整 `/chat/completions` 路径。
 
 真实 API 烟雾：
 
@@ -75,7 +75,7 @@ Pro 可选档：
 2. 当前节点会显式带入 `coreQuestion`、`summary`、`mustIncludeFacts`。
 3. 检索条目会被格式化为 RAG cards，包含来源、主题、事实要点和讲述方式提示；模型必须用当前人物口吻重组这些事实，不能照抄条目。
 4. `forbiddenFutureTopics`、当前节点之后所有主线节点的关键词、推荐人物与 `mustIncludeFacts` 中可提取的后续事件/专有词会被写入 prompt，作为反剧透边界。
-5. 3B / 1.5B 严格覆盖模式会要求 3-4 个自然段、足够长度和当前节点事实覆盖；如果模型首答太短、段落不足或关键词覆盖不足，会用同一个本地模型再跑一次窄化修复 prompt。
+5. 3B / 1.5B 与 OpenAI-compatible 远程 API 默认启用严格覆盖模式，要求 3-4 个自然段、足够长度和当前节点事实覆盖；如果模型首答太短、段落不足或关键词覆盖不足，会用同一个模型再跑一次窄化修复 prompt。只有 7B Pro 本地档可放宽。
 6. 当前玩家倾向会被翻译为 `附和型` 或 `反驳型`，但不会改变主线事实或节点顺序。
 7. prompt 明确要求只面对一个玩家说话，称呼为 `你`，不得把玩家称为 `你们`；除非是在引用历史群体或多人场景。
 

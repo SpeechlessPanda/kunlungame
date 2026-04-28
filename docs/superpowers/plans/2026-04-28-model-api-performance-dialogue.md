@@ -70,7 +70,8 @@
 - [x] Add regression coverage for future-node fact terms in anti-spoiler boundaries.
 - [x] Normalize accidental plural player address in final reply cleanup.
 - [x] Make settings UI explicitly state that only OpenAI-compatible `/chat/completions` streaming is supported and that Base URL must be the API root.
-- [x] Run real API smoke with the user's configured OpenRouter key through ignored `.env.local`: `pnpm smoke:openai` completed with `qwen/qwen3-next-80b-a3b-instruct:free`, produced a 317-character first-node reply and two contextual options, and log scan found no API key or Authorization header in `logs/dialogue-smoke/`.
+- [x] Keep OpenAI-compatible turns on the strict coverage path so remote models still satisfy length and current-node fact coverage instead of returning short partial replies.
+- [x] Run real API smoke with the user's configured OpenRouter key through ignored `.env.local`: `pnpm smoke:openai` completed with `openai/gpt-oss-120b:free`, produced a 285-character first-node reply and two contextual options, and log scan found no API key or Authorization header in `logs/dialogue-smoke/`.
 
 ## Acceptance
 
