@@ -26,7 +26,8 @@ win:
     - target: nsis
       arch:
         - x64
-  artifactName: ${productName}-${version}-win-${arch}.${ext}
+  artifactName: Kunlunyao-${version}-win-${arch}.${ext}
+  # GitHub Release 资产名不能包含中文（CDN 会剥除 non-ASCII 字符导致下载名错乱），所以这里用 Kunlunyao 拼音作为产出名。
   # 无 icon 时 electron-builder 会用 Electron 默认图标；首版不强求商用图标。
 nsis:
   oneClick: false
@@ -35,4 +36,4 @@ nsis:
   createDesktopShortcut: always
   createStartMenuShortcut: true
   shortcutName: 昆仑谣
-  artifactName: ${productName}-${version}-Setup.${ext}
+  artifactName: Kunlunyao-${version}-Setup.${ext}
