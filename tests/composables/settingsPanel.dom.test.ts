@@ -161,6 +161,32 @@ describe('SettingsPanel · model profile picker', () => {
     expect(mounted.container.textContent ?? '').toContain('OpenRouter 免费模型通常以 :free 结尾')
   })
 
+  it('applies API provider presets while preserving the configured API key', () => {
+    mounted = mountSettings('default', getDefaultModelProfile().id, {
+      openAiCompatible: {
+        apiKey: 'sk-test',
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-4o-mini',
+        fallbackModels: []
+      }
+    })
+
+    const openRouterPreset = mounted.container.querySelector<HTMLButtonElement>('[data-testid="settings-openai-preset-openrouter-free"]')
+    expect(openRouterPreset).not.toBeNull()
+    openRouterPreset!.click()
+
+    expect(mounted.emitted.updateOpenAiCompatible.at(-1)).toEqual({
+      apiKey: 'sk-test',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'deepseek/deepseek-chat-v3-0324:free',
+      fallbackModels: [
+        'qwen/qwen3-235b-a22b:free',
+        'meta-llama/llama-3.3-70b-instruct:free',
+        'google/gemini-2.0-flash-exp:free'
+      ]
+    })
+  })
+
   it('emits provider changes and reveals local model options when local is active', () => {
     mounted = mountSettings('default', getDefaultModelProfile().id, {
       modelProvider: 'local'

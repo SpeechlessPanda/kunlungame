@@ -61,6 +61,13 @@ interface ModelModeOption {
   hint: string;
 }
 
+interface ApiProviderPreset {
+  id: "openai" | "openrouter-free";
+  label: string;
+  hint: string;
+  settings: Omit<OpenAiCompatibleSettings, "apiKey">;
+}
+
 const defaultProfile = getDefaultModelProfile();
 const fallbackProfile = getFallbackModelProfile();
 const proProfile = getProModelProfile();
@@ -86,6 +93,33 @@ const modelModeOptions: ModelModeOption[] = [
     label: "Pro Mode · 7B（可选）",
     tagline: "Q3_K_M 单文件 ~3.81GB，需手动下载权重",
     hint: "建议 >= 6GB VRAM 独显；相比 Q4_K_M 体积更小、token 生成更快，质量损失 < 3%。",
+  },
+];
+
+const apiProviderPresets: ApiProviderPreset[] = [
+  {
+    id: "openai",
+    label: "OpenAI 官方",
+    hint: "速度、中文质量和稳定性最均衡。",
+    settings: {
+      baseUrl: "https://api.openai.com/v1",
+      model: "gpt-4o-mini",
+      fallbackModels: [],
+    },
+  },
+  {
+    id: "openrouter-free",
+    label: "OpenRouter 免费",
+    hint: "免费模型波动较大，已预填备用池。",
+    settings: {
+      baseUrl: "https://openrouter.ai/api/v1",
+      model: "deepseek/deepseek-chat-v3-0324:free",
+      fallbackModels: [
+        "qwen/qwen3-235b-a22b:free",
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "google/gemini-2.0-flash-exp:free",
+      ],
+    },
   },
 ];
 
@@ -125,6 +159,13 @@ const updateFallbackModels = (value: string): void => {
       .map((line) => line.trim())
       .filter((line) => line.length > 0),
   );
+};
+
+const applyApiProviderPreset = (preset: ApiProviderPreset): void => {
+  emit("update-openai-compatible", {
+    apiKey: props.openAiCompatible.apiKey,
+    ...preset.settings,
+  });
 };
 
 const statusFor = (profileId: string): ProfileAvailabilityStatus => {
@@ -191,6 +232,23 @@ const onDownload = (event: Event, profileId: string): void => {
   </div>
 
   <div v-if="modelProvider === 'openai-compatible'" class="settings-panel__api-form" data-testid="settings-openai-form">
+    <div class="settings-panel__preset-list" aria-label="API 接入预设">
+      <button
+        v-for="preset in apiProviderPresets"
+        :key="preset.id"
+        type="button"
+        class="settings-panel__preset-button"
+        :data-testid="`settings-openai-preset-${preset.id}`"
+        @click="applyApiProviderPreset(preset)"
+      >
+        <span class="settings-panel__preset-label">
+          <Cloud v-if="preset.id === 'openai'" :size="15" :stroke-width="1.8" aria-hidden="true" />
+          <KeyRound v-else :size="15" :stroke-width="1.8" aria-hidden="true" />
+          {{ preset.label }}
+        </span>
+        <span class="settings-panel__preset-hint">{{ preset.hint }}</span>
+      </button>
+    </div>
     <label class="settings-panel__field">
       <span class="settings-panel__field-label">
         <KeyRound :size="14" :stroke-width="1.8" aria-hidden="true" />API Key
@@ -394,6 +452,46 @@ const onDownload = (event: Event, profileId: string): void => {
   border-radius: var(--radius-md);
   border: 1px solid rgba(216, 168, 79, 0.2);
   background: rgba(5, 11, 13, 0.16);
+}
+
+.settings-panel__preset-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.settings-panel__preset-button {
+  min-height: 68px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(216, 168, 79, 0.24);
+  background: rgba(248, 239, 222, 0.08);
+  color: var(--color-foreground-invert);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-panel__preset-button:hover,
+.settings-panel__preset-button:focus-visible {
+  background: rgba(248, 239, 222, 0.14);
+  border-color: rgba(216, 168, 79, 0.48);
+}
+
+.settings-panel__preset-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--color-foreground-invert);
+}
+
+.settings-panel__preset-hint {
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  color: rgba(255, 246, 232, 0.6);
 }
 
 .settings-panel__field {

@@ -9,7 +9,7 @@
 3. Lite 本地兜底档：Qwen2.5-1.5B-Instruct GGUF Q4_K_M，用于低显存或纯 CPU 机器。
 4. Pro 本地可选档：Qwen2.5-7B-Instruct GGUF Q3_K_M，需要用户显式选择。
 
-推荐 API 模型：`gpt-4o-mini` 速度、成本和中文质量平衡最好；`gpt-4.1-mini` 指令遵循更强，适合更重视剧情约束的体验；`gpt-4o` 中文表达更细腻但成本更高。OpenRouter 可通过 `https://openrouter.ai/api/v1` 接入 OpenAI-compatible 格式，免费模型通常以 `:free` 结尾，例如 `deepseek/deepseek-chat-v3-0324:free`、`qwen/qwen3-235b-a22b:free`。当前只支持 OpenAI-compatible `/chat/completions` 流式格式。
+推荐 API 模型：`gpt-4o-mini` 速度、成本和中文质量平衡最好；`gpt-4.1-mini` 指令遵循更强，适合更重视剧情约束的体验；`gpt-4o` 中文表达更细腻但成本更高。设置页提供 `OpenAI 官方` 与 `OpenRouter 免费` 两个预设；OpenRouter 可通过 `https://openrouter.ai/api/v1` 接入 OpenAI-compatible 格式，免费模型通常以 `:free` 结尾，例如 `deepseek/deepseek-chat-v3-0324:free`、`qwen/qwen3-235b-a22b:free`。当前只支持 OpenAI-compatible `/chat/completions` 流式格式。
 
 ## 推理与分发策略
 
