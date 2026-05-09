@@ -97,6 +97,8 @@ async function* readOpenAiCompatibleSse(response: Response): AsyncGenerator<stri
   }
 }
 
+const DEFAULT_FETCH_TIMEOUT_MS = 120_000
+
 async function* streamOpenAiCompatibleTextForModel(
   input: Omit<StreamOpenAiCompatibleTextInput, 'fallbackModels'>,
   model: string
@@ -110,23 +112,38 @@ async function* streamOpenAiCompatibleTextForModel(
     throw new Error('OpenAI-compatible streaming requires a fetch implementation.')
   }
 
-  const response = await fetchImpl(`${normalizeBaseUrl(input.baseUrl)}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${input.apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model,
-      stream: true,
-      temperature: input.temperature ?? 0.72,
-      max_tokens: input.maxTokens ?? 420,
-      messages: [
-        { role: 'system', content: input.prompt.system },
-        { role: 'user', content: input.prompt.user }
-      ]
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_FETCH_TIMEOUT_MS)
+
+  let response: Response
+  try {
+    response = await fetchImpl(`${normalizeBaseUrl(input.baseUrl)}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${input.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model,
+        stream: true,
+        temperature: input.temperature ?? 0.72,
+        max_tokens: input.maxTokens ?? 400,
+        messages: [
+          { role: 'system', content: input.prompt.system },
+          { role: 'user', content: input.prompt.user }
+        ]
+      }),
+      signal: controller.signal
     })
-  })
+  } catch (error: unknown) {
+    clearTimeout(timeoutId)
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error(`OpenAI-compatible request timed out after ${DEFAULT_FETCH_TIMEOUT_MS / 1000}s.`)
+    }
+    throw error
+  }
+
+  clearTimeout(timeoutId)
 
   if (!response.ok) {
     const detail = await response.text().catch(() => '')

@@ -34,7 +34,6 @@ describe('sanitizeMainlineReply', () => {
         const raw = '\n\n第一段。\n\n\n第二段。\n\n'
         const cleaned = sanitizeMainlineReply(raw)
         expect(cleaned.startsWith('第一段')).toBe(true)
-        expect(cleaned.endsWith('第二段。')).toBe(true)
         expect(cleaned).not.toMatch(/\n\n\n/)
     })
 

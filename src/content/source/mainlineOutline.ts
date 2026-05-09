@@ -58,7 +58,7 @@ export const mainlineStoryOutline: StoryOutline = {
       theme: '天地初开与秩序起源',
       coreQuestion: '中国神话怎样解释天地、人类与秩序从何而来？',
       summary:
-        '以盘古、女娲、大禹几个核心神话串起中国文明对"世界怎么来的、人怎么来的、灾难如何被压住"的最初想象。',
+        '以盘古、女娲、大禹几个核心神话串起中国文明对"世界怎么来的、人怎么来的、灾难怎样被驯服和修补"的最初想象。',
       mustIncludeFacts: [
         '盘古开天辟地用身体化作山川日月，解释天地如何从混沌中被撑开',
         '女娲抟土造人与炼石补天，把"造人"和"修补世界"并置成同一种责任',
@@ -127,7 +127,7 @@ export const mainlineStoryOutline: StoryOutline = {
       theme: '秩序、伦理与争鸣',
       coreQuestion: '中国文化怎样在争论中形成稳定的秩序观？',
       summary:
-        '从周公制礼作乐、《周易》的思维结构，到孔孟、老庄、墨法的争鸣，理解中国的秩序观并不是单声道，而是在多家互相拉扯里长出来的。',
+        '从周公制礼作乐、《周易》的思维结构，到孔孟、老庄、墨法的争鸣，理解中国的秩序观并不是单声道，而是在多家互相争辩、互相影响里慢慢长出来的。',
       mustIncludeFacts: [
         '周公制礼作乐为血缘宗法和政治秩序提供了统一的"仪式语言"',
         '《周易》以阴阳、卦象把自然变化、社会秩序与人生判断串成同一种思维',
@@ -180,7 +180,7 @@ export const mainlineStoryOutline: StoryOutline = {
       backgroundMode: 'photographic',
       backgroundHint: '都城遗址、丝路风沙与盛唐城市气象相互呼应。',
       toneHint: '大开大合，但避免口号化赞叹。',
-      transitionHint: '诸子互相拉扯的时代结束后，昆仑把地图缓缓摊开：万里长城、一条从长安出发的商队——把话引到"文明如何被收拢成一个帝国又同时保持开放"。',
+      transitionHint: '诸子争鸣的时代结束后，昆仑把地图缓缓摊开：万里长城、一条从长安出发的商队——把话引到"文明如何被收拢成一个帝国又同时保持开放"。',
       characterCueIds: ['guide.kunlun'],
       minTurns: 1,
       nextNodeId: 'fusion-and-refinement'

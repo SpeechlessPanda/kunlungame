@@ -32,42 +32,64 @@ export interface DialogueDependencies {
   }) => Promise<DialogueOption[]>
 }
 
+const MAX_RETRIES = 2
+const RETRY_DELAY_MS = 2000
+
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
 export async function* orchestrateDialogue(
   dependencies: DialogueDependencies,
   input: DialogueOrchestratorInput
 ): AsyncGenerator<DialogueEvent> {
-  try {
-    const prompt = buildStoryPrompt(input)
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const prompt = buildStoryPrompt(input)
 
-    for await (const item of dependencies.streamText(prompt)) {
-      if (typeof item !== 'string') {
-        yield { type: 'reset' }
+      for await (const item of dependencies.streamText(prompt)) {
+        if (typeof item !== 'string') {
+          yield { type: 'reset' }
+          continue
+        }
+        yield {
+          type: 'chunk',
+          text: item
+        }
+      }
+
+      const options = await dependencies.generateOptions({
+        currentNode: input.currentNode,
+        semantics: ['align', 'challenge']
+      })
+
+      yield {
+        type: 'options',
+        options
+      }
+
+      yield {
+        type: 'complete'
+      }
+      return
+    } catch (error: unknown) {
+      const isTermination = error instanceof Error && (
+        error.message.includes('terminated') ||
+        error.message.includes('timed out') ||
+        error.message.includes('ECONNRESET') ||
+        error.message.includes('socket')
+      )
+      if (attempt < MAX_RETRIES && isTermination) {
+        yield {
+          type: 'reset'
+        }
+        await delay(RETRY_DELAY_MS * (attempt + 1))
         continue
       }
       yield {
-        type: 'chunk',
-        text: item
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unknown dialogue orchestration error.',
+        retryable: true
       }
-    }
-
-    const options = await dependencies.generateOptions({
-      currentNode: input.currentNode,
-      semantics: ['align', 'challenge']
-    })
-
-    yield {
-      type: 'options',
-      options
-    }
-
-    yield {
-      type: 'complete'
-    }
-  } catch (error: unknown) {
-    yield {
-      type: 'error',
-      message: error instanceof Error ? error.message : 'Unknown dialogue orchestration error.',
-      retryable: true
+      return
     }
   }
 }
