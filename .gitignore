@@ -19,3 +19,4 @@ session-*.md
 .commit-msg.txt
 
 audit.json
+rvs-pack/

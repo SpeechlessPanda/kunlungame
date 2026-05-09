@@ -2,30 +2,17 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { readFileSync } from 'node:fs'
 import type {
-  DesktopDialogueSmokeResult,
-  DesktopDownloadProfileResult,
   DesktopMainlineTurnRequest,
   DesktopMainlineTurnResult,
   DesktopMainlineTurnStreamEvent,
   DesktopOpenAiCompatibleTestRequest,
-  DesktopProfileAvailability,
-  DesktopProfileDownloadProgressEvent,
+  DesktopOpenAiCompatibleTestResult,
   DesktopRuntimeStateSnapshot,
   DesktopSerializedRuntimeState,
   DesktopStartupSnapshot
 } from '../../src/shared/types/desktop.js'
 import { testOpenAiCompatibleConnection } from '../../src/modeling/openAiCompatibleConnectionTest.js'
-import { buildModelSetupPlan, evaluateSingleProfileAvailability, type BuildModelSetupPlanInput } from '../../src/modeling/modelSetupPlanner.js'
-import { runDialogueSmokeTest } from '../../src/modeling/dialogueSmokeTest.js'
 import { runMainlineTurn, type MainlineTurnStreamCallbacks } from '../../src/modeling/mainlineTurnRunner.js'
-import { findModelProfileById } from '../../src/modeling/modelProfiles.js'
-import { resolveModelStoragePaths } from '../../src/modeling/modelPaths.js'
-import {
-  buildDefaultProfileDownloaderDependencies,
-  downloadProfileWeights,
-  type ProfileDownloadProgressEvent,
-  type ProfileDownloaderDependencies
-} from '../../src/modeling/profileDownloader.js'
 import {
   createDesktopRuntimeStateSnapshot,
   parseDesktopRuntimeState
@@ -33,13 +20,6 @@ import {
 import { loadRuntimeState, saveRuntimeState, type SecretCipher } from '../../src/runtime/saveRepository.js'
 import { mainlineStoryOutline } from '../../src/content/source/mainlineOutline.js'
 
-/**
- * 在 Electron 环境里基于 `safeStorage` 构造 SecretCipher。
- * - 只在 `safeStorage.isEncryptionAvailable()` 为 true 时返回加密实现；
- * - 输出格式：`enc:v1:<base64(safeStorage.encryptString)>`。
- * - 读盘时只对以 `enc:v1:` 开头的值调 `decryptString`，原生明文原样返回，
- *   这让旧版本进入本版本不会丢失现有用户设置。
- */
 export const createSafeStorageSecretCipher = (
   safeStorage: { isEncryptionAvailable: () => boolean; encryptString: (plain: string) => Buffer; decryptString: (encrypted: Buffer) => string }
 ): SecretCipher => {
@@ -85,16 +65,6 @@ export interface MainWindowOptions {
   }
 }
 
-/**
- * dev 模式下的 .env 加载器：把 `.env.local` / `.env` 里的键值对注入 process.env
- * （不覆盖已存在的变量），用于让 `pnpm dev` 起来后渲染层能直接读到 OpenAI 兼容
- * 接口的 apiKey/baseUrl/model，免去每次手动在设置面板里粘贴。
- *
- * - 仅在 `app.isPackaged === false` 时调用；安装包里不读 .env。
- * - 解析规则：忽略空行与 `#` 开头的注释行，按第一个 `=` 切分 key/value，
- *   value 两端的成对引号 (' 或 ") 会被剥掉；其他转义不处理（按"足够 dev 用"原则）。
- * - 找不到文件视为 no-op，不报错。
- */
 export const loadDevEnvFile = (projectRoot: string, filenames: readonly string[] = ['.env.local', '.env']): void => {
   for (const filename of filenames) {
     let content: string
@@ -125,18 +95,6 @@ export const loadDevEnvFile = (projectRoot: string, filenames: readonly string[]
   }
 }
 
-/**
- * dev 模式下，把 `KUNLUN_OPENAI_API_KEY` / `KUNLUN_OPENAI_BASE_URL` /
- * `KUNLUN_OPENAI_MODEL` / `KUNLUN_MODEL_PROVIDER` 等环境变量覆盖到 runtime-state
- * 快照的 `settings.openAiCompatible` 上，渲染层加载时即可看到这些值。
- *
- * - 任一环境变量未设置则保留快照原值；都未设置直接返回原对象。
- * - 当 `KUNLUN_OPENAI_API_KEY` 设置且 `KUNLUN_MODEL_PROVIDER` 未显式给出时，
- *   将 `modelProvider` 切到 `openai-compatible`，省去用户手动切档。
- * - 用户在 UI 里点保存时，注入的 apiKey 会被 safeStorage 加密后写入 runtime-state.json。
- *   下次清掉 .env 也想清掉持久化的 apiKey，需要手工把 settings 里的 key 改空再保存，
- *   或直接删 `%APPDATA%/kunlungame/runtime-state.json`。
- */
 export const applyDevOpenAiEnvOverrides = (
   snapshot: DesktopRuntimeStateSnapshot,
   env: NodeJS.ProcessEnv = process.env
@@ -145,8 +103,7 @@ export const applyDevOpenAiEnvOverrides = (
   const baseUrl = env['KUNLUN_OPENAI_BASE_URL']
   const model = env['KUNLUN_OPENAI_MODEL']
   const fallbackModelsRaw = env['KUNLUN_OPENAI_FALLBACK_MODELS']
-  const providerRaw = env['KUNLUN_MODEL_PROVIDER']
-  if (apiKey == null && baseUrl == null && model == null && fallbackModelsRaw == null && providerRaw == null) {
+  if (apiKey == null && baseUrl == null && model == null && fallbackModelsRaw == null) {
     return snapshot
   }
   const fallbackModels = fallbackModelsRaw == null
@@ -155,10 +112,6 @@ export const applyDevOpenAiEnvOverrides = (
       .split(/[\n,]/u)
       .map((item) => item.trim())
       .filter((item) => item.length > 0)
-  const provider: 'local' | 'openai-compatible' | undefined =
-    providerRaw === 'local' || providerRaw === 'openai-compatible'
-      ? providerRaw
-      : (apiKey != null && apiKey.length > 0 ? 'openai-compatible' : undefined)
   const oai = snapshot.state.settings.openAiCompatible
   return {
     ...snapshot,
@@ -166,7 +119,6 @@ export const applyDevOpenAiEnvOverrides = (
       ...snapshot.state,
       settings: {
         ...snapshot.state.settings,
-        modelProvider: provider ?? snapshot.state.settings.modelProvider,
         openAiCompatible: {
           apiKey: apiKey ?? oai.apiKey,
           baseUrl: baseUrl ?? oai.baseUrl,
@@ -178,18 +130,6 @@ export const applyDevOpenAiEnvOverrides = (
   }
 }
 
-export interface DesktopStartupInput extends Omit<BuildModelSetupPlanInput, 'entryPoint'> { }
-
-export interface DesktopStartupDependencies {
-  buildSetupPlan: (input: BuildModelSetupPlanInput) => Promise<Awaited<ReturnType<typeof buildModelSetupPlan>>>
-  runDialogueSmoke: (input: DesktopStartupInput) => Promise<DesktopDialogueSmokeResult>
-}
-
-const defaultStartupDependencies: DesktopStartupDependencies = {
-  buildSetupPlan: buildModelSetupPlan,
-  runDialogueSmoke: runDialogueSmokeTest
-}
-
 export const resolveRendererEntryPath = (currentDir: string): string => {
   return join(currentDir, '../renderer/index.html')
 }
@@ -197,18 +137,6 @@ export const resolveRendererEntryPath = (currentDir: string): string => {
 export const resolvePreloadEntryPath = (currentDir: string): string => {
   return join(currentDir, '../preload/index.cjs')
 }
-
-export const buildDesktopStartupInput = (input: {
-  isPackaged: boolean
-  projectRoot: string
-  appDataDir: string
-}): DesktopStartupInput => ({
-  preferredMode: 'default',
-  availableGpuVramGb: null,
-  isPackaged: input.isPackaged,
-  projectRoot: input.projectRoot,
-  appDataDir: input.appDataDir
-})
 
 export const createMainWindowOptions = (preloadPath: string): MainWindowOptions => ({
   width: 1440,
@@ -220,74 +148,28 @@ export const createMainWindowOptions = (preloadPath: string): MainWindowOptions 
     preload: preloadPath,
     contextIsolation: true,
     nodeIntegration: false,
-    // 安全基线：启用 sandbox。preload 仅使用 electron 模块（contextBridge / ipcRenderer），
-    // 不依赖 fs/path 等 Node API，因此对 sandbox 兼容。任何需要文件/进程权限的能力
-    // 都必须通过主进程 IPC 暴露，而非在渲染层直连。
     sandbox: true
   }
 })
 
-export const buildDesktopStartupSnapshot = async (
-  input: DesktopStartupInput,
-  dependencies: Partial<DesktopStartupDependencies> = {}
-): Promise<DesktopStartupSnapshot> => {
-  const resolvedDependencies = {
-    ...defaultStartupDependencies,
-    ...dependencies
-  }
-  const result = await resolvedDependencies.buildSetupPlan({
-    ...input,
-    entryPoint: 'startup'
-  })
-
-  return {
-    appName: 'Kunlungame',
-    shellReady: result.shellAction === 'launch-ready',
-    modelSetup: {
-      selectedProfileId: result.selectedProfile.id,
-      shellAction: result.shellAction
-    }
-  }
-}
-
-export const runDesktopDialogueSmoke = async (
-  input: DesktopStartupInput,
-  dependencies: Partial<DesktopStartupDependencies> = {}
-): Promise<DesktopDialogueSmokeResult> => {
-  const resolvedDependencies = {
-    ...defaultStartupDependencies,
-    ...dependencies
-  }
-
-  return await resolvedDependencies.runDialogueSmoke(input)
-}
-
 export const runDesktopMainlineTurn = async (
-  startupInput: DesktopStartupInput,
+  projectRoot: string,
   request: DesktopMainlineTurnRequest,
   stream: MainlineTurnStreamCallbacks = {}
 ): Promise<DesktopMainlineTurnResult> => {
   const parsedRuntimeState = parseDesktopRuntimeState(request.runtimeState)
-  // 用存档里持久化的用户偏好覆写 startupInput.preferredMode，
-  // 这样 Settings 面板一旦切换档位，下一轮就会加载对应的模型。
-  const effectiveStartupInput: DesktopStartupInput = {
-    ...startupInput,
-    preferredMode: parsedRuntimeState.settings.preferredModelMode
-  }
   const result = await runMainlineTurn({
-    ...effectiveStartupInput,
+    projectRoot,
     nodeId: request.nodeId,
     attitudeChoiceMode: request.attitudeChoiceMode,
     runtimeState: parsedRuntimeState,
     recentTurns: request.recentTurns
   }, {}, stream)
+
   if (result.ok) {
     return {
       ok: true,
-      selectedProfileId: result.selectedProfileId,
-      modelPath: result.modelPath,
       currentNodeId: result.currentNodeId,
-      fallbackUsed: result.fallbackUsed,
       chunks: result.chunks,
       combinedText: result.combinedText,
       options: result.options,
@@ -297,8 +179,7 @@ export const runDesktopMainlineTurn = async (
   return {
     ok: false,
     reason: result.reason,
-    message: result.message,
-    ...(result.modelPath != null ? { modelPath: result.modelPath } : {})
+    message: result.message
   }
 }
 
@@ -321,7 +202,6 @@ export const loadDesktopRuntimeState = async (
     saveFilePath: resolveRuntimeSaveFilePath(appDataDir),
     ...(secretCipher != null ? { secretCipher } : {})
   })
-
   return createDesktopRuntimeStateSnapshot(result.state, result.recoveryAction)
 }
 
@@ -338,109 +218,10 @@ export const saveDesktopRuntimeState = async (
   })
 }
 
-const resolveDesktopModelStorage = (input: { isPackaged: boolean; projectRoot: string; appDataDir: string }) => {
-  return resolveModelStoragePaths({
-    isPackaged: input.isPackaged,
-    projectRoot: input.projectRoot,
-    appDataDir: input.appDataDir
-  })
-}
-
-export const getDesktopProfileAvailability = async (
-  input: { isPackaged: boolean; projectRoot: string; appDataDir: string },
-  profileId: string
-): Promise<DesktopProfileAvailability> => {
-  const profile = findModelProfileById(profileId)
-  if (profile == null) {
-    return {
-      profileId,
-      status: 'missing',
-      expectedFiles: [],
-      presentFiles: [],
-      missingFiles: [],
-      completionRatio: 0,
-      manifestDownloadedAt: null
-    }
-  }
-  const storage = resolveDesktopModelStorage(input)
-  const availability = await evaluateSingleProfileAvailability(profile, storage)
-  return {
-    profileId: availability.profileId,
-    status: availability.status,
-    expectedFiles: availability.expectedFiles,
-    presentFiles: availability.presentFiles,
-    missingFiles: availability.missingFiles,
-    completionRatio: availability.completionRatio,
-    manifestDownloadedAt: availability.manifestDownloadedAt
-  }
-}
-
-const toDesktopProgressEvent = (event: ProfileDownloadProgressEvent): DesktopProfileDownloadProgressEvent => ({
-  profileId: event.profileId,
-  fileName: event.fileName,
-  phase: event.phase,
-  fileIndex: event.fileIndex,
-  totalFiles: event.totalFiles,
-  message: event.message,
-  bytesDownloaded: event.bytesDownloaded,
-  totalBytes: event.totalBytes
-})
-
-export interface DesktopDownloadProfileDependencies {
-  buildDependencies: () => Promise<ProfileDownloaderDependencies>
-}
-
-const activeDesktopDownloads = new Set<string>()
-
-export const runDesktopProfileDownload = async (
-  input: { isPackaged: boolean; projectRoot: string; appDataDir: string },
-  profileId: string,
-  onProgress: (event: DesktopProfileDownloadProgressEvent) => void,
-  dependencies: Partial<DesktopDownloadProfileDependencies> = {}
-): Promise<DesktopDownloadProfileResult> => {
-  const profile = findModelProfileById(profileId)
-  if (profile == null) {
-    return { ok: false, profileId, reason: 'unknown-profile', message: `未知的 profile id: ${profileId}` }
-  }
-  if (activeDesktopDownloads.has(profileId)) {
-    return { ok: false, profileId, reason: 'already-running', message: `${profile.label} 已在下载中` }
-  }
-  // 立即占位：避免 "check 与 add 之间仍朊 wait" 造成的并发竞态
-  // （两个快速连发的 IPC 调用都能跳过上面的检查、同时进入 downloadProfileWeights）。
-  activeDesktopDownloads.add(profileId)
-
-  const storage = resolveDesktopModelStorage(input)
-  let deps: ProfileDownloaderDependencies
-  try {
-    deps = await (dependencies.buildDependencies ?? buildDefaultProfileDownloaderDependencies)()
-  } catch (error) {
-    activeDesktopDownloads.delete(profileId)
-    const message = error instanceof Error ? error.message : String(error)
-    return { ok: false, profileId, reason: 'download-failed', message: `构建下载依赖失败: ${message}` }
-  }
-
-  try {
-    const result = await downloadProfileWeights({
-      profile,
-      storage,
-      deps,
-      onProgress: (event) => onProgress(toDesktopProgressEvent(event))
-    })
-    if (result.ok) {
-      return { ok: true, profileId }
-    }
-    return { ok: false, profileId, reason: 'download-failed', message: result.errorMessage ?? '下载失败' }
-  } finally {
-    activeDesktopDownloads.delete(profileId)
-  }
-}
-
 const bootstrapDesktopShell = async (): Promise<void> => {
   const { app, BrowserWindow, ipcMain, safeStorage } = await import('electron')
   const desktopSecretCipher = createSafeStorageSecretCipher(safeStorage)
 
-  // dev 模式：先把 .env.local / .env 注入 process.env，让后续 IPC handler 能读到。
-  // 安装包里 (app.isPackaged === true) 跳过；用户的 apiKey 应该走 UI 加密落盘。
   if (!app.isPackaged) {
     loadDevEnvFile(process.cwd())
   }
@@ -452,52 +233,24 @@ const bootstrapDesktopShell = async (): Promise<void> => {
 
   ipcMain.handle('desktop:ping', async () => 'pong')
   ipcMain.handle('desktop:quit-app', async () => {
-    // 用在结尾页"退出游戏"按钮：让用户主动结束本次旅程，对应 mainlineOutline 的最终节点。
     app.quit()
   })
   ipcMain.handle('desktop:get-startup-snapshot', async () => {
-    return await buildDesktopStartupSnapshot(buildDesktopStartupInput({
-      isPackaged: app.isPackaged,
-      projectRoot: process.cwd(),
-      appDataDir: app.getPath('userData')
-    }))
-  })
-  ipcMain.handle('desktop:run-dialogue-smoke', async () => {
-    return await runDesktopDialogueSmoke(buildDesktopStartupInput({
-      isPackaged: app.isPackaged,
-      projectRoot: process.cwd(),
-      appDataDir: app.getPath('userData')
-    }))
+    return { appName: 'Kunlungame', shellReady: true } satisfies DesktopStartupSnapshot
   })
   ipcMain.handle('desktop:run-mainline-turn', async (_event, request: DesktopMainlineTurnRequest) => {
-    return await runDesktopMainlineTurn(
-      buildDesktopStartupInput({
-        isPackaged: app.isPackaged,
-        projectRoot: process.cwd(),
-        appDataDir: app.getPath('userData')
-      }),
-      request
-    )
+    return await runDesktopMainlineTurn(process.cwd(), request)
   })
   ipcMain.handle('desktop:stream-mainline-turn', async (event, requestId: string, request: DesktopMainlineTurnRequest) => {
     const channel = toMainlineStreamChannel(requestId)
     const send = (payload: DesktopMainlineTurnStreamEvent): void => {
       if (!event.sender.isDestroyed()) event.sender.send(channel, payload)
     }
-
     try {
-      const result = await runDesktopMainlineTurn(
-        buildDesktopStartupInput({
-          isPackaged: app.isPackaged,
-          projectRoot: process.cwd(),
-          appDataDir: app.getPath('userData')
-        }),
-        request,
-        {
-          onChunk: (text) => send({ type: 'chunk', text }),
-          onReset: () => send({ type: 'reset' })
-        }
-      )
+      const result = await runDesktopMainlineTurn(process.cwd(), request, {
+        onChunk: (text) => send({ type: 'chunk', text }),
+        onReset: () => send({ type: 'reset' })
+      })
       send({ type: 'result', result })
     } catch (error) {
       send({ type: 'error', message: error instanceof Error ? error.message : String(error) })
@@ -505,46 +258,17 @@ const bootstrapDesktopShell = async (): Promise<void> => {
   })
   ipcMain.handle('desktop:load-runtime-state', async () => {
     const snapshot = await loadDesktopRuntimeState(app.getPath('userData'), desktopSecretCipher)
-    // dev 模式下用 .env / 启动环境变量覆盖 OpenAI 兼容设置，方便手测。
     return app.isPackaged ? snapshot : applyDevOpenAiEnvOverrides(snapshot)
   })
   ipcMain.handle('desktop:save-runtime-state', async (_event, state: DesktopSerializedRuntimeState) => {
     await saveDesktopRuntimeState(app.getPath('userData'), state, desktopSecretCipher)
   })
-
-  ipcMain.handle('desktop:get-profile-availability', async (_event, profileId: string) => {
-    return await getDesktopProfileAvailability(
-      {
-        isPackaged: app.isPackaged,
-        projectRoot: process.cwd(),
-        appDataDir: app.getPath('userData')
-      },
-      profileId
-    )
-  })
-
   ipcMain.handle('desktop:test-openai-compatible', async (_event, request: DesktopOpenAiCompatibleTestRequest) => {
     return await testOpenAiCompatibleConnection({
       apiKey: request?.apiKey ?? '',
       baseUrl: request?.baseUrl ?? '',
       model: request?.model ?? ''
     })
-  })
-
-  ipcMain.handle('desktop:download-profile', async (event, profileId: string) => {
-    return await runDesktopProfileDownload(
-      {
-        isPackaged: app.isPackaged,
-        projectRoot: process.cwd(),
-        appDataDir: app.getPath('userData')
-      },
-      profileId,
-      (progress) => {
-        if (!event.sender.isDestroyed()) {
-          event.sender.send('desktop:profile-download-progress', progress)
-        }
-      }
-    )
   })
 
   await app.whenReady()

@@ -14,8 +14,6 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "coverage": "vitest run --coverage",
-        "models:download": "tsx scripts/download-models.ts",
-        "dialogue:smoke": "tsx scripts/run-dialogue-smoke.ts",
         "smoke:openai": "tsx scripts/run-openai-compatible-smoke.ts",
         "playthrough": "tsx scripts/run-mainline-playthrough.ts",
         "knowledge:compile": "tsx scripts/compile-knowledge.ts",
@@ -24,7 +22,6 @@
     },
     "dependencies": {
         "lucide-vue-next": "^1.0.0",
-        "node-llama-cpp": "^3.12.1",
         "vue": "^3.5.13",
         "zod": "^3.24.1"
     },
@@ -46,8 +43,7 @@
     "pnpm": {
         "onlyBuiltDependencies": [
             "electron",
-            "esbuild",
-            "node-llama-cpp"
+            "esbuild"
         ]
     }
 }

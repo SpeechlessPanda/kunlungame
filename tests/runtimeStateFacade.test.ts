@@ -25,8 +25,6 @@ describe('runtimeStateFacade', () => {
       isCompleted: true,
       settings: {
         bgmEnabled: false,
-        preferredModelMode: 'pro',
-        modelProvider: 'openai-compatible',
         openAiCompatible: {
           apiKey: 'sk-test',
           baseUrl: 'https://api.example.test/v1',
@@ -49,8 +47,6 @@ describe('runtimeStateFacade', () => {
       isCompleted: true,
       settings: {
         bgmEnabled: false,
-        preferredModelMode: 'pro',
-        modelProvider: 'openai-compatible',
         openAiCompatible: {
           apiKey: 'sk-test',
           baseUrl: 'https://api.example.test/v1',
@@ -70,8 +66,7 @@ describe('runtimeStateFacade', () => {
       historySummary: '尚未修复任何文化记忆片段。',
       readNodeIds: [],
       settings: {
-        bgmEnabled: true,
-        preferredModelMode: 'default'
+        bgmEnabled: true
       }
     } as unknown as DesktopSerializedRuntimeState
 
@@ -79,8 +74,8 @@ describe('runtimeStateFacade', () => {
 
     expect(parsed.turnsInCurrentNode).toBe(0)
     expect(parsed.isCompleted).toBe(false)
-    expect(parsed.settings.modelProvider).toBe('openai-compatible')
-    expect(parsed.settings.openAiCompatible.baseUrl).toBe('https://api.openai.com/v1')
+    expect(parsed.settings.openAiCompatible.model).toBe('kimi-for-coding')
+    expect(parsed.settings.openAiCompatible.baseUrl).toBe('https://ai-api.vaa.la/v1')
     expect(parsed.settings.openAiCompatible.fallbackModels).toEqual([])
   })
 

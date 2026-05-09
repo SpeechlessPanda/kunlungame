@@ -12,24 +12,16 @@ const main = async (): Promise<void> => {
   if (settings == null) {
     throw new Error('Set KUNLUN_OPENAI_API_KEY or OPENAI_API_KEY before running `pnpm smoke:openai`.')
   }
-  const appDataDir = process.env['APPDATA']
-    ? join(process.env['APPDATA'], 'Kunlungame')
-    : join(projectRoot, 'runtime-cache')
 
   const runtimeState = createDefaultRuntimeState(mainlineStoryOutline)
   const result = await runMainlineTurn({
-    preferredMode: 'default',
-    availableGpuVramGb: null,
-    isPackaged: false,
     projectRoot,
-    appDataDir,
     nodeId: runtimeState.currentNodeId,
     attitudeChoiceMode: 'align',
     runtimeState: {
       ...runtimeState,
       settings: {
         ...runtimeState.settings,
-        modelProvider: 'openai-compatible',
         openAiCompatible: {
           apiKey: settings.apiKey,
           baseUrl: settings.baseUrl,

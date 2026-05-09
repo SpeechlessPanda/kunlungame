@@ -20,7 +20,7 @@ import DialogPanel from "./DialogPanel.vue";
 import ChoicePanel from "./ChoicePanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import BgmPlayer from "./BgmPlayer.vue";
-import type { ModelProvider, OpenAiCompatibleSettings, ProfileDownloadStatus } from "./SettingsPanel.types.js";
+import type { OpenAiCompatibleSettings } from "./SettingsPanel.types.js";
 import type {
   DesktopOpenAiCompatibleTestRequest,
   DesktopOpenAiCompatibleTestResult,
@@ -45,16 +45,7 @@ interface Props {
   bgmSrc?: string | null;
   settingsOpen: boolean;
   speakerLabel?: string;
-  isFallbackModel?: boolean;
-  modelProvider: ModelProvider;
   openAiCompatible: OpenAiCompatibleSettings;
-  preferredModelMode: "default" | "compatibility" | "pro";
-  selectedProfileId: string | null;
-  profileAvailability?: Record<
-    string,
-    "ready" | "partial" | "missing" | "unknown"
-  >;
-  downloadStatus?: ProfileDownloadStatus | null;
   runConnectionTest?: (
     request: DesktopOpenAiCompatibleTestRequest,
   ) => Promise<DesktopOpenAiCompatibleTestResult>;
@@ -68,11 +59,8 @@ interface Emits {
   (event: "close-settings"): void;
   (event: "toggle-bgm"): void;
   (event: "set-volume", value: number): void;
-  (event: "set-model-provider", provider: ModelProvider): void;
   (event: "update-openai-compatible", settings: OpenAiCompatibleSettings): void;
   (event: "bgm-source-resolved", available: boolean): void;
-  (event: "set-model-mode", mode: "default" | "compatibility" | "pro"): void;
-  (event: "download-profile", profileId: string): void;
 }
 
 const props = defineProps<Props>();
@@ -147,7 +135,6 @@ useKeyboardControls(
         :attitude-score="attitudeScore"
         :attitude-min="attitudeMin"
         :attitude-max="attitudeMax"
-        :is-fallback-model="isFallbackModel ?? false"
       />
       <button
         type="button"
@@ -179,20 +166,12 @@ useKeyboardControls(
     <SettingsPanel
       :open="settingsOpen"
       :bgm="bgm"
-      :model-provider="modelProvider"
       :open-ai-compatible="openAiCompatible"
-      :preferred-model-mode="preferredModelMode"
-      :selected-profile-id="selectedProfileId"
-      :profile-availability="profileAvailability ?? {}"
-      :download-status="downloadStatus ?? null"
       :run-connection-test="runConnectionTest"
       @close="emit('close-settings')"
       @toggle-bgm="emit('toggle-bgm')"
       @set-volume="(value) => emit('set-volume', value)"
-      @set-model-provider="(provider) => emit('set-model-provider', provider)"
       @update-openai-compatible="(settings) => emit('update-openai-compatible', settings)"
-      @set-model-mode="(mode) => emit('set-model-mode', mode)"
-      @download-profile="(profileId) => emit('download-profile', profileId)"
     />
   </main>
 </template>

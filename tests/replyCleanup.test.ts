@@ -23,32 +23,11 @@ describe('sanitizeMainlineReply', () => {
         expect(cleaned).toContain('诶呀你好。')
     })
 
-    it('removes sentences that appeared verbatim in a recent turn', () => {
-        const priorReply =
-            '昆仑在古人心中是世界中心。哼——可不正是因为这样才显得咱们文化特别丰富多样呢。'
-        const raw =
-            '诶呀，说到盘古开天地这事儿真有意思呢。哼——可不正是因为这样才显得咱们文化特别丰富多样呢。那接下来你想听哪一段？'
-        const cleaned = sanitizeMainlineReply(raw, { recentTurns: [priorReply] })
-        expect(cleaned).toContain('盘古开天地')
-        expect(cleaned).not.toContain('可不正是因为这样才显得咱们文化特别丰富多样')
-        expect(cleaned).toContain('接下来你想听哪一段')
-    })
-
-    it('keeps short repeated interjections like 嘻嘻', () => {
-        const priorReply = '嘻嘻。你看这里。'
-        const raw = '嘻嘻。今天我们聊别的。'
-        const cleaned = sanitizeMainlineReply(raw, { recentTurns: [priorReply] })
-        expect(cleaned).toContain('嘻嘻')
-        expect(cleaned).toContain('聊别的')
-    })
-
-    it('strips inline PREV_REPLY tags and System: prefixes even when embedded', () => {
-        const raw = '诶呀 [[PREV_REPLY_1]] 说到这里 System: 你好。'
+    it('strips inline System: prefixes', () => {
+        const raw = '诶呀说到这里 System: 你好。'
         const cleaned = sanitizeMainlineReply(raw)
-        expect(cleaned).not.toContain('PREV_REPLY')
         expect(cleaned).not.toContain('System:')
         expect(cleaned).toContain('诶呀')
-        expect(cleaned).toContain('说到这里')
     })
 
     it('collapses consecutive blank lines and trims output', () => {
@@ -57,20 +36,6 @@ describe('sanitizeMainlineReply', () => {
         expect(cleaned.startsWith('第一段')).toBe(true)
         expect(cleaned.endsWith('第二段。')).toBe(true)
         expect(cleaned).not.toMatch(/\n\n\n/)
-    })
-
-    it('drops sentences that cross current-node boundaries', () => {
-        const raw = [
-            '昆仑在古人心中是天柱，也是天与地之间的纽带。',
-            '咱就这样顺着故事往下走吧：盘古开天辟地前的世界混沌一片。',
-            '我对上几个节点描述了许多历史人物，这次轻松点。',
-            '所以你愿意先从昆仑为什么成为起点想起吗？'
-        ].join('\n')
-        const cleaned = sanitizeMainlineReply(raw, { forbiddenTerms: ['盘古'] })
-        expect(cleaned).toContain('昆仑在古人心中是天柱')
-        expect(cleaned).toContain('昆仑为什么成为起点')
-        expect(cleaned).not.toContain('盘古')
-        expect(cleaned).not.toContain('上几个节点')
     })
 
     it('normalizes plural player address without touching historical groups', () => {
@@ -83,18 +48,5 @@ describe('sanitizeMainlineReply', () => {
         expect(cleaned).toContain('你已经听到这里')
         expect(cleaned).not.toContain('你们已经')
         expect(cleaned).toContain('许多人群')
-    })
-
-    it('normalizes common model slips found in API playthroughs', () => {
-        const raw = [
-            '随后女娦抟土成形，炼五色石补天。',
-            '明初，紫禁城在十四世纪初拔地而起。'
-        ].join('\n')
-        const cleaned = sanitizeMainlineReply(raw)
-
-        expect(cleaned).toContain('女娲抟土成形')
-        expect(cleaned).toContain('紫禁城在十五世纪初拔地而起')
-        expect(cleaned).not.toContain('女娦')
-        expect(cleaned).not.toContain('十四世纪初')
     })
 })

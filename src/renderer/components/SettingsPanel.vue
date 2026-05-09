@@ -5,13 +5,7 @@ import type { BgmControllerState } from "../../presentation/bgmController.js";
 import { useFocusTrap } from "../composables/useFocusTrap.js";
 import SettingsAudioSection from "./SettingsAudioSection.vue";
 import SettingsModelSection from "./SettingsModelSection.vue";
-import type {
-  ModelProvider,
-  OpenAiCompatibleSettings,
-  PreferredModelMode,
-  ProfileAvailabilityStatus,
-  ProfileDownloadStatus,
-} from "./SettingsPanel.types.js";
+import type { OpenAiCompatibleSettings } from "./SettingsPanel.types.js";
 import type {
   DesktopOpenAiCompatibleTestRequest,
   DesktopOpenAiCompatibleTestResult,
@@ -20,12 +14,7 @@ import type {
 interface Props {
   open: boolean;
   bgm: BgmControllerState;
-  modelProvider: ModelProvider;
   openAiCompatible: OpenAiCompatibleSettings;
-  preferredModelMode: PreferredModelMode;
-  selectedProfileId: string | null;
-  profileAvailability?: Record<string, ProfileAvailabilityStatus>;
-  downloadStatus?: ProfileDownloadStatus | null;
   runConnectionTest?: (
     request: DesktopOpenAiCompatibleTestRequest,
   ) => Promise<DesktopOpenAiCompatibleTestResult>;
@@ -35,16 +24,10 @@ interface Emits {
   (event: "close"): void;
   (event: "toggle-bgm"): void;
   (event: "set-volume", value: number): void;
-  (event: "set-model-provider", provider: ModelProvider): void;
   (event: "update-openai-compatible", settings: OpenAiCompatibleSettings): void;
-  (event: "set-model-mode", mode: PreferredModelMode): void;
-  (event: "download-profile", profileId: string): void;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  profileAvailability: () => ({}),
-  downloadStatus: null,
-});
+const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const panelRef = ref<HTMLElement | null>(null);
@@ -95,17 +78,9 @@ useFocusTrap(toRef(props, "open"), panelRef);
         data-testid="settings-model-section"
       >
         <SettingsModelSection
-          :preferred-model-mode="preferredModelMode"
-          :model-provider="modelProvider"
           :open-ai-compatible="openAiCompatible"
-          :selected-profile-id="selectedProfileId"
-          :profile-availability="profileAvailability"
-          :download-status="downloadStatus"
           :run-connection-test="runConnectionTest"
-          @set-model-provider="(provider) => emit('set-model-provider', provider)"
           @update-openai-compatible="(settings) => emit('update-openai-compatible', settings)"
-          @set-model-mode="(mode) => emit('set-model-mode', mode)"
-          @download-profile="(profileId) => emit('download-profile', profileId)"
         />
       </section>
     </div>

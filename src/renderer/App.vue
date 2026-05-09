@@ -11,22 +11,9 @@ import {
 } from "../runtime/runtimeState.js";
 import { serializeRuntimeStateForDesktop } from "../runtime/runtimeStateFacade.js";
 import { mainlineStoryOutline } from "../content/source/mainlineOutline.js";
-import {
-  getFallbackModelProfile,
-  getProModelProfile,
-  getAllKnownModelProfiles,
-  findModelProfileById,
-} from "../modeling/modelProfiles.js";
 import type { StoryNode } from "../shared/contracts/contentContracts.js";
-import type {
-  ModelProvider,
-  OpenAiCompatibleSettings,
-  ProfileDownloadStatus,
-} from "./components/SettingsPanel.types.js";
-import type {
-  DesktopBridge,
-  DesktopProfileDownloadProgressEvent,
-} from "../shared/types/desktop.js";
+import type { OpenAiCompatibleSettings } from "./components/SettingsPanel.types.js";
+import type { DesktopBridge } from "../shared/types/desktop.js";
 import {
   createBgmController,
   type BgmControllerState,
@@ -50,15 +37,14 @@ import {
 } from "./adapters/rendererDialogueDependencies.js";
 import { defaultAssetManifest } from "./assets/manifest.js";
 import { resolveAssetPath } from "../shared/contracts/assetManifest.js";
+import bgmMainThemeUrl from "./assets/audio/bgm-main-theme.mp3?url";
 
-// --- Canonical 8 节点主线（Part 02 · mainlineStoryOutline） --------------
 const storyOutline = mainlineStoryOutline;
 const nodesById = new Map<string, StoryNode>(
   storyOutline.nodes.map((n) => [n.id, n]),
 );
 const findNode = (id: string): StoryNode | null => nodesById.get(id) ?? null;
 
-// --- 运行时状态（态度值 / 已读节点 / 摘要由 outline 驱动重建） ----------
 const runtimeState = ref<RuntimeState>(createDefaultRuntimeState(storyOutline));
 const currentNode = computed<StoryNode | null>(() =>
   findNode(runtimeState.value.currentNodeId),
@@ -70,7 +56,7 @@ const turn = createTurnController();
 
 const bgm = createBgmController({ enabled: true });
 const bgmState = ref<BgmControllerState>(bgm.snapshot());
-const bgmSrc = ref<string | null>(null);
+const bgmSrc = ref<string | null>(bgmMainThemeUrl);
 
 const refreshBgm = (next: BgmControllerState): void => {
   bgmState.value = next;
@@ -78,95 +64,7 @@ const refreshBgm = (next: BgmControllerState): void => {
 
 const settingsOpen = ref(false);
 
-// 轻量模型标识：当选中非 Pro（7B）档位时，叙事密度已按小模型模板压缩。
-const selectedProfileId = ref<string | null>(null);
-const isFallbackModel = computed(
-  () => selectedProfileId.value === getFallbackModelProfile().id,
-);
-const selectedProfileLabel = computed(() => {
-  if (selectedProfileId.value == null) {
-    return "检测中";
-  }
-  const profile = findModelProfileById(selectedProfileId.value);
-  return profile?.label ?? selectedProfileId.value;
-});
-
-const profileAvailability = ref<
-  Record<string, "ready" | "partial" | "missing" | "unknown">
->({});
-const downloadStatus = ref<ProfileDownloadStatus | null>(null);
-
-const refreshProfileAvailability = async (
-  profileId?: string,
-): Promise<void> => {
-  const bridge = getBridge();
-  if (!bridge) return;
-  const idsToCheck = profileId
-    ? [profileId]
-    : getAllKnownModelProfiles().map((profile) => profile.id);
-  for (const id of idsToCheck) {
-    try {
-      const availability = await bridge.getProfileAvailability(id);
-      profileAvailability.value = {
-        ...profileAvailability.value,
-        [id]: availability.status,
-      };
-    } catch (error) {
-      console.warn("[app] getProfileAvailability failed", id, error);
-    }
-  }
-};
-
-const onDownloadProfile = async (profileId: string): Promise<void> => {
-  const bridge = getBridge();
-  if (!bridge) return;
-  if (downloadStatus.value != null) return;
-  downloadStatus.value = {
-    profileId,
-    phase: "starting",
-    fileIndex: 0,
-    totalFiles: 0,
-    message: "开始下载…",
-  };
-  try {
-    const result = await bridge.downloadProfile(profileId);
-    if (!result.ok) {
-      downloadStatus.value = {
-        profileId,
-        phase: "failed",
-        fileIndex: 0,
-        totalFiles: 0,
-        message: result.message,
-      };
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    downloadStatus.value = {
-      profileId,
-      phase: "failed",
-      fileIndex: 0,
-      totalFiles: 0,
-      message,
-    };
-  }
-  await refreshProfileAvailability(profileId);
-  if (
-    downloadStatus.value != null &&
-    (downloadStatus.value.phase === "completed" ||
-      downloadStatus.value.phase === "failed")
-  ) {
-    // 保留最终状态给 UI，2 秒后清空。
-    const finalStatus = downloadStatus.value;
-    setTimeout(() => {
-      if (downloadStatus.value === finalStatus) {
-        downloadStatus.value = null;
-      }
-    }, 2000);
-  }
-};
-
 const recentTurns = ref<string[]>([]);
-
 const attitudeChoiceMode = ref<PlayerAttitudeChoice>("align");
 
 const dialogueSession = createDialogueSession({
@@ -189,7 +87,7 @@ const runConnectionTest = async (
       ok: false,
       reason: "network",
       message:
-        "未检测到 Electron 桌面端能力（kunlunDesktop bridge 不存在）；请在打包后的桌面应用中使用此功能。",
+        "未检测到 Electron 桌面端能力；请在打包后的桌面应用中使用此功能。",
     };
   }
   return await bridge.testOpenAiCompatibleConnection(request);
@@ -197,9 +95,7 @@ const runConnectionTest = async (
 
 const persistState = async (): Promise<void> => {
   const bridge = getBridge();
-  if (!bridge) {
-    return;
-  }
+  if (!bridge) return;
   try {
     await bridge.saveRuntimeState(
       serializeRuntimeStateForDesktop(runtimeState.value),
@@ -211,19 +107,16 @@ const persistState = async (): Promise<void> => {
 
 const restoreFromBridge = async (): Promise<void> => {
   const bridge = getBridge();
-  if (!bridge) {
-    return;
-  }
+  if (!bridge) return;
   try {
     const snapshot = await bridge.loadRuntimeState();
     runtimeState.value = runtimeStateSchema.parse(snapshot.state);
     refreshBgm(
       runtimeState.value.settings.bgmEnabled ? bgm.enable() : bgm.disable(),
     );
-    // 存档损坏时向用户明示：避免恢复默认存档后“为什么进度丢了”的错感。
     if (snapshot.recoveryAction === "reset-corrupted") {
       saveRecoveryNotice.value =
-        "上次存档文件无法读取，已重置为默认状态。原始文件已被覆写。";
+        "上次存档文件无法读取，已重置为默认状态。";
     }
   } catch (error) {
     console.error("[app] loadRuntimeState failed", error);
@@ -235,13 +128,8 @@ const dismissSaveRecoveryNotice = (): void => {
   saveRecoveryNotice.value = null;
 };
 
-// 当玩家选择 OpenAI-compatible 但还没填 API Key 时，给一条明确的引导，
-// 而不是等真正调用 fetch 抛出 "OpenAI-compatible API key is required..." 这种生硬错误。
 const apiKeyMissingNotice = ref<string | null>(null);
 const isApiProviderConfigured = computed<boolean>(() => {
-  if (runtimeState.value.settings.modelProvider !== "openai-compatible") {
-    return true;
-  }
   const cfg = runtimeState.value.settings.openAiCompatible;
   return cfg.apiKey.trim().length > 0 && cfg.model.trim().length > 0;
 });
@@ -251,7 +139,7 @@ const promptForApiKeyIfMissing = (): boolean => {
     return true;
   }
   apiKeyMissingNotice.value =
-    "请先在“设置 → 模型来源”里填写 OpenAI-compatible API Key 与模型名，再开始对话。";
+    '请先在「设置」里填写 API Key 与模型名，再开始对话。';
   settingsOpen.value = true;
   return false;
 };
@@ -259,15 +147,19 @@ const dismissApiKeyMissingNotice = (): void => {
   apiKeyMissingNotice.value = null;
 };
 
+const useMockStreamFlag = ref(true);
+const aiSource = ref<"real" | "mock">("mock");
+const aiSourceLabel = computed(() => {
+  if (aiSource.value === "mock") return "预览脚本模式";
+  const cfg = runtimeState.value.settings.openAiCompatible;
+  return `API · ${cfg.model}`;
+});
+
 const runTurn = async (): Promise<void> => {
   await ensureDialogueSourceReady();
   const node = currentNode.value;
-  if (!node) {
-    return;
-  }
-  if (aiSource.value === "real" && !promptForApiKeyIfMissing()) {
-    return;
-  }
+  if (!node) return;
+  if (aiSource.value === "real" && !promptForApiKeyIfMissing()) return;
   await dialogueSession.runTurn(
     {
       node,
@@ -298,11 +190,7 @@ const onStartMainline = (): void => {
 
 const onChoose = (choice: ChoiceModel): void => {
   attitudeChoiceMode.value = choice.id;
-  // 升华轮：主线已经完成后不再让选项推动任何状态 ——
-  // 玩家看到的是 EndingOverlay，底层选择被忽略，避免"在最后一轮死循环"。
-  if (runtimeState.value.isCompleted) {
-    return;
-  }
+  if (runtimeState.value.isCompleted) return;
   recentTurns.value = [
     ...recentTurns.value,
     buildRecentTurnMemory({
@@ -310,7 +198,6 @@ const onChoose = (choice: ChoiceModel): void => {
       choice,
     }),
   ].slice(-5);
-  // Part 04 · applyPlayerChoice 负责态度值钳制、已读节点、摘要重建、主线推进。
   runtimeState.value = applyPlayerChoice({
     state: runtimeState.value,
     storyOutline,
@@ -345,34 +232,6 @@ const onToggleBgm = (): void => {
     settings: {
       ...runtimeState.value.settings,
       bgmEnabled: bgmState.value.enabled,
-    },
-  };
-  void persistState();
-};
-const onSetModelMode = (mode: "default" | "compatibility" | "pro"): void => {
-  if (runtimeState.value.settings.preferredModelMode === mode) {
-    return;
-  }
-  runtimeState.value = {
-    ...runtimeState.value,
-    settings: {
-      ...runtimeState.value.settings,
-      preferredModelMode: mode,
-    },
-  };
-  void persistState();
-  // 新模式在下一轮 `runMainlineTurn` 时生效；主进程会根据
-  // runtimeState.settings.preferredModelMode 重新 bootstrapPlan。
-};
-const onSetModelProvider = (provider: ModelProvider): void => {
-  if (runtimeState.value.settings.modelProvider === provider) {
-    return;
-  }
-  runtimeState.value = {
-    ...runtimeState.value,
-    settings: {
-      ...runtimeState.value.settings,
-      modelProvider: provider,
     },
   };
   void persistState();
@@ -414,70 +273,21 @@ interface KunlunDebug {
   getLastOptions(): { semantic: PlayerAttitudeChoice; label: string }[];
 }
 
-const useMockStreamFlag = ref(true);
-// 推荐给 UI 指示器读的 "当前一轮对话源头"：【real · 桌面本地模型】或【mock · 预览脚本】。
-// 玩家凭这个 chip 就能在 pnpm dev 里一眼判断输出是否真的走了本地 AI。
-const aiSource = ref<"real" | "mock">("mock");
-const aiSourceLabel = computed(() => {
-  if (aiSource.value === "mock") {
-    return "预览脚本模式";
-  }
-  if (
-    runtimeState.value.settings.modelProvider === "openai-compatible" &&
-    runtimeState.value.settings.openAiCompatible.apiKey.trim().length > 0
-  ) {
-    return `API 模型 · ${runtimeState.value.settings.openAiCompatible.model}`;
-  }
-  return `本地 AI · ${selectedProfileLabel.value}`;
-});
-let unsubscribeDownloadProgress: (() => void) | null = null;
-let dialogueSourceReadyPromise: Promise<void> | null = null;
-// 环境探测：在真实 Electron 桌面壳里自动切到真模型；浏览器预览仍走 mock。
-const detectBridgeAvailable = (): boolean => {
-  const bridge = window.kunlunDesktop;
-  return bridge != null && typeof bridge.runMainlineTurn === "function";
-};
-
-// 预加载 preload 与渲染进程存在微小竞态：某些环境下 kunlunDesktop 会在
-// onMounted 之后几十毫秒才被注入。这里连续重试几次，避免被永久锁在 mock。
-const waitForDesktopBridge = async (
-  attempts: number = 8,
-  intervalMs: number = 80,
-): Promise<boolean> => {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    if (detectBridgeAvailable()) {
-      return true;
-    }
-    await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
-  }
-  return detectBridgeAvailable();
-};
-
 const applyDependenciesFactory = (): void => {
   if (useMockStreamFlag.value) {
-    // 复用默认工厂：它会把 turnIndex / attitude / isCompleted 透传给 mock，
-    // 让每一次开场都因为玩家的历史选择而略有不同，而不是"开始游戏输出都一样"。
     dialogueSession.setDependenciesFactory(
       createDefaultDialogueDependenciesFactory(),
     );
     return;
   }
-  // 真实本地模型：通过桌面 bridge IPC 把每一轮对话派发到主进程，
-  // 让 node-llama-cpp 加载 GGUF 并跑完一轮后回传 chunks + options。
-  // 走 getBridge() 拿到经 Zod 校验包裹的 bridge，runMainlineTurn 的返回值会
-  // 在抵达 dialogueSession 前先做结构校验，防止主进程实现漂移引发 UI 崩溃。
   const bridge = getBridge();
   if (bridge == null || typeof bridge.runMainlineTurn !== "function") {
     const unavailableFactory: DialogueDependenciesFactory = () => ({
       streamText: async function* () {
-        throw new Error(
-          "桌面 bridge 尚未注入或 runMainlineTurn 不可用（可能在非 Electron 环境运行）。",
-        );
+        throw new Error("桌面 bridge 尚未注入。");
       },
       generateOptions: async () => {
-        throw new Error(
-          "桌面 bridge 尚未注入或 runMainlineTurn 不可用（可能在非 Electron 环境运行）。",
-        );
+        throw new Error("桌面 bridge 尚未注入。");
       },
     });
     dialogueSession.setDependenciesFactory(unavailableFactory);
@@ -486,7 +296,6 @@ const applyDependenciesFactory = (): void => {
   const bridgeFactory = createBridgeDialogueDependenciesFactory(bridge);
   dialogueSession.setDependenciesFactory((context) => {
     if (context.runtimeState.isCompleted) {
-      // 升华轮不需要真正唤起本地模型，直接用本地 mock 的结尾分支即可。
       return buildMockDialogueDependencies(context.node, {
         attitudeChoiceMode: context.attitudeChoiceMode,
         turnIndex: context.runtimeState.turnIndex,
@@ -498,43 +307,32 @@ const applyDependenciesFactory = (): void => {
   });
 };
 
+const detectBridgeAvailable = (): boolean => {
+  const bridge = window.kunlunDesktop;
+  return bridge != null && typeof bridge.runMainlineTurn === "function";
+};
+
+const waitForDesktopBridge = async (
+  attempts: number = 8,
+  intervalMs: number = 80,
+): Promise<boolean> => {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (detectBridgeAvailable()) return true;
+    await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
+  }
+  return detectBridgeAvailable();
+};
+
 const initializeDesktopBridge = async (): Promise<void> => {
   const available = await waitForDesktopBridge();
   useMockStreamFlag.value = !available;
   aiSource.value = available ? "real" : "mock";
   applyDependenciesFactory();
-
-  if (!available) {
-    return;
-  }
-
-  const bridge = getBridge();
-  if (!bridge) {
-    return;
-  }
-
+  if (!available) return;
   await restoreFromBridge();
-  try {
-    const snapshot = await bridge.getStartupSnapshot();
-    selectedProfileId.value = snapshot.modelSetup.selectedProfileId;
-  } catch (error) {
-    console.warn("[app] getStartupSnapshot failed", error);
-  }
-  await refreshProfileAvailability();
-  if (unsubscribeDownloadProgress == null) {
-    unsubscribeDownloadProgress = bridge.onProfileDownloadProgress(
-      (event: DesktopProfileDownloadProgressEvent) => {
-        downloadStatus.value = {
-          profileId: event.profileId,
-          phase: event.phase,
-          fileIndex: event.fileIndex,
-          totalFiles: event.totalFiles,
-          message: event.message,
-        };
-      },
-    );
-  }
 };
+
+let dialogueSourceReadyPromise: Promise<void> | null = null;
 
 const ensureDialogueSourceReady = async (): Promise<void> => {
   if (dialogueSourceReadyPromise == null) {
@@ -581,10 +379,6 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   dialogueSession.cancel();
-  if (unsubscribeDownloadProgress) {
-    unsubscribeDownloadProgress();
-    unsubscribeDownloadProgress = null;
-  }
 });
 
 const demoCharacter = computed(() => ({
@@ -597,9 +391,7 @@ const demoCharacter = computed(() => ({
 }));
 
 const backgroundAssetPath = computed<string | null>(() => {
-  if (!currentNode.value) {
-    return null;
-  }
+  if (!currentNode.value) return null;
   return resolveAssetPath(
     defaultAssetManifest,
     `background.${currentNode.value.id}.scene`,
@@ -635,7 +427,6 @@ const onQuitFromEnding = (): void => {
     void bridge.quitApp();
     return;
   }
-  // 浏览器/预览环境下退出表现为重启主线。
   void beginMainline();
 };
 </script>
@@ -653,13 +444,7 @@ const onQuitFromEnding = (): void => {
     :bgm="bgmState"
     :bgm-src="bgmSrc"
     :settings-open="settingsOpen"
-    :is-fallback-model="isFallbackModel"
-    :model-provider="runtimeState.settings.modelProvider"
     :open-ai-compatible="runtimeState.settings.openAiCompatible"
-    :preferred-model-mode="runtimeState.settings.preferredModelMode"
-    :selected-profile-id="selectedProfileId"
-    :profile-availability="profileAvailability"
-    :download-status="downloadStatus"
     :run-connection-test="runConnectionTest"
     speaker-label="昆仑子"
     @retry="onRetry"
@@ -669,11 +454,8 @@ const onQuitFromEnding = (): void => {
     @close-settings="onCloseSettings"
     @toggle-bgm="onToggleBgm"
     @set-volume="onSetVolume"
-    @set-model-provider="onSetModelProvider"
     @update-openai-compatible="onUpdateOpenAiCompatible"
     @bgm-source-resolved="onBgmSource"
-    @set-model-mode="onSetModelMode"
-    @download-profile="onDownloadProfile"
   />
   <button
     v-if="showStartButton"
@@ -691,8 +473,8 @@ const onQuitFromEnding = (): void => {
     data-testid="ai-source-chip"
     :title="
       aiSource === 'real'
-        ? '当前一轮对话由桌面本地模型生成（本地 GGUF）。'
-        : '当前一轮对话是预览脚本输出，未调用本地 AI。'
+        ? '当前对话由 API 模型生成。'
+        : '当前对话是预览脚本输出，未调用 AI。'
     "
   >
     {{ aiSourceLabel }}

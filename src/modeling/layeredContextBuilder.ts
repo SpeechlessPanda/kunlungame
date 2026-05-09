@@ -6,97 +6,35 @@ export interface LayeredContextInput {
   }
   retrievedKnowledge: string[]
   memorySummary: string
-  /**
-   * 你（storyPromptBuilder）已经从每段历史输出里抽了"开场+收尾+特征句"的指纹。
-   * 本层不直接展示玩家 / 模型上一轮的完整回复——3B 会把完整的上一轮输出当作模板
-   * 几乎逐字重排。只把指纹作为"禁句"注入，配合 engine 层的 repeatPenalty 抑制复读。
-   */
-  recentTurnFingerprints?: string[]
-  /**
-   * 压缩后的上一轮模型输出/剧情连续性。不同于禁句指纹，这部分是允许模型理解的上下文，
-   * 但已经被截短和去标签化，避免把整段原文当模板复诵。
-   */
-  recentTurnContinuity?: string[]
-  /**
-   * 额外注入的"本轮必须避开的开头 / 口癖"清单。会与 recentTurnFingerprints 合并展示。
-   */
-  avoidOpeners?: string[]
-  /**
-   * 由 storyPromptBuilder 注入的、从后续节点展开出来的禁用专有名词 / 主题词。
-   * 这里用自然语言点名，避免只说抽象的 topic id，让模型看得懂。
-   */
+  recentTurns?: string[]
   forbiddenProperNouns?: string[]
 }
 
-/**
- * 把本轮需要的上下文拼成一段结构化中文 prompt。
- *
- * 设计要点：
- *   1) 不把完整的上一轮输出回传给模型——3B 实测会把它当模板整段复诵；
- *      storyPromptBuilder 会先抽取开场+收尾指纹，作为禁句列表传进来。
- *   2) 最后一段 `# 现在开始说话` 明确告诉模型"不得出现分隔线/元标签/模板化开头"，
- *      配合 realLlamaSession 的 repeatPenalty 抑制复读。
- */
 export const buildLayeredContext = (input: LayeredContextInput): string => {
-  const bannedPhrases: string[] = [
-    ...(input.avoidOpeners ?? []),
-    ...(input.recentTurnFingerprints ?? [])
-  ]
-  const avoidBlock = bannedPhrases.length > 0
-    ? bannedPhrases.map((phrase, i) => `- 禁句 ${i + 1}：${phrase}`).join('\n')
-    : '（本轮没有额外禁句，但依然不得复读自己上一轮的任何句子。）'
-
   const forbiddenNounsBlock =
     input.forbiddenProperNouns != null && input.forbiddenProperNouns.length > 0
-      ? `本轮严禁提到以下后续节点才会展开的专有名词 / 人物 / 事件：${input.forbiddenProperNouns.join('、')}。`
+      ? `严禁提到以下后续节点的专有名词/人物/事件：${input.forbiddenProperNouns.join('、')}。`
       : '（本节点没有额外需要避开的后续专有名词。）'
 
-  const continuityBlock = input.recentTurnContinuity != null && input.recentTurnContinuity.length > 0
+  const continuityBlock = input.recentTurns != null && input.recentTurns.length > 0
     ? [
-        '下面是已经发生过的对话压缩摘要，只用于保持逻辑连续；不要照抄句式。',
-        ...input.recentTurnContinuity.map((turn, index) => `- 上文 ${index + 1}：${turn}`)
+        '以下是已经发生过的对话记录，用于保持逻辑连续：',
+        ...input.recentTurns.map((turn, index) => `[第${index + 1}轮] ${turn}`)
       ].join('\n')
-    : '（暂无可用的上一轮内容；按当前节点自然开场。）'
+    : '（暂无历史对话记录。）'
 
   const sections: Array<[string, string]> = [
-    ['# 固定规则', input.systemRules.join('\n')],
+    ['# 角色校准', input.systemRules.join('\n')],
     ['# 当前节点', `${input.currentNode.title}\n${input.currentNode.summary}`],
     [
-      '# 可用的知识条目（必须把它们自然讲进来，不要念清单）',
+      '# 可用的知识条目',
       input.retrievedKnowledge.length === 0
-        ? '（暂无专门检索到的条目，依靠节点 mustIncludeFacts 即可。）'
-        : [
-            '下面是本轮检索到的 RAG 知识卡。它们是事实依据，不是成稿。',
-            '请先理解卡片，再用本轮角色语气重新组织成自然对白；知识段也必须保持同一人格与态度刻度。',
-            input.retrievedKnowledge.join('\n\n')
-          ].join('\n')
+        ? '（暂无专门检索到的条目，依靠节点必须包含的事实即可。）'
+        : input.retrievedKnowledge.join('\n\n')
     ],
     ['# 历史摘要', input.memorySummary],
-    ['# 上文连续性', continuityBlock],
-    [
-      '# 本轮剧情边界（严格）',
-      forbiddenNounsBlock
-    ],
-    [
-      '# 本轮必须避免的开头 / 口癖 / 已用过的句式',
-      [
-        '下面是你上一轮用过的开头、收尾、特征性短句——本轮全部不得再次出现，',
-        '也不得只做同义词替换后再抄一遍。必须换一个切入角度、换一组具体史实细节。',
-        avoidBlock
-      ].join('\n')
-    ],
-    [
-      '# 现在开始说话',
-      [
-        '请你直接以"昆仑子"这个文化引路人的口吻开始这一轮对话的正文。',
-        '不要输出任何以下内容：',
-        '- 内部历史标签、角色标签、系统标签、用户标签等元标签；',
-        '- 三道横线 "---" / "===" 之类分隔符；',
-        '- 编号列表、项目符号、Markdown 标题；',
-        '- 对自己上一轮句子的任何直接复读或近义改写。',
-        '违反上面任何一条都算本轮失败。'
-      ].join('\n')
-    ]
+    ['# 上文回顾', continuityBlock],
+    ['# 剧情边界', forbiddenNounsBlock]
   ]
 
   return sections

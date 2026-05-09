@@ -1,14 +1,10 @@
 import type {
   DesktopBridge,
-  DesktopDialogueSmokeResult,
-  DesktopDownloadProfileResult,
   DesktopMainlineTurnRequest,
   DesktopMainlineTurnResult,
   DesktopMainlineTurnStreamEvent,
   DesktopOpenAiCompatibleTestRequest,
   DesktopOpenAiCompatibleTestResult,
-  DesktopProfileAvailability,
-  DesktopProfileDownloadProgressEvent,
   DesktopRuntimeStateSnapshot,
   DesktopSerializedRuntimeState,
   DesktopStartupSnapshot
@@ -82,9 +78,6 @@ export const createDesktopBridge = (renderer: IpcRendererLike): DesktopBridge =>
   async getStartupSnapshot(): Promise<DesktopStartupSnapshot> {
     return await renderer.invoke('desktop:get-startup-snapshot') as DesktopStartupSnapshot
   },
-  async runDialogueSmoke(): Promise<DesktopDialogueSmokeResult> {
-    return await renderer.invoke('desktop:run-dialogue-smoke') as DesktopDialogueSmokeResult
-  },
   async runMainlineTurn(request: DesktopMainlineTurnRequest): Promise<DesktopMainlineTurnResult> {
     return await renderer.invoke('desktop:run-mainline-turn', request) as DesktopMainlineTurnResult
   },
@@ -108,36 +101,11 @@ export const createDesktopBridge = (renderer: IpcRendererLike): DesktopBridge =>
   async saveRuntimeState(state: DesktopSerializedRuntimeState): Promise<void> {
     await renderer.invoke('desktop:save-runtime-state', state)
   },
-  async getProfileAvailability(profileId: string): Promise<DesktopProfileAvailability> {
-    return await renderer.invoke('desktop:get-profile-availability', profileId) as DesktopProfileAvailability
-  },
-  async downloadProfile(profileId: string): Promise<DesktopDownloadProfileResult> {
-    return await renderer.invoke('desktop:download-profile', profileId) as DesktopDownloadProfileResult
-  },
   async testOpenAiCompatibleConnection(request: DesktopOpenAiCompatibleTestRequest): Promise<DesktopOpenAiCompatibleTestResult> {
     return await renderer.invoke('desktop:test-openai-compatible', request) as DesktopOpenAiCompatibleTestResult
-  },
-  onProfileDownloadProgress(handler: (event: DesktopProfileDownloadProgressEvent) => void): () => void {
-    const listener = (_event: unknown, payload: unknown): void => {
-      handler(payload as DesktopProfileDownloadProgressEvent)
-    }
-    renderer.on?.('desktop:profile-download-progress', listener as (event: unknown, ...args: unknown[]) => void)
-    return () => {
-      renderer.removeListener?.('desktop:profile-download-progress', listener as (event: unknown, ...args: unknown[]) => void)
-    }
   }
 })
 
-/**
- * Synchronously expose the desktop bridge to the renderer.
- *
- * Earlier this was done via `await import('electron')`, which created a race:
- * the renderer's `onMounted` could detect `kunlunDesktop` as `undefined` and
- * permanently fall back to mock dependencies, so `pnpm dev` would never run
- * the real local model. Loading `electron` synchronously via `require` (the
- * preload bundle is CommonJS) guarantees the bridge exists before the page
- * script evaluates.
- */
 const registerDesktopBridge = (): void => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const electronModule = require('electron') as {

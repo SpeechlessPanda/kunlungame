@@ -15,8 +15,6 @@ export const serializeRuntimeStateForDesktop = (state: RuntimeState): DesktopSer
   isCompleted: state.isCompleted,
   settings: {
     bgmEnabled: state.settings.bgmEnabled,
-    preferredModelMode: state.settings.preferredModelMode,
-    modelProvider: state.settings.modelProvider,
     openAiCompatible: {
       apiKey: state.settings.openAiCompatible.apiKey,
       baseUrl: state.settings.openAiCompatible.baseUrl,

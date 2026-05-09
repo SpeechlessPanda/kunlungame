@@ -22,12 +22,10 @@ describe('createDefaultRuntimeState', () => {
     expect(result.turnIndex).toBe(0)
     expect(result.attitudeScore).toBe(0)
     expect(result.settings.bgmEnabled).toBe(true)
-    expect(result.settings.preferredModelMode).toBe('default')
-    expect(result.settings.modelProvider).toBe('openai-compatible')
     expect(result.settings.openAiCompatible).toEqual({
       apiKey: '',
-      baseUrl: 'https://api.openai.com/v1',
-      model: 'gpt-4o-mini',
+      baseUrl: 'https://ai-api.vaa.la/v1',
+      model: 'kimi-for-coding',
       fallbackModels: []
     })
     expect(result.readNodeIds).toEqual([])
@@ -43,8 +41,6 @@ describe('createDefaultRuntimeState', () => {
   it('can reset story progress while preserving user model settings', () => {
     const result = createDefaultRuntimeState(mainlineStoryOutline, {
       bgmEnabled: false,
-      preferredModelMode: 'pro',
-      modelProvider: 'openai-compatible',
       openAiCompatible: {
         apiKey: 'sk-test',
         baseUrl: 'https://api.example.test/v1',
@@ -57,8 +53,6 @@ describe('createDefaultRuntimeState', () => {
     expect(result.turnIndex).toBe(0)
     expect(result.settings).toEqual({
       bgmEnabled: false,
-      preferredModelMode: 'pro',
-      modelProvider: 'openai-compatible',
       openAiCompatible: {
         apiKey: 'sk-test',
         baseUrl: 'https://api.example.test/v1',
@@ -231,8 +225,6 @@ describe('runtime state serialization', () => {
       readNodeIds: ['kunlun-prologue'],
       settings: {
         bgmEnabled: false,
-        preferredModelMode: 'pro' as const,
-        modelProvider: 'openai-compatible' as const,
         openAiCompatible: {
           apiKey: 'sk-test',
           baseUrl: 'https://api.example.test/v1',
@@ -259,15 +251,13 @@ describe('runtime state serialization', () => {
       readNodeIds: [],
       isCompleted: false,
       settings: {
-        bgmEnabled: true,
-        preferredModelMode: 'default'
+        bgmEnabled: true
       }
     })
 
     const restored = deserializeRuntimeState(legacyPayload)
 
-    expect(restored.settings.modelProvider).toBe('openai-compatible')
-    expect(restored.settings.openAiCompatible.model).toBe('gpt-4o-mini')
+    expect(restored.settings.openAiCompatible.model).toBe('kimi-for-coding')
     expect(restored.settings.openAiCompatible.fallbackModels).toEqual([])
   })
 })
