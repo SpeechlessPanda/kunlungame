@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Gauge, ScrollText, Sparkles } from "lucide-vue-next";
+import { ScrollText, Sparkles } from "lucide-vue-next";
 import type { StoryNode } from "../../shared/contracts/contentContracts.js";
 
 interface Props {

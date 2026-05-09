@@ -34,11 +34,12 @@ export const appendChunk = (
   if (buffer.completed) {
     return buffer
   }
-  if (chunk.length === 0) {
+  const normalized = chunk.replace(/\n{2,}/g, '\n')
+  if (normalized.length === 0) {
     return buffer
   }
   return {
-    fullText: buffer.fullText + chunk,
+    fullText: buffer.fullText + normalized,
     revealedLength: buffer.revealedLength,
     completed: false
   }
