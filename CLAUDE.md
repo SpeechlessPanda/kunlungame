@@ -71,8 +71,95 @@ All IPC goes through `desktop:*` channels. The preload exposes a typed `DesktopB
 - **Language**: Code comments and commit messages are in Chinese; variable names in English
 - **Zod schemas as single source of truth**: TS types are derived via `z.infer<>()` from Zod schemas, not hand-written
 - **API-only model**: The game connects via OpenAI-compatible API only. No local model support.
-- **Logs go to `logs/`**: playthroughs → `logs/playthroughs/`
+- **Logs go to `logs/`**: playthroughs → `logs/playthroughs/`, smoke logs → `logs/dialogue-smoke/`
 - **`pnpm audit` requires `--registry=https://registry.npmjs.org/`** because the default npmmirror doesn't provide an audit endpoint
+- **No slang in AI prompts**: Do not use words like "稳"、"拉扯"、"兜住" in character or content prompts. Replace with natural, detailed human-like descriptions. Reference `rvs-pack/rivus.txt` for the target style.
+
+## Source Control Workflow
+
+1. At the end of every work session, commit completed changes and push to GitHub.
+2. Do not create meaningless micro-commits. Default granularity: one completed session or one logically complete unit of work.
+3. Before committing, confirm the working tree only includes intended changes for the current session. Do not revert user-authored changes unless explicitly instructed.
+4. If push is blocked (auth, network, remote), report the exact blocker and keep the local commit.
+5. Before implementation, inspect the working tree: decide what to preserve, what's out of scope, and whether cleanup is needed first.
+6. For multi-step work, use a git worktree. Prefer `.worktrees/` (gitignored). If workspace is dirty, commit in-scope changes first.
+7. After worktree work is verified, merge back and remove the worktree. Delete obsolete worktrees promptly.
+8. At session end: zero uncommitted files. Every change is committed (and pushed) or explicitly deleted.
+9. At session end: audit `git worktree list` and remove obsolete worktrees.
+
+## Documentation Sync Rule
+
+1. Every code/content change must update affected docs in the same session.
+2. Update design docs or implementation plans when behavior, structure, scope, assets, test policy, or workflow changes.
+3. Update content format/authoring guides when content authoring is affected.
+4. Update release notes before release when release-facing behavior changes.
+5. When implementing against specs, update the spec file: mark completed, deferred, and blocked items.
+6. Archive or delete completed/obsolete spec files and plan documents. Do not leave ownerless documents.
+
+## Testing Policy
+
+1. Every feature must include both black-box and white-box tests when applicable.
+2. Black-box tests: externally observable behavior, user flows, state transitions, streaming output, save/restore, failure handling.
+3. White-box tests: prompt assembly, retrieval filtering, state transitions, parsers, scoring logic, error branches.
+4. Run tests immediately after implementation, not batched until the end.
+5. Coverage targets: overall ≥ 80%, core modules ≥ 90%.
+6. Core modules: story progression, attitude state, save system, knowledge compilation, knowledge retrieval, prompt building, AI stream orchestration.
+7. If a feature can't be covered by one test type, document the limitation and add the strongest alternative.
+
+## Release Audit Policy
+
+Before every formal release, perform and record:
+
+1. Dependency and security review
+2. Test suite and coverage review
+3. Build and packaging verification
+4. Startup and runtime smoke verification
+5. Performance and resource usage check
+6. Documentation and release note review
+7. Content and asset compliance review
+
+Record what passed, what failed, and what's deferred.
+
+## Engineering Quality Bar
+
+1. Follow industry best practices for architecture, typing, error handling, naming, modularity, and dependency management.
+2. Prefer clear boundaries: renderer, desktop shell, story state, retrieval, AI orchestration, presentation.
+3. Favor minimal, maintainable solutions over clever shortcuts.
+4. New code must match the best practices of the language/framework in use.
+5. Use `pnpm` as the default package manager.
+
+## Working With User Changes
+
+1. Pre-existing changes are intentional user work unless clearly otherwise.
+2. Build on top of them and modify when needed for the task.
+3. Do not revert or discard without explicit approval.
+
+## Conversation Continuation Rule
+
+1. Do not end the conversation immediately after finishing a task.
+2. If the next step is clear from the plan, execution state, or latest instruction, continue directly.
+3. Do not interrupt a working flow to restate obvious next steps. Only pause for real blockers or ambiguity.
+4. For long/context-heavy tasks, delegate to subagents when the work is independent.
+
+## Project-Specific Content Rule
+
+1. Mainline content planning must align with the hybrid background strategy.
+2. Story nodes explicitly decide: fictional, photographic, or composite.
+3. Mythic/symbolic nodes prefer fictional imagery.
+4. Historically grounded nodes prefer real photography or photo-led composites.
+5. Transitional nodes intentionally bridge modes instead of switching art arbitrarily.
+
+## Log File Management
+
+1. All log files go under `logs/`, organized by purpose in subdirectories.
+2. Remove or archive logs no longer useful.
+
+## Reusable Knowledge And Project Skills
+
+1. When a problem is solved, evaluate if the lesson is worth preserving.
+2. Write to `.claude/skills/` when: likely to recur, repo/toolchain-specific, counterintuitive, or encodes a validated workflow.
+3. Keep skills concise, procedural, and reusable. Prefer checklists and failure signatures.
+4. Do not create skills for trivial one-off issues.
 
 ## Testing Notes
 
