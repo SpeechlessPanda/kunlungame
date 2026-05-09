@@ -67,15 +67,8 @@ export const sanitizeMainlineReply = (raw: string, _options?: Record<string, unk
     cleanedLines.push(next)
   }
 
-  const collapsed: string[] = []
-  let prevBlank = false
-  for (const line of cleanedLines) {
-    const isBlank = line.trim().length === 0
-    if (isBlank && prevBlank) continue
-    collapsed.push(line)
-    prevBlank = isBlank
-  }
-  result = collapsed.join('\n').trim()
+  const nonBlank = cleanedLines.filter((line) => line.trim().length > 0)
+  result = nonBlank.join('\n').trim()
 
   // Enforce maximum length
   result = truncateToMaxChars(result, MAX_REPLY_LENGTH)
