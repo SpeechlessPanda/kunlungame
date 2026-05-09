@@ -170,7 +170,6 @@ const showErrorState = computed(() => props.view.snapshot.state === "error");
   gap: var(--space-3);
   color: var(--color-foreground);
   margin-top: var(--space-5);
-  overflow: hidden;
 }
 
 .dialog-panel::before,

@@ -67,24 +67,27 @@ const mapOptionsToChoiceModels = (options: DialogueOption[]): ChoiceModel[] => {
 }
 
 const defaultScheduleReveal = (controller: TurnController): () => void => {
-    // 自适应逐字呈现：基线 3 字/帧 @ 40ms => 75 字/秒，比之前 33 字/秒快一倍。
-    // 当后端已经把 chunk 铺得很厚时（backlog 越大），按 backlog 比例提速到最多 12 字/帧，
-    // 避免 API 流式回包后玩家还要再干等数秒才能看到全文。
-    const baseIntervalMs = 40
-    const handle = setInterval(() => {
-        const view = controller.view.value
-        const backlog = view.fullText.length - view.visibleText.length
-        let charsPerStep = 3
-        if (backlog > 200) charsPerStep = 12
-        else if (backlog > 120) charsPerStep = 8
-        else if (backlog > 60) charsPerStep = 5
-        controller.revealNext(charsPerStep)
-        const post = controller.view.value
-        if (post.snapshot.state !== 'streaming' && post.snapshot.state !== 'loading') {
-            clearInterval(handle)
-        }
-    }, baseIntervalMs)
-    return () => clearInterval(handle)
+  // 使用 requestAnimationFrame 代替 setInterval，让逐字呈现与浏览器重绘同步，
+  // 避免两个独立的响应式变更源（appendText 与 revealNext）在不同节奏下交替触发 DOM 更新导致闪烁。
+  let running = true
+  const tick = (): void => {
+    if (!running) return
+    const view = controller.view.value
+    const backlog = view.fullText.length - view.visibleText.length
+    let charsPerStep = 3
+    if (backlog > 200) charsPerStep = 12
+    else if (backlog > 120) charsPerStep = 8
+    else if (backlog > 60) charsPerStep = 5
+    controller.revealNext(charsPerStep)
+    const post = controller.view.value
+    if (post.snapshot.state !== 'streaming' && post.snapshot.state !== 'loading') {
+      running = false
+      return
+    }
+    requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+  return () => { running = false }
 }
 
 export const createDialogueSession = (

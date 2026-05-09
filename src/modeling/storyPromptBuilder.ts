@@ -175,7 +175,7 @@ export const buildStoryPrompt = (input: StoryPromptBuilderInput): StoryPrompt =>
     : `节点进度：这是本节点内的第 ${input.runtimeState.turnsInCurrentNode + 1} 轮对话——继续在本节点内深入。`
 
   const nextNodeSection = nextNodeHint != null
-    ? `\n\n## 下一站预览\n${nextNodeHint}\n你可以在本轮的结尾追问中，为过渡到"下一站"做一个自然的铺垫，但不要提前讲出下一站的史实内容。`
+    ? `\n\n## 下一站方向（仅供你了解后续走向，不要主动提及或暗示）\n${nextNodeHint}\n当前节点的追问应聚焦在本节点的话题内，自然结尾即可，不需要刻意为下一站铺垫。`
     : ''
 
   const recentTurnsBlock = input.recentTurns.length > 0

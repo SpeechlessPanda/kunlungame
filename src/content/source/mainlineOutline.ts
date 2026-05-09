@@ -115,7 +115,7 @@ export const mainlineStoryOutline: StoryOutline = {
       backgroundMode: 'fictional',
       backgroundHint: '祭火、耕作、星象与部族会盟的远古文明图景。',
       toneHint: '把抽象身份讲得贴近当代人的自我认同。',
-      transitionHint: '神话说到"人被造出来"之后，昆仑自然把话头引向"那这群人又是怎么开始把自己叫作‘我们’的"。',
+      transitionHint: '神话说到“人被造出来”之后，昆仑微微偏头，像在琢磨一个新的问题。',
       characterCueIds: ['guide.kunlun'],
       minTurns: 1,
       nextNodeId: 'order-and-thought'
@@ -148,7 +148,7 @@ export const mainlineStoryOutline: StoryOutline = {
       backgroundMode: 'composite',
       backgroundHint: '青铜礼器、竹简与学宫辩论场景并置。',
       toneHint: '理性清楚，但保留思想碰撞的张力。',
-      transitionHint: '讲完"共同身份"之后，昆仑把视线压低到祭坛与竹简，问：人多了以后怎么不打架？——把话题自然带进礼乐与诸子。',
+      transitionHint: '讲完"共同身份"之后，昆仑把视线压低到祭坛与竹简，好像听到了远处有人在争辩什么。',
       characterCueIds: ['guide.kunlun'],
       minTurns: 1,
       nextNodeId: 'empire-and-openness'
@@ -237,7 +237,7 @@ export const mainlineStoryOutline: StoryOutline = {
       backgroundMode: 'photographic',
       backgroundHint: '旧报刊、残损建筑与被抢救的典籍构成近代断裂的现场感。',
       toneHint: '克制、清醒，不消费苦难。',
-      transitionHint: '讲完"精致反复重写"之后，昆仑收起声音，带你走近一叠旧报和被包好的木匣——把话题引到"然后就是断裂，以及在断裂里有人把文脉托过去"。',
+      transitionHint: '讲完"精致反复重写"之后，昆仑收起声音，带你走近一叠旧报和被包好的木匣，表情变得安静了许多。',
       characterCueIds: ['guide.kunlun'],
       minTurns: 1,
       nextNodeId: 'contemporary-return'
@@ -265,7 +265,7 @@ export const mainlineStoryOutline: StoryOutline = {
       backgroundMode: 'composite',
       backgroundHint: '故宫文创、数字展陈与当代青年日常场景自然拼接。',
       toneHint: '回收前文，温暖但不空泛。',
-      transitionHint: '从守护者的身影转身回现代——昆仑把手放在你身边的一块屏幕/一本再版典籍上，问："那这一切，和今天的你有什么关系？"',
+      transitionHint: '从守护者的身影转身回现代——昆仑把手轻轻放在你身边的一块屏幕上，目光变得温柔。',
       characterCueIds: ['guide.kunlun'],
       minTurns: 1,
       nextNodeId: null
